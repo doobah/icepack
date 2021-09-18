@@ -1,15 +1,16 @@
+
+* field attribute: isReference, areItemsReference
+* deserialize
+* serialization callbacks: onbeforeserialize, onafterdeserialize
+* serialize dictionary, hashset
+
+///////////////////////////////////////
+
 serialized format:
 
-  [types, objects]
+  [objects, types]
 
 where
-
-  types:
-
-    [
-      [ type id, type name, field 1 name, field 2 name, ... ]
-      ...
-    ]
 
   objects:
   
@@ -32,18 +33,28 @@ where
         object reference:   JSON number        
 
         struct:        
-          [ type id, [ field 1 val, field 2 val, ... ] ]
+          [ type id, field 1 val, field 2 val, ... ]
 
         object:
           [
             id,
             type id,
-            [
-              [id of containing type, field 1 val, field 2 val],
-              [id of containing type, field 1 val]
-            ]
+            [id of containing type, field 1 val, field 2 val],
+            [id of containing type, field 1 val]
           ]
           
       an object with a surrogate type will be formatted as that type
       
       a field with a custom formatter will be formatted accordingly
+
+  types:
+
+    [
+      [ type id, type name, field 1 name, field 2 name, ... ],
+      ...
+    ]
+
+Rules:
+
+* Serializing boxed value types is not supported
+* Value types do not require a [SerializableObject] attribute to be serializable

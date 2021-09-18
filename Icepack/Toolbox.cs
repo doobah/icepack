@@ -19,7 +19,5 @@ namespace Icepack
         {
             return type.IsClass && type != typeof(string);
         }
-
-
     }
 }

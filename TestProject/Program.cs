@@ -10,6 +10,7 @@ namespace TestProject
     class Program
     {
         [JsonObject]
+        [SerializableObject]
         private class ClassB
         {
             private bool boolField;
@@ -27,6 +28,7 @@ namespace TestProject
         }
 
         [JsonObject]
+        [SerializableObject]
         private class ClassA
         {
             private int intField;
@@ -36,15 +38,11 @@ namespace TestProject
             [JsonProperty(IsReference = true)]
             private ClassB classBField;
 
-            [JsonProperty(IsReference = true)]
-            private bool[] boolArrayField;
-
             public ClassA()
             {
                 intField = 123;
                 stringField = "asdf";
                 classBField = new ClassB();
-                boolArrayField = new bool[] { true, true, false, true };
             }
 
             public int IntField
@@ -64,12 +62,6 @@ namespace TestProject
                 get { return classBField; }
                 set { classBField = value; }
             }
-
-            public bool[] BoolArrayField
-            {
-                get { return boolArrayField; }
-                set { boolArrayField = value; }
-            }
         }
 
         static void Main(string[] args)
@@ -78,27 +70,48 @@ namespace TestProject
             for (int i = 0; i < 1000000; i++)
                 list.Add(new ClassA());
 
+            DateTime startTime, endTime;
+
             {
+                Console.WriteLine("__Icepack__");
+
                 Serializer serializer = new Serializer();
-                DateTime startTime = DateTime.Now;
+                serializer.RegisterType(typeof(List<ClassA>));
+                serializer.RegisterType(typeof(bool[]));
+
+                startTime = DateTime.Now;
                 string str = serializer.Serialize(list);
-                DateTime endTime = DateTime.Now;
+                endTime = DateTime.Now;
 
-                Console.WriteLine(endTime - startTime);
-                Console.WriteLine(str.Length);
+                Console.WriteLine($"Serialize time: {endTime - startTime}");
+                Console.WriteLine($"Serialize size: {str.Length}");
+
+                startTime = DateTime.Now;
+                serializer.Deserialize<List<ClassA>>(str);
+                endTime = DateTime.Now;
+
+                Console.WriteLine($"Deserialize time: {endTime - startTime}");
             }
 
-            {
-                JsonSerializerSettings settings = new JsonSerializerSettings();
-                settings.TypeNameHandling = TypeNameHandling.Objects | TypeNameHandling.Arrays;
+            //{
+            //    Console.WriteLine("__JSON.NET__");
 
-                DateTime startTime = DateTime.Now;
-                string str = JsonConvert.SerializeObject(list, settings);
-                DateTime endTime = DateTime.Now;
+            //    JsonSerializerSettings settings = new JsonSerializerSettings();
+            //    settings.TypeNameHandling = TypeNameHandling.Objects | TypeNameHandling.Arrays;
 
-                Console.WriteLine(endTime - startTime);
-                Console.WriteLine(str.Length);
-            }
+            //    startTime = DateTime.Now;
+            //    string str = JsonConvert.SerializeObject(list, settings);
+            //    endTime = DateTime.Now;
+
+            //    Console.WriteLine($"Serialize time: {endTime - startTime}");
+            //    Console.WriteLine($"Serialize size: {str.Length}");
+
+            //    startTime = DateTime.Now;
+            //    JsonConvert.DeserializeObject<List<ClassA>>(str);
+            //    endTime = DateTime.Now;
+
+            //    Console.WriteLine($"Deserialize time: {endTime - startTime}");
+            //}
         }
     }
 }

@@ -21,9 +21,12 @@ namespace Icepack
             this.objectsToSerialize = new Queue<object>();
         }
 
-        public Dictionary<object, ulong> InstanceIds
+        public ulong GetInstanceId(object obj)
         {
-            get { return instanceIds; }
+            if (instanceIds.ContainsKey(obj))
+                return instanceIds[obj];
+
+            return Toolbox.NULL_ID;
         }
 
         public HashSet<Type> UsedTypes
@@ -36,9 +39,17 @@ namespace Icepack
             get { return objectsToSerialize; }
         }
 
-        public void RegisterInstance(object obj)
+        public ulong RegisterObject(object obj)
         {
-            instanceIds.TryAdd(obj, ++largestInstanceId);
+            ulong newId = ++largestInstanceId;
+            instanceIds.Add(obj, newId);
+
+            return newId;
+        }
+
+        public bool IsObjectRegistered(object obj)
+        {
+            return instanceIds.ContainsKey(obj);
         }
     }
 }
