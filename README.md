@@ -12,7 +12,7 @@ In terms of performance, Icepack is similar to Json.NET, and in some cases faste
 
 # Serialization Format
 
-The format of an Icepack document is:
+The format of an Icepack document is (not including whitespace):
 
 ```
 [objects, types]
