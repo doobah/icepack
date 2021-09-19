@@ -55,7 +55,14 @@ namespace Icepack
         public TypeMetadata GetTypeMetadata(string name)
         {
             if (!IsTypeRegistered(name))
-                return null;
+            {
+                Type type = Type.GetType(name);
+                object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
+                if (attributes.Length == 0)
+                    throw new IcepackException($"Type {type} is not registered for serialization!");
+
+                RegisterType(type);
+            }
 
             return types[name];
         }

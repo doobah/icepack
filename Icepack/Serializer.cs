@@ -69,100 +69,108 @@ namespace Icepack
 
             if (type == typeof(bool))
                 return ((bool)obj) ? "\"1\"" : "\"0\"";
-
-            if (type.IsPrimitive || type == typeof(decimal))
+            else if (type.IsPrimitive || type == typeof(decimal))
                 return $"\"{obj}\"";
-
-            if (type == typeof(string))
+            else if (type == typeof(string))
                 return $"\"{EscapeString((string)obj)}\"";
-
-            if (type.IsEnum)
+            else if (type.IsEnum)
                 return $"\"{((int)obj)}\"";
+            else if (type.IsValueType)
+                return SerializeStruct(obj, context);
+            else if (type.IsClass)
+                return SerializeClass(obj, context);
 
+            throw new ArgumentException($"Unable to serialize object: {obj}");
+        }
+
+        private string SerializeStruct(object obj, SerializationContext context)
+        {
             if (obj is ISerializationHooks)
                 ((ISerializationHooks)obj).OnBeforeSerialize();
 
-            if (type.IsValueType)
+            Type type = obj.GetType();
+
+            TypeMetadata typeMetadata = typeRegistry.GetTypeMetadata(type);
+            context.UsedTypes.Add(type);
+
+            StringBuilder builder = new StringBuilder();
+
+            builder.Append('[');
+            builder.Append($"\"{typeMetadata.Id}\"");
+
+            foreach (FieldMetadata field in typeMetadata.Fields.Values)
             {
-                TypeMetadata typeMetadata = typeRegistry.GetTypeMetadata(type);
-                context.UsedTypes.Add(type);
-
-                StringBuilder builder = new StringBuilder();
-
-                builder.Append('[');
-                builder.Append($"\"{typeMetadata.Id}\"");
-
-                foreach (FieldMetadata field in typeMetadata.Fields.Values)
-                {
-                    object value = field.Getter(obj);
-                    builder.Append(',');
-                    builder.Append(SerializeField(value, context));
-                }
-
-                builder.Append(']');
-
-                return builder.ToString();
-            }
-            
-            if (type.IsClass)
-            {
-                TypeMetadata typeMetadata = typeRegistry.GetTypeMetadata(type);
-                context.UsedTypes.Add(type);
-
-                StringBuilder builder = new StringBuilder();
-
-                builder.Append('[');
-                builder.Append($"\"{context.GetInstanceId(obj)}\"");
+                object value = field.Getter(obj);
                 builder.Append(',');
-                builder.Append($"\"{typeMetadata.Id}\"");
-
-                if (type.IsArray)
-                {
-                    foreach (object item in (Array)obj)
-                    {
-                        builder.Append(',');
-                        builder.Append(SerializeField(item, context));
-                    }
-                }
-                else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
-                {
-                    foreach (object item in (IList)obj)
-                    {
-                        builder.Append(',');
-                        builder.Append(SerializeField(item, context));
-                    }
-                }
-                else
-                {
-                    Type currentType = obj.GetType();
-                    while (currentType != typeof(object))
-                    {
-                        TypeMetadata currentTypeMetadata = typeRegistry.GetTypeMetadata(currentType);
-                        context.UsedTypes.Add(currentType);
-
-                        builder.Append(',');
-                        builder.Append('[');
-                        builder.Append($"\"{currentTypeMetadata.Id}\"");
-
-                        foreach (FieldMetadata field in currentTypeMetadata.Fields.Values)
-                        {
-                            object value = field.Getter(obj);
-                            builder.Append(',');
-                            builder.Append(SerializeField(value, context));
-                        }
-
-                        builder.Append(']');
-
-                        currentType = currentType.BaseType;
-                    }
-                }
-
-                builder.Append(']');
-
-                return builder.ToString();
+                builder.Append(SerializeField(value, context));
             }
 
-            throw new ArgumentException($"Unable to serialize object: {obj}");
+            builder.Append(']');
+
+            return builder.ToString();
+        }
+
+        private string SerializeClass(object obj, SerializationContext context)
+        {
+            if (obj is ISerializationHooks)
+                ((ISerializationHooks)obj).OnBeforeSerialize();
+
+            Type type = obj.GetType();
+
+            TypeMetadata typeMetadata = typeRegistry.GetTypeMetadata(type);
+            context.UsedTypes.Add(type);
+
+            StringBuilder builder = new StringBuilder();
+
+            builder.Append('[');
+            builder.Append($"\"{context.GetInstanceId(obj)}\"");
+            builder.Append(',');
+            builder.Append($"\"{typeMetadata.Id}\"");
+
+            if (type.IsArray)
+            {
+                foreach (object item in (Array)obj)
+                {
+                    builder.Append(',');
+                    builder.Append(SerializeField(item, context));
+                }
+            }
+            else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                foreach (object item in (IList)obj)
+                {
+                    builder.Append(',');
+                    builder.Append(SerializeField(item, context));
+                }
+            }
+            else
+            {
+                Type currentType = obj.GetType();
+                while (currentType != typeof(object))
+                {
+                    TypeMetadata currentTypeMetadata = typeRegistry.GetTypeMetadata(currentType);
+                    context.UsedTypes.Add(currentType);
+
+                    builder.Append(',');
+                    builder.Append('[');
+                    builder.Append($"\"{currentTypeMetadata.Id}\"");
+
+                    foreach (FieldMetadata field in currentTypeMetadata.Fields.Values)
+                    {
+                        object value = field.Getter(obj);
+                        builder.Append(',');
+                        builder.Append(SerializeField(value, context));
+                    }
+
+                    builder.Append(']');
+
+                    currentType = currentType.BaseType;
+                }
+            }
+
+            builder.Append(']');
+
+            return builder.ToString();
         }
 
         private string EscapeString(string str)
@@ -181,7 +189,7 @@ namespace Icepack
 
         private string SerializeField(object value, SerializationContext context)
         {
-            if (Toolbox.IsClass(value.GetType()))
+            if (value != null && Toolbox.IsClass(value.GetType()))
             {
                 if (context.IsObjectRegistered(value))
                     return context.GetInstanceId(value).ToString();
@@ -196,9 +204,13 @@ namespace Icepack
 
         public T Deserialize<T>(string str)
         {
-            List<object> documentNodes = (List<object>)ObjectTreeParser.Parse(str)[0];
+            DeserializationContext context = new DeserializationContext();
+
+            // Parse document as intermediate object tree
+            List<object> documentNodes = ObjectTreeParser.Parse(str);
+
+            // Extract types
             List<object> typeNodes = (List<object>)documentNodes[1];
-            Dictionary<ulong, TypeMetadata> types = new Dictionary<ulong, TypeMetadata>();
             foreach (object t in typeNodes)
             {
                 List<object> typeNode = (List<object>)t;
@@ -208,17 +220,17 @@ namespace Icepack
                     continue;
 
                 TypeMetadata typeMetadata = new TypeMetadata(registeredTypeMetadata, typeNode);
-                types.Add(typeMetadata.Id, typeMetadata);
+                context.Types.Add(typeMetadata.Id, typeMetadata);
             }
 
+            // Create empty objects
             List<object> objectNodes = (List<object>)documentNodes[0];
-            Dictionary<ulong, object> objects = new Dictionary<ulong, object>();
             int startIdx = Toolbox.IsClass(typeof(T)) ? 0 : 1;
             for (int i = startIdx; i < objectNodes.Count; i++)
             {
                 List<object> objectNode = (List<object>)objectNodes[i];
                 ulong objectId = ulong.Parse((string)objectNode[0]);
-                TypeMetadata objectTypeMetadata = types[ulong.Parse((string)objectNode[1])];
+                TypeMetadata objectTypeMetadata = context.Types[ulong.Parse((string)objectNode[1])];
                 Type objectType = objectTypeMetadata.Type;
                 object obj;
                 if (objectType.IsArray)
@@ -228,148 +240,154 @@ namespace Icepack
                 }
                 else
                     obj = Activator.CreateInstance(objectType);
-                objects.Add(objectId, obj);
+                context.Objects.Add(objectId, obj);
             }
 
+            // Deserialize objects
             List<object> rootObjectNode = (List<object>)objectNodes[0];
-            T rootObject = (T)DeserializeObject(rootObjectNode, typeof(T), types, objects);
+            T rootObject = (T)DeserializeObject(rootObjectNode, typeof(T), context);
             for (int i = 1; i < objectNodes.Count; i++)
             {
                 List<object> objectNode = (List<object>)objectNodes[i];
                 ulong typeId = ulong.Parse((string)objectNode[1]);
-                Type type = types[typeId].Type;
-                DeserializeObject(objectNode, type, types, objects);
+                Type type = context.Types[typeId].Type;
+                DeserializeObject(objectNode, type, context);
             }
 
             return rootObject;
         }
 
-        private object DeserializeObject(object objNode, Type type, Dictionary<ulong, TypeMetadata> types, Dictionary<ulong, object> objects)
+        private object DeserializeObject(object objNode, Type type, DeserializationContext context)
         {
-            if (Toolbox.IsClass(type))
+            if (type == typeof(bool))
+                return (string)objNode == "1" ? true : false;
+            else if (type == typeof(int))
+                return int.Parse((string)objNode);
+            else if (type == typeof(uint))
+                return uint.Parse((string)objNode);
+            else if (type == typeof(short))
+                return short.Parse((string)objNode);
+            else if (type == typeof(ushort))
+                return ushort.Parse((string)objNode);
+            else if (type == typeof(long))
+                return long.Parse((string)objNode);
+            else if (type == typeof(ulong))
+                return ulong.Parse((string)objNode);
+            else if (type == typeof(byte))
+                return byte.Parse((string)objNode);
+            else if (type == typeof(decimal))
+                return decimal.Parse((string)objNode);
+            else if (type == typeof(float))
+                return float.Parse((string)objNode);
+            else if (type == typeof(double))
+                return double.Parse((string)objNode);
+            else if (type == typeof(string))
+                return (string)objNode;
+            else if (type.IsEnum)
+                return Enum.ToObject(type, int.Parse((string)objNode));
+            else if (type.IsValueType)
+                return DeserializeStruct(objNode, context);
+            else if (type.IsClass)
+                return DeserializeClass(objNode, context);
+
+            throw new ArgumentException($"Unable to deserialize object: {objNode}");
+        }
+
+        private object DeserializeStruct(object objNode, DeserializationContext context)
+        {
+            List<object> structNode = (List<object>)objNode;
+            ulong typeId = ulong.Parse((string)structNode[0]);
+            TypeMetadata typeMetadata = context.Types[typeId];
+            object structObj = Activator.CreateInstance(typeMetadata.Type);
+
+            for (int i = 0; i < typeMetadata.Fields.Count; i++)
             {
-                List<object> classNode = (List<object>)objNode;
-                ulong objId = ulong.Parse((string)classNode[0]);
-                ulong typeId = ulong.Parse((string)classNode[1]);
-                TypeMetadata classType = types[typeId];
-                object classObj = objects[objId];
+                FieldMetadata field = typeMetadata.Fields.Values[i];
+                Type fieldType = field.FieldInfo.FieldType;
+                object fieldNode = structNode[i + 1];
+                bool isElementClass = Toolbox.IsClass(fieldType);
+                object value = DeserializeField(fieldType, isElementClass, fieldNode, context);
+                field.Setter(structObj, value);
+            }
 
-                if (classType.Type.IsArray)
+            if (structObj is ISerializationHooks)
+                ((ISerializationHooks)structObj).OnAfterDeserialize();
+
+            return structObj;
+        }
+
+        private object DeserializeClass(object objNode, DeserializationContext context)
+        {
+            List<object> classNode = (List<object>)objNode;
+            ulong objId = ulong.Parse((string)classNode[0]);
+            ulong typeId = ulong.Parse((string)classNode[1]);
+            TypeMetadata classTypeMetadata = context.Types[typeId];
+            Type classType = classTypeMetadata.Type;
+            object classObj = context.Objects[objId];
+
+            if (classType.IsArray)
+            {
+                Array arrayObj = (Array)classObj;
+                Type elementType = classType.GetElementType();
+                bool isElementClass = Toolbox.IsClass(elementType);
+
+                for (int i = 2; i < classNode.Count; i++)
                 {
-                    Array arrayObj = (Array)classObj;
-                    Type itemType = classType.Type.GetElementType();
-                    bool isElementClass = Toolbox.IsClass(itemType);
-
-                    for (int i = 2; i < classNode.Count; i++)
-                    {
-                        object value;
-                        if (isElementClass)
-                            value = objects[ulong.Parse((string)classNode[i])];
-                        else
-                            value = DeserializeObject(classNode[i], itemType, types, objects);
-                        arrayObj.SetValue(value, i - 2);
-                    }
+                    object elementNode = classNode[i];
+                    object value = DeserializeField(elementType, isElementClass, elementNode, context);
+                    arrayObj.SetValue(value, i - 2);
                 }
-                else if (classType.Type.IsGenericType && classType.Type.GetGenericTypeDefinition() == typeof(List<>))
+            }
+            else if (classType.IsGenericType && classType.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                IList listObj = (IList)classObj;
+                Type elementType = classType.GenericTypeArguments[0];
+                bool isElementClass = Toolbox.IsClass(elementType);
+
+                for (int i = 2; i < classNode.Count; i++)
                 {
-                    IList listObj = (IList)classObj;
-                    Type itemType = type.GenericTypeArguments[0];
-                    bool isElementClass = Toolbox.IsClass(itemType);
-
-                    for (int i = 2; i < classNode.Count; i++)
-                    {
-                        object value;
-                        if (isElementClass)
-                            value = objects[ulong.Parse((string)classNode[i])];
-                        else
-                            value = DeserializeObject(classNode[i], itemType, types, objects);
-                        listObj.Add(value);
-                    }
+                    object elementNode = classNode[i];
+                    object value = DeserializeField(elementType, isElementClass, elementNode, context);
+                    listObj.Add(value);
                 }
-                else
-                {
-                    for (int i = 2; i < classNode.Count; i++)
-                    {
-                        List<object> partialClassNode = (List<object>)classNode[i];
-                        ulong partialClassTypeId = ulong.Parse((string)partialClassNode[0]);
-                        TypeMetadata partialClassTypeMetadata = types[partialClassTypeId];
-                        for (int j = 1; j < partialClassNode.Count; j++)
-                        {
-                            FieldMetadata field = partialClassTypeMetadata.Fields.Values[j - 1];
-                            Type fieldType = field.FieldInfo.FieldType;
-                            if (Toolbox.IsClass(fieldType))
-                            {
-                                ulong fieldObjId = ulong.Parse((string)partialClassNode[j]);
-                                field.Setter(classObj, objects[fieldObjId]);
-                            }
-                            else
-                            {
-                                object value = DeserializeObject(partialClassNode[j], fieldType, types, objects);
-                                field.Setter(classObj, value);
-                            }
-                        }
-                    }
-                }
-
-                return classObj;
             }
             else
             {
-                if (type == typeof(bool))
-                    return (string)objNode == "1" ? true : false;
-                else if (type == typeof(int))
-                    return int.Parse((string)objNode);
-                else if (type == typeof(uint))
-                    return uint.Parse((string)objNode);
-                else if (type == typeof(short))
-                    return short.Parse((string)objNode);
-                else if (type == typeof(ushort))
-                    return ushort.Parse((string)objNode);
-                else if (type == typeof(long))
-                    return long.Parse((string)objNode);
-                else if (type == typeof(ulong))
-                    return ulong.Parse((string)objNode);
-                else if (type == typeof(byte))
-                    return byte.Parse((string)objNode);
-                else if (type == typeof(decimal))
-                    return decimal.Parse((string)objNode);
-                else if (type == typeof(float))
-                    return float.Parse((string)objNode);
-                else if (type == typeof(double))
-                    return double.Parse((string)objNode);
-                else if (type == typeof(string))
-                    return (string)objNode;
-                else if (type.IsEnum)
-                    return Enum.ToObject(type, int.Parse((string)objNode));
-
-                if (type.IsValueType)
+                for (int i = 2; i < classNode.Count; i++)
                 {
-                    List<object> structNode = (List<object>)objNode;
-                    ulong typeId = ulong.Parse((string)structNode[0]);
-                    TypeMetadata typeMetadata = types[typeId];
-                    object structObj = Activator.CreateInstance(typeMetadata.Type);
-
-                    for (int i = 0; i < typeMetadata.Fields.Count; i++)
+                    List<object> partialClassNode = (List<object>)classNode[i];
+                    ulong partialClassTypeId = ulong.Parse((string)partialClassNode[0]);
+                    TypeMetadata partialClassTypeMetadata = context.Types[partialClassTypeId];
+                    for (int j = 1; j < partialClassNode.Count; j++)
                     {
-                        FieldMetadata field = typeMetadata.Fields.Values[i];
+                        FieldMetadata field = partialClassTypeMetadata.Fields.Values[j - 1];
                         Type fieldType = field.FieldInfo.FieldType;
-                        if (Toolbox.IsClass(fieldType))
-                        {
-                            ulong objId = ulong.Parse((string)structNode[i + 1]);
-                            field.Setter(structObj, objects[objId]);
-                        }
-                        else
-                        {
-                            object value = DeserializeObject(structNode[i + 1], fieldType, types, objects);
-                            field.Setter(structObj, value);
-                        }
+                        bool isFieldClass = Toolbox.IsClass(fieldType);
+                        object fieldNode = partialClassNode[j];
+                        object value = DeserializeField(fieldType, isFieldClass, fieldNode, context);
+                        field.Setter(classObj, value);
                     }
-
-                    return structObj;
                 }
+
+                if (classObj is ISerializationHooks)
+                    ((ISerializationHooks)classObj).OnAfterDeserialize();
             }
 
-            throw new ArgumentException($"Unable to deserialize object: {objNode}");
+            return classObj;
+        }
+
+        private object DeserializeField(Type fieldType, bool isFieldClass, object fieldNode, DeserializationContext context)
+        {
+            object value;
+            if (isFieldClass)
+            {
+                ulong objId = ulong.Parse((string)fieldNode);
+                value = (objId == Toolbox.NULL_ID) ? null : context.Objects[objId];
+            }
+            else
+                value = DeserializeObject(fieldNode, fieldType, context);
+
+            return value;
         }
     }
 }

@@ -18,7 +18,7 @@ namespace Icepack
             {
                 int idx = 0;
                 StringBuilder strBuilder = new StringBuilder();
-                return ParseObjectArray(str, strBuilder, ref idx);
+                return (List<object>)ParseObjectArray(str, strBuilder, ref idx)[0];
             }
             catch (Exception e)
             {

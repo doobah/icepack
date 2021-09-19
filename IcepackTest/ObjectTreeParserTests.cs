@@ -21,24 +21,15 @@ namespace IcepackTest
         {
             List<object> objTree = ObjectTreeParser.Parse(VALID_OBJ_TREE_STRING);
 
-            {
-                Assert.IsInstanceOf(typeof(List<object>), objTree[0]);
-                List<object> node0 = (List<object>)objTree[0];
+            Assert.IsInstanceOf(typeof(List<object>), objTree[0]);
+            List<object> node0 = (List<object>)objTree[0];
+            Assert.AreEqual("1", node0[0]);
+            Assert.AreEqual("a string", node0[1]);
 
-                {
-                    Assert.IsInstanceOf(typeof(List<object>), node0[0]);
-                    List<object> node00 = (List<object>)node0[0];
-                    Assert.AreEqual("1", node00[0]);
-                    Assert.AreEqual("a string", node00[1]);
-                }
-
-                {
-                    Assert.IsInstanceOf(typeof(List<object>), node0[1]);
-                    List<object> node01 = (List<object>)node0[1];
-                    Assert.AreEqual("2", node01[0]);
-                    Assert.AreEqual("another string", node01[1]);
-                }
-            }
+            Assert.IsInstanceOf(typeof(List<object>), objTree[1]);
+            List<object> node1 = (List<object>)objTree[1];
+            Assert.AreEqual("2", node1[0]);
+            Assert.AreEqual("another string", node1[1]);
         }
 
         [Test]
@@ -46,24 +37,15 @@ namespace IcepackTest
         {
             List<object> objTree = ObjectTreeParser.Parse(CORRECTLY_ESCAPED_OBJ_TREE_STRING);
 
-            {
-                Assert.IsInstanceOf(typeof(List<object>), objTree[0]);
-                List<object> node0 = (List<object>)objTree[0];
+            Assert.IsInstanceOf(typeof(List<object>), objTree[0]);
+            List<object> node0 = (List<object>)objTree[0];
+            Assert.AreEqual("1", node0[0]);
+            Assert.AreEqual("a string", node0[1]);
 
-                {
-                    Assert.IsInstanceOf(typeof(List<object>), node0[0]);
-                    List<object> node00 = (List<object>)node0[0];
-                    Assert.AreEqual("1", node00[0]);
-                    Assert.AreEqual("a string", node00[1]);
-                }
-
-                {
-                    Assert.IsInstanceOf(typeof(List<object>), node0[1]);
-                    List<object> node01 = (List<object>)node0[1];
-                    Assert.AreEqual("2", node01[0]);
-                    Assert.AreEqual("another \" string", node01[1]);
-                }
-            }
+            Assert.IsInstanceOf(typeof(List<object>), objTree[1]);
+            List<object> node1 = (List<object>)objTree[1];
+            Assert.AreEqual("2", node1[0]);
+            Assert.AreEqual("another \" string", node1[1]);
         }
 
         [Test]
