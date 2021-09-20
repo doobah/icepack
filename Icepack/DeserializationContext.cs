@@ -16,12 +16,15 @@ namespace Icepack
         public Dictionary<ulong, TypeMetadata> Types { get; }
 
         /// <summary> Maps an object ID to the object itself. </summary>
-        public Dictionary<ulong, object> Objects { get; }
+        public object[] Objects { get; set; }
+
+        public ulong CurrentObjectId { get; set; }
 
         public DeserializationContext()
         {
             Types = new Dictionary<ulong, TypeMetadata>();
-            Objects = new Dictionary<ulong, object>();
+            Objects = null;
+            CurrentObjectId = Toolbox.NULL_ID;
         }
     }
 }

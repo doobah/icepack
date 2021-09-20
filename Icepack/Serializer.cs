@@ -123,8 +123,6 @@ namespace Icepack
             StringBuilder builder = new StringBuilder();
 
             builder.Append('[');
-            builder.Append(context.GetInstanceId(obj));
-            builder.Append(',');
             builder.Append(typeMetadata.Id);
 
             if (type.IsArray)
@@ -236,29 +234,32 @@ namespace Icepack
             // Create empty objects
             List<object> objectNodes = (List<object>)documentNodes[0];
             int startIdx = Toolbox.IsClass(typeof(T)) ? 0 : 1;
+            context.Objects = new object[objectNodes.Count - startIdx];
             for (int i = startIdx; i < objectNodes.Count; i++)
             {
                 List<object> objectNode = (List<object>)objectNodes[i];
-                ulong objectId = ulong.Parse((string)objectNode[0]);
-                TypeMetadata objectTypeMetadata = context.Types[ulong.Parse((string)objectNode[1])];
+                TypeMetadata objectTypeMetadata = context.Types[ulong.Parse((string)objectNode[0])];
                 Type objectType = objectTypeMetadata.Type;
                 object obj;
                 if (objectType.IsArray)
                 {
                     Type elementType = objectType.GetElementType();
-                    obj = Array.CreateInstance(elementType, objectNode.Count - 2);
+                    obj = Array.CreateInstance(elementType, objectNode.Count - 1);
                 }
                 else
                     obj = Activator.CreateInstance(objectType);
-                context.Objects.Add(objectId, obj);
+                context.Objects[i - startIdx] = obj;
             }
 
             // Deserialize objects
+            int startId = Toolbox.IsClass(typeof(T)) ? 1 : 0;
+            context.CurrentObjectId = (ulong)startId;
             T rootObject = (T)DeserializeObject(objectNodes[0], typeof(T), context);
             for (int i = 1; i < objectNodes.Count; i++)
             {
+                context.CurrentObjectId = (ulong)(startId + i);
                 List<object> objectNode = (List<object>)objectNodes[i];
-                ulong typeId = ulong.Parse((string)objectNode[1]);
+                ulong typeId = ulong.Parse((string)objectNode[0]);
                 Type type = context.Types[typeId].Type;
                 DeserializeObject(objectNode, type, context);
             }
@@ -308,6 +309,7 @@ namespace Icepack
             ulong typeId = ulong.Parse((string)structNode[0]);
             TypeMetadata typeMetadata = context.Types[typeId];
             object structObj = Activator.CreateInstance(typeMetadata.Type);
+            context.CurrentObjectId = 0;
 
             for (int i = 0; i < typeMetadata.Fields.Count; i++)
             {
@@ -327,10 +329,11 @@ namespace Icepack
         private object DeserializeClass(object objNode, DeserializationContext context)
         {
             List<object> classNode = (List<object>)objNode;
-            ulong objId = ulong.Parse((string)classNode[0]);
-            ulong typeId = ulong.Parse((string)classNode[1]);
+            ulong objId = context.CurrentObjectId;
+            ulong typeId = ulong.Parse((string)classNode[0]);
             TypeMetadata classTypeMetadata = context.Types[typeId];
             Type classType = classTypeMetadata.Type;
+            context.CurrentObjectId = 0;
 
             object classObj;
             if (objId == Toolbox.NULL_ID)
@@ -338,13 +341,13 @@ namespace Icepack
                 if (classType.IsArray)
                 {
                     Type elementType = classType.GetElementType();
-                    classObj = Array.CreateInstance(elementType, classNode.Count - 2);
+                    classObj = Array.CreateInstance(elementType, classNode.Count - 1);
                 }
                 else
                     classObj = Activator.CreateInstance(classType);
             }
             else
-                classObj = context.Objects[objId];
+                classObj = context.Objects[objId - 1];
 
             if (classType.IsArray)
             {
@@ -352,11 +355,11 @@ namespace Icepack
                 Type elementType = classType.GetElementType();
                 bool isReference = Toolbox.IsClass(elementType) && !classTypeMetadata.IsItemsNoReference;
 
-                for (int i = 2; i < classNode.Count; i++)
+                for (int i = 1; i < classNode.Count; i++)
                 {
                     object elementNode = classNode[i];
                     object value = DeserializeField(elementType, isReference, elementNode, context);
-                    arrayObj.SetValue(value, i - 2);
+                    arrayObj.SetValue(value, i - 1);
                 }
             }
             else if (classType.IsGenericType && classType.GetGenericTypeDefinition() == typeof(List<>))
@@ -365,7 +368,7 @@ namespace Icepack
                 Type elementType = classType.GenericTypeArguments[0];
                 bool isReference = Toolbox.IsClass(elementType) && !classTypeMetadata.IsItemsNoReference;
 
-                for (int i = 2; i < classNode.Count; i++)
+                for (int i = 1; i < classNode.Count; i++)
                 {
                     object elementNode = classNode[i];
                     object value = DeserializeField(elementType, isReference, elementNode, context);
@@ -377,7 +380,7 @@ namespace Icepack
                 Type elementType = classType.GenericTypeArguments[0];
                 bool isReference = Toolbox.IsClass(elementType) && !classTypeMetadata.IsItemsNoReference;
 
-                for (int i = 2; i < classNode.Count; i++)
+                for (int i = 1; i < classNode.Count; i++)
                 {
                     object elementNode = classNode[i];
                     object value = DeserializeField(elementType, isReference, elementNode, context);
@@ -391,11 +394,11 @@ namespace Icepack
                 bool isKeyReference = Toolbox.IsClass(keyType) && !classTypeMetadata.IsItemsNoReference;
                 Type valueType = classType.GenericTypeArguments[1];
                 bool isValueReference = Toolbox.IsClass(valueType) && !classTypeMetadata.IsItemsNoReference;
-                int length = (classNode.Count - 2) / 2;
+                int length = (classNode.Count - 1) / 2;
 
                 for (int i = 0; i < length; i++)
                 {
-                    int keyIdx = i + 2;
+                    int keyIdx = i + 1;
                     int valueIdx = keyIdx + length;
 
                     object key = DeserializeField(keyType, isKeyReference, classNode[keyIdx], context);
@@ -405,7 +408,7 @@ namespace Icepack
             }
             else
             {
-                for (int i = 2; i < classNode.Count; i++)
+                for (int i = 1; i < classNode.Count; i++)
                 {
                     List<object> partialClassNode = (List<object>)classNode[i];
                     ulong partialClassTypeId = ulong.Parse((string)partialClassNode[0]);
@@ -433,7 +436,7 @@ namespace Icepack
             if (isReference)
             {
                 ulong objId = ulong.Parse((string)fieldNode);
-                value = (objId == Toolbox.NULL_ID) ? null : context.Objects[objId];
+                value = (objId == Toolbox.NULL_ID) ? null : context.Objects[objId - 1];
             }
             else
                 value = DeserializeObject(fieldNode, fieldType, context);

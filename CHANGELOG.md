@@ -1,3 +1,7 @@
+# v0.0.3
+
+* Modify deserialization logic to not require an ID field for an object.
+
 # v0.0.2
 
 * Support for serializing structs, hashsets, and dictionaries.
