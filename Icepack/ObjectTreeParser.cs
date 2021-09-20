@@ -6,37 +6,42 @@ using System.Threading.Tasks;
 
 namespace Icepack
 {
-    /// <summary> Parses an Icepack object tree. </summary>
+    /// <summary> Parses an object tree. </summary>
     internal static class ObjectTreeParser
     {
-        /// <summary> Parses an Icepack object tree. </summary>
-        /// <param name="str"> The string to parse. </param>
+        /// <summary> Parses a document as an object tree. </summary>
+        /// <param name="document"> The document to parse. </param>
         /// <returns> The object tree. </returns>
-        public static List<object> Parse(string str)
+        public static List<object> Parse(string document)
         {
             try
             {
                 int idx = 0;
                 StringBuilder strBuilder = new StringBuilder();
-                return (List<object>)ParseObjectArray(str, strBuilder, ref idx)[0];
+                return (List<object>)ParseObjectArray(document, strBuilder, ref idx)[0];
             }
             catch (Exception e)
             {
-                throw new IcepackException($"Failed to parse string: {str}", e);
+                throw new IcepackException($"Failed to parse string: {document}", e);
             }
         }
 
-        private static List<object> ParseObjectArray(string str, StringBuilder strBuilder, ref int idx)
+        /// <summary> Recursively parses an object array from a document. </summary>
+        /// <param name="document"> The document to parse </param>
+        /// <param name="strBuilder"> The string builder used for this parsing operation, reused to avoid unnecessary allocations. </param>
+        /// <param name="idx"> The current position in the document. </param>
+        /// <returns> The object array. </returns>
+        private static List<object> ParseObjectArray(string document, StringBuilder strBuilder, ref int idx)
         {
             List<object> objects = new List<object>();
 
             while (true)
             {
-                char c = str[idx++];
+                char c = document[idx++];
                 if (c == '[')
                 {
-                    objects.Add(ParseObjectArray(str, strBuilder, ref idx));
-                    if (idx == str.Length)
+                    objects.Add(ParseObjectArray(document, strBuilder, ref idx));
+                    if (idx == document.Length)
                     {
                         // To make sure this only happens once
                         idx++;
@@ -46,7 +51,7 @@ namespace Icepack
                 else if (c == ']')
                     break;
                 else if (c == '"')
-                    objects.Add(ParseString(str, strBuilder, ref idx));
+                    objects.Add(ParseString(document, strBuilder, ref idx));
             }
 
             return objects;

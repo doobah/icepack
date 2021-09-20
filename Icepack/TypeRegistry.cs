@@ -23,7 +23,7 @@ namespace Icepack
         /// <summary> Registers a type as serializable. </summary>
         /// <param name="type"> The type to register. </param>
         /// <remarks> This is generally used to allow types in other assemblies to be serialized. </remarks>
-        public void RegisterType(Type type)
+        public void RegisterType(Type type, bool isItemsNoReference)
         {
             if (IsTypeRegistered(type))
                 return;
@@ -31,7 +31,7 @@ namespace Icepack
             if (!Toolbox.IsClass(type) && !Toolbox.IsStruct(type) || type == typeof(object) || type == typeof(ValueType))
                 throw new IcepackException($"Type {type} cannot be registered for serialization!");
 
-            types.Add(type.FullName, new TypeMetadata(++largestTypeId, type));
+            types.Add(type.AssemblyQualifiedName, new TypeMetadata(++largestTypeId, type, isItemsNoReference));
         }
 
         /// <summary> Retrieves the metadata for a type. </summary>
@@ -46,10 +46,11 @@ namespace Icepack
                 if (attributes.Length == 0)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
-                RegisterType(type);
+                // IsItemsNoReference is only set with a call to RegisterType which should already have happened.
+                RegisterType(type, false);
             }
 
-            return types[type.FullName];
+            return types[type.AssemblyQualifiedName];
         }
 
         public TypeMetadata GetTypeMetadata(string name)
@@ -59,9 +60,9 @@ namespace Icepack
                 Type type = Type.GetType(name);
                 object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
                 if (attributes.Length == 0)
-                    throw new IcepackException($"Type {type} is not registered for serialization!");
+                    throw new IcepackException($"Type {type.AssemblyQualifiedName} is not registered for serialization!");
 
-                RegisterType(type);
+                RegisterType(type, false);
             }
 
             return types[name];
@@ -69,7 +70,7 @@ namespace Icepack
 
         private bool IsTypeRegistered(Type type)
         {
-            return IsTypeRegistered(type.FullName);
+            return IsTypeRegistered(type.AssemblyQualifiedName);
         }
 
         private bool IsTypeRegistered(string name)

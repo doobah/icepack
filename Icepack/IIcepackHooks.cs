@@ -6,8 +6,12 @@ using System.Threading.Tasks;
 
 namespace Icepack
 {
-    /// <summary> Defines an interface for an object that performs logic before serialization, and after deserialization. </summary>
-    public interface ISerializationHooks
+    /// <summary>
+    /// Defines an interface for an object that performs logic before serialization, and after deserialization.
+    /// Typically this would be used to update a serializable field with a more space-efficient representation
+    /// of the object's state.
+    /// </summary>
+    public interface IIcepackHooks
     {
         /// <summary> Called before the object is serialized. </summary>
         void OnBeforeSerialize();

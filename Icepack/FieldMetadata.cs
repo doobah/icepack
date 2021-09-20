@@ -8,36 +8,27 @@ using System.Linq.Expressions;
 
 namespace Icepack
 {
-    /// <summary> Contains data necessary for serializing and deserializing a field. </summary>
+    /// <summary> Stores data used to serialize/deserialize a field. </summary>
     internal class FieldMetadata
     {
-        private FieldInfo fieldInfo;
-        private Func<object, object> getter;
-        private Action<object, object> setter;
+        /// <summary> Reflection data for the field. </summary>
+        public FieldInfo FieldInfo { get; }
+
+        /// <summary> Whether this field is a reference to an object. </summary>
+        public bool IsReference { get; }
+
+        /// <summary> Gets the value of this field for a given object. </summary>
+        public Func<object, object> Getter { get; }
+
+        /// <summary> Sets the value of this field for a given object. The parameters are (object, value). </summary>
+        public Action<object, object> Setter { get; }
 
         public FieldMetadata(FieldInfo fieldInfo)
         {
-            this.fieldInfo = fieldInfo;
-            getter = BuildGetter(fieldInfo);
-            setter = BuildSetter(fieldInfo);
-        }
-
-        /// <summary> The type of the field. </summary>
-        public FieldInfo FieldInfo
-        {
-            get { return fieldInfo; }
-        }
-
-        /// <summary> A function that gets the value of the field. </summary>
-        public Func<object, object> Getter
-        {
-            get { return getter; }
-        }
-
-        /// <summary> A function that sets the value of the field. </summary>
-        public Action<object, object> Setter
-        {
-            get { return setter; }
+            FieldInfo = fieldInfo;
+            IsReference = Toolbox.IsClass(fieldInfo.FieldType) && fieldInfo.GetCustomAttribute<ValueOnlyAttribute>() == null;
+            Getter = BuildGetter(fieldInfo);
+            Setter = BuildSetter(fieldInfo);
         }
 
         private Func<object, object> BuildGetter(FieldInfo fieldInfo)
@@ -55,7 +46,11 @@ namespace Icepack
         private Action<object, object> BuildSetter(FieldInfo fieldInfo)
         {
             ParameterExpression exInstance = Expression.Parameter(typeof(object));
-            UnaryExpression exConvertInstanceToDeclaringType = Expression.Convert(exInstance, fieldInfo.DeclaringType);
+            UnaryExpression exConvertInstanceToDeclaringType;
+            if (fieldInfo.DeclaringType.IsValueType)
+                exConvertInstanceToDeclaringType = Expression.Unbox(exInstance, fieldInfo.DeclaringType);
+            else
+                exConvertInstanceToDeclaringType = Expression.Convert(exInstance, fieldInfo.DeclaringType);
             ParameterExpression exValue = Expression.Parameter(typeof(object));
             UnaryExpression exConvertValueToFieldType = Expression.Convert(exValue, fieldInfo.FieldType);
             MemberExpression exMemberAccess = Expression.MakeMemberAccess(exConvertInstanceToDeclaringType, fieldInfo);

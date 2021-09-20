@@ -20,9 +20,9 @@ namespace Icepack
 
         /// <summary> Registers a type as serializable. </summary>
         /// <param name="type"> The type to register. </param>
-        public void RegisterType(Type type)
+        public void RegisterType(Type type, bool isItemsNoReference = false)
         {
-            typeRegistry.RegisterType(type);
+            typeRegistry.RegisterType(type, isItemsNoReference);
         }
 
         /// <summary> Serializes an object graph as a string. </summary>
@@ -85,8 +85,8 @@ namespace Icepack
 
         private string SerializeStruct(object obj, SerializationContext context)
         {
-            if (obj is ISerializationHooks)
-                ((ISerializationHooks)obj).OnBeforeSerialize();
+            if (obj is IIcepackHooks)
+                ((IIcepackHooks)obj).OnBeforeSerialize();
 
             Type type = obj.GetType();
 
@@ -102,7 +102,7 @@ namespace Icepack
             {
                 object value = field.Getter(obj);
                 builder.Append(',');
-                builder.Append(SerializeField(value, context));
+                builder.Append(SerializeField(value, field.IsReference, context));
             }
 
             builder.Append(']');
@@ -112,8 +112,8 @@ namespace Icepack
 
         private string SerializeClass(object obj, SerializationContext context)
         {
-            if (obj is ISerializationHooks)
-                ((ISerializationHooks)obj).OnBeforeSerialize();
+            if (obj is IIcepackHooks)
+                ((IIcepackHooks)obj).OnBeforeSerialize();
 
             Type type = obj.GetType();
 
@@ -132,15 +132,39 @@ namespace Icepack
                 foreach (object item in (Array)obj)
                 {
                     builder.Append(',');
-                    builder.Append(SerializeField(item, context));
+                    builder.Append(SerializeField(item, !typeMetadata.IsItemsNoReference, context));
                 }
             }
             else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
             {
-                foreach (object item in (IList)obj)
+                foreach (object item in (IEnumerable)obj)
                 {
                     builder.Append(',');
-                    builder.Append(SerializeField(item, context));
+                    builder.Append(SerializeField(item, !typeMetadata.IsItemsNoReference, context));
+                }
+            }
+            else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(HashSet<>))
+            {
+                foreach (object item in (IEnumerable)obj)
+                {
+                    builder.Append(',');
+                    builder.Append(SerializeField(item, !typeMetadata.IsItemsNoReference, context));
+                }
+            }
+            else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+            {
+                IDictionary dict = (IDictionary)obj;
+
+                foreach (object key in dict.Keys)
+                {
+                    builder.Append(',');
+                    builder.Append(SerializeField(key, !typeMetadata.IsItemsNoReference, context));
+                }
+
+                foreach (object value in dict.Values)
+                {
+                    builder.Append(',');
+                    builder.Append(SerializeField(value, !typeMetadata.IsItemsNoReference, context));
                 }
             }
             else
@@ -159,7 +183,7 @@ namespace Icepack
                     {
                         object value = field.Getter(obj);
                         builder.Append(',');
-                        builder.Append(SerializeField(value, context));
+                        builder.Append(SerializeField(value, field.IsReference, context));
                     }
 
                     builder.Append(']');
@@ -187,12 +211,12 @@ namespace Icepack
             return builder.ToString();
         }
 
-        private string SerializeField(object value, SerializationContext context)
+        private string SerializeField(object value, bool isReference, SerializationContext context)
         {
-            if (value != null && Toolbox.IsClass(value.GetType()))
+            if (value != null && Toolbox.IsClass(value.GetType()) && isReference)
             {
                 if (context.IsObjectRegistered(value))
-                    return context.GetInstanceId(value).ToString();
+                    return $"\"{context.GetInstanceId(value)}\"";
 
                 ulong id = context.RegisterObject(value);
                 context.ObjectsToSerialize.Enqueue(value);
@@ -244,8 +268,7 @@ namespace Icepack
             }
 
             // Deserialize objects
-            List<object> rootObjectNode = (List<object>)objectNodes[0];
-            T rootObject = (T)DeserializeObject(rootObjectNode, typeof(T), context);
+            T rootObject = (T)DeserializeObject(objectNodes[0], typeof(T), context);
             for (int i = 1; i < objectNodes.Count; i++)
             {
                 List<object> objectNode = (List<object>)objectNodes[i];
@@ -305,13 +328,12 @@ namespace Icepack
                 FieldMetadata field = typeMetadata.Fields.Values[i];
                 Type fieldType = field.FieldInfo.FieldType;
                 object fieldNode = structNode[i + 1];
-                bool isElementClass = Toolbox.IsClass(fieldType);
-                object value = DeserializeField(fieldType, isElementClass, fieldNode, context);
+                object value = DeserializeField(fieldType, field.IsReference, fieldNode, context);
                 field.Setter(structObj, value);
             }
 
-            if (structObj is ISerializationHooks)
-                ((ISerializationHooks)structObj).OnAfterDeserialize();
+            if (structObj is IIcepackHooks)
+                ((IIcepackHooks)structObj).OnAfterDeserialize();
 
             return structObj;
         }
@@ -323,18 +345,31 @@ namespace Icepack
             ulong typeId = ulong.Parse((string)classNode[1]);
             TypeMetadata classTypeMetadata = context.Types[typeId];
             Type classType = classTypeMetadata.Type;
-            object classObj = context.Objects[objId];
+
+            object classObj;
+            if (objId == Toolbox.NULL_ID)
+            {
+                if (classType.IsArray)
+                {
+                    Type elementType = classType.GetElementType();
+                    classObj = Array.CreateInstance(elementType, classNode.Count - 2);
+                }
+                else
+                    classObj = Activator.CreateInstance(classType);
+            }
+            else
+                classObj = context.Objects[objId];
 
             if (classType.IsArray)
             {
                 Array arrayObj = (Array)classObj;
                 Type elementType = classType.GetElementType();
-                bool isElementClass = Toolbox.IsClass(elementType);
+                bool isReference = Toolbox.IsClass(elementType) && !classTypeMetadata.IsItemsNoReference;
 
                 for (int i = 2; i < classNode.Count; i++)
                 {
                     object elementNode = classNode[i];
-                    object value = DeserializeField(elementType, isElementClass, elementNode, context);
+                    object value = DeserializeField(elementType, isReference, elementNode, context);
                     arrayObj.SetValue(value, i - 2);
                 }
             }
@@ -342,13 +377,44 @@ namespace Icepack
             {
                 IList listObj = (IList)classObj;
                 Type elementType = classType.GenericTypeArguments[0];
-                bool isElementClass = Toolbox.IsClass(elementType);
+                bool isReference = Toolbox.IsClass(elementType) && !classTypeMetadata.IsItemsNoReference;
 
                 for (int i = 2; i < classNode.Count; i++)
                 {
                     object elementNode = classNode[i];
-                    object value = DeserializeField(elementType, isElementClass, elementNode, context);
+                    object value = DeserializeField(elementType, isReference, elementNode, context);
                     listObj.Add(value);
+                }
+            }
+            else if (classType.IsGenericType && classType.GetGenericTypeDefinition() == typeof(HashSet<>))
+            {
+                Type elementType = classType.GenericTypeArguments[0];
+                bool isReference = Toolbox.IsClass(elementType) && !classTypeMetadata.IsItemsNoReference;
+
+                for (int i = 2; i < classNode.Count; i++)
+                {
+                    object elementNode = classNode[i];
+                    object value = DeserializeField(elementType, isReference, elementNode, context);
+                    classTypeMetadata.HashSetAdder(classObj, value);
+                }
+            }
+            else if (classType.IsGenericType && classType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+            {
+                IDictionary dictObj = (IDictionary)classObj;
+                Type keyType = classType.GenericTypeArguments[0];
+                bool isKeyReference = Toolbox.IsClass(keyType) && !classTypeMetadata.IsItemsNoReference;
+                Type valueType = classType.GenericTypeArguments[1];
+                bool isValueReference = Toolbox.IsClass(valueType) && !classTypeMetadata.IsItemsNoReference;
+                int length = (classNode.Count - 2) / 2;
+
+                for (int i = 0; i < length; i++)
+                {
+                    int keyIdx = i + 2;
+                    int valueIdx = keyIdx + length;
+
+                    object key = DeserializeField(keyType, isKeyReference, classNode[keyIdx], context);
+                    object value = DeserializeField(valueType, isValueReference, classNode[valueIdx], context);
+                    dictObj.Add(key, value);
                 }
             }
             else
@@ -362,24 +428,23 @@ namespace Icepack
                     {
                         FieldMetadata field = partialClassTypeMetadata.Fields.Values[j - 1];
                         Type fieldType = field.FieldInfo.FieldType;
-                        bool isFieldClass = Toolbox.IsClass(fieldType);
                         object fieldNode = partialClassNode[j];
-                        object value = DeserializeField(fieldType, isFieldClass, fieldNode, context);
+                        object value = DeserializeField(fieldType, field.IsReference, fieldNode, context);
                         field.Setter(classObj, value);
                     }
                 }
 
-                if (classObj is ISerializationHooks)
-                    ((ISerializationHooks)classObj).OnAfterDeserialize();
+                if (classObj is IIcepackHooks)
+                    ((IIcepackHooks)classObj).OnAfterDeserialize();
             }
 
             return classObj;
         }
 
-        private object DeserializeField(Type fieldType, bool isFieldClass, object fieldNode, DeserializationContext context)
+        private object DeserializeField(Type fieldType, bool isReference, object fieldNode, DeserializationContext context)
         {
             object value;
-            if (isFieldClass)
+            if (isReference)
             {
                 ulong objId = ulong.Parse((string)fieldNode);
                 value = (objId == Toolbox.NULL_ID) ? null : context.Objects[objId];

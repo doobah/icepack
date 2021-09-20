@@ -6,25 +6,22 @@ using System.Threading.Tasks;
 
 namespace Icepack
 {
+    /// <summary> Stores state for the current deserialization operation. </summary>
     internal class DeserializationContext
     {
-        private Dictionary<ulong, TypeMetadata> types;
-        private Dictionary<ulong, object> objects;
+        /// <summary>
+        /// Maps a type ID to information about the type. The type information is different from what is stored in the serializer's
+        /// type registry since the document's type table is used when deserializing.
+        /// </summary>
+        public Dictionary<ulong, TypeMetadata> Types { get; }
+
+        /// <summary> Maps an object ID to the object itself. </summary>
+        public Dictionary<ulong, object> Objects { get; }
 
         public DeserializationContext()
         {
-            types = new Dictionary<ulong, TypeMetadata>();
-            objects = new Dictionary<ulong, object>();
-        }
-
-        public Dictionary<ulong, TypeMetadata> Types
-        {
-            get { return types; }
-        }
-
-        public Dictionary<ulong, object> Objects
-        {
-            get { return objects; }
+            Types = new Dictionary<ulong, TypeMetadata>();
+            Objects = new Dictionary<ulong, object>();
         }
     }
 }

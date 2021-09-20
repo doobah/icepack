@@ -36,20 +36,24 @@ where
   * **Object reference:** The ID of the referenced object.
   * **Struct:**
     ```
-    [ type id, field 1 val, field 2 val, ... ]
+    [ type id, field 1, field 2, ... ]
     ```
-  * **Array/List:**
+  * **Array/List/HashSet:**
     ```
-    [ type id, element 1 val, element 2 val, ... ]
+    [ object id, type id, element 1, element 2, ... ]
     ``` 
+  * **Dictionary:**
+    ```
+    [ object id, type id, key 1, key 2, ..., value 1, value 2, ... ]
+    ```
   * **A regular class:**
     ```
     [
       object id,
       type id,
-      [ id of class type, field 1 val, field 2 val, ... ],
-      [ id of base class type, field 1 val, field 2 val, ... ],
-      [ id of base-base class type, field 1 val, field 2 val, ... ],
+      [ id of class type, field 1, field 2, ... ],
+      [ id of base class type, field 1, field 2, ... ],
+      [ id of base-base class type, field 1, field 2, ... ],
       ...
     ]
     ```
@@ -138,7 +142,7 @@ which gives the output:
 
 ```
 ___Serialized Output___
-[[["1","1",["1","456","2"],["2","qwer"]],["2","1",["1","123","0"],["2","asdf"]]],[["1","Example.ClassA","field1","field2"],["2","Example.ClassZ","field1"]]]
+[[["1","1",["1","456","2"],["2","qwer"]],["2","1",["1","123","0"],["2","asdf"]]],[["1","Example.ClassA, TestProject, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null","field1","field2"],["2","Example.ClassZ, TestProject, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null","field1"]]]
 
 ___Deserialized Object___
 [ClassA.field1=456, ClassA.field2=[ClassA.field1=123, ClassA.field2=, ClassZ.field1=asdf], ClassZ.field1=qwer]

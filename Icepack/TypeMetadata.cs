@@ -14,6 +14,8 @@ namespace Icepack
         private Type type;
         private SortedList<string, FieldMetadata> fields;
         private string serializedStr;
+        private Action<object, object> hashSetAdder;
+        private bool isItemsNoReference;
 
         /// <summary>
         /// Called during deserialization. Copies relevant information from the registered type metadata and filters the fields based on
@@ -35,26 +37,30 @@ namespace Icepack
             }
 
             serializedStr = null;
+            hashSetAdder = registeredTypeMetadata.hashSetAdder;
+            isItemsNoReference = registeredTypeMetadata.isItemsNoReference;
         }
 
         /// <summary> Called during serialization. </summary>
         /// <param name="id"> A unique ID for the type. </param>
         /// <param name="type"> The type. </param>
-        public TypeMetadata(ulong id, Type type)
+        public TypeMetadata(ulong id, Type type, bool isItemsNoReference)
         {
             this.id = id;
             this.type = type;
+            this.isItemsNoReference = isItemsNoReference;
 
             this.fields = new SortedList<string, FieldMetadata>();
             foreach (FieldInfo fieldInfo in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
-                IgnorePropertyAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnorePropertyAttribute>();
+                IcepackIgnoreAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IcepackIgnoreAttribute>();
                 if (ignoreAttr == null)
                     fields.Add(fieldInfo.Name, new FieldMetadata(fieldInfo));
             }
 
-            // This is lazy-initialized
+            // These are lazy-initialized
             this.serializedStr = null;
+            this.hashSetAdder = null;
         }
 
         /// <summary> A unique ID for the type. </summary>
@@ -67,6 +73,11 @@ namespace Icepack
         public Type Type
         {
             get { return type; }
+        }
+
+        public bool IsItemsNoReference
+        {
+            get { return isItemsNoReference; }
         }
 
         /// <summary> A dictionary that maps a field name to information about the field. </summary>
@@ -86,7 +97,7 @@ namespace Icepack
                     strBuilder.Append('[');
                     strBuilder.Append($"\"{id}\"");
                     strBuilder.Append(',');
-                    strBuilder.Append($"\"{type.FullName}\"");
+                    strBuilder.Append($"\"{type.AssemblyQualifiedName}\"");
                     foreach (FieldMetadata field in fields.Values)
                     {
                         strBuilder.Append(',');
@@ -97,6 +108,28 @@ namespace Icepack
                 }
 
                 return serializedStr;
+            }
+        }
+
+        public Action<object, object> HashSetAdder
+        {
+            get
+            {
+                if (hashSetAdder == null)
+                {
+                    MethodInfo methodInfo = type.GetMethod("Add");
+                    Type itemType = type.GetGenericArguments()[0];
+
+                    ParameterExpression exInstance = Expression.Parameter(typeof(object));
+                    UnaryExpression exConvertInstanceToDeclaringType = Expression.Convert(exInstance, type);
+                    ParameterExpression exValue = Expression.Parameter(typeof(object));
+                    UnaryExpression exConvertValueToItemType = Expression.Convert(exValue, itemType);
+                    MethodCallExpression exAdd = Expression.Call(exConvertInstanceToDeclaringType, methodInfo, exConvertValueToItemType);
+                    Expression<Action<object, object>> lambda = Expression.Lambda<Action<object, object>>(exAdd, exInstance, exValue);
+                    hashSetAdder = lambda.Compile();
+                }
+
+                return hashSetAdder;
             }
         }
     }
