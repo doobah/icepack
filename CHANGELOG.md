@@ -1,6 +1,7 @@
 # v0.0.3
 
 * Modify deserialization logic to not require an ID field for an object.
+* Rename some public types.
 
 # v0.0.2
 

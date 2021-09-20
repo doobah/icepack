@@ -8,7 +8,7 @@ namespace IcepackTest
 {
     public class SerializationTests
     {
-        [IcepackObject]
+        [SerializableObject]
         private class FlatClass
         {
             public int Field1;
@@ -16,21 +16,21 @@ namespace IcepackTest
             public float Field3;
         }
 
-        [IcepackObject]
+        [SerializableObject]
         private struct SerializableStruct
         {
             public int Field1;
             public int Field2;
         }
 
-        [IcepackObject]
+        [SerializableObject]
         private class HierarchicalObject
         {
             public int Field1;
             public HierarchicalObject Nested;
         }
 
-        [IcepackObject]
+        [SerializableObject]
         private class ParentClass
         {
             private int field;
@@ -48,7 +48,7 @@ namespace IcepackTest
             }
         }
 
-        [IcepackObject]
+        [SerializableObject]
         private class ChildClass : ParentClass
         {
             private int field;
@@ -66,28 +66,28 @@ namespace IcepackTest
             }
         }
 
-        [IcepackObject]
+        [SerializableObject]
         private class ObjectWithIgnoredField
         {
             public int Field1 = 0;
 
-            [IcepackIgnore]
+            [IgnoreField]
             public int Field2 = 0;
         }
 
-        [IcepackObject]
+        [SerializableObject]
         private class RegisteredClass
         {
         }
 
-        [IcepackObject]
+        [SerializableObject]
         private class ObjectWithObjectReferences
         {
             public RegisteredClass Field1;
             public RegisteredClass Field2;
         }
 
-        [IcepackObject]
+        [SerializableObject]
         private class ClassWithNoReferenceFields
         {
             [ValueOnly]
@@ -107,10 +107,10 @@ namespace IcepackTest
         {
         }
 
-        [IcepackObject]
-        private class ClassWithSerializationHooks : IIcepackHooks
+        [SerializableObject]
+        private class ClassWithSerializationHooks : ISerializerListener
         {
-            [IcepackIgnore]
+            [IgnoreField]
             public int RuntimeField;
 
             public int SerializedField;

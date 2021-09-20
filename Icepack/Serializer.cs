@@ -85,8 +85,8 @@ namespace Icepack
 
         private string SerializeStruct(object obj, SerializationContext context)
         {
-            if (obj is IIcepackHooks)
-                ((IIcepackHooks)obj).OnBeforeSerialize();
+            if (obj is ISerializerListener)
+                ((ISerializerListener)obj).OnBeforeSerialize();
 
             Type type = obj.GetType();
 
@@ -112,8 +112,8 @@ namespace Icepack
 
         private string SerializeClass(object obj, SerializationContext context)
         {
-            if (obj is IIcepackHooks)
-                ((IIcepackHooks)obj).OnBeforeSerialize();
+            if (obj is ISerializerListener)
+                ((ISerializerListener)obj).OnBeforeSerialize();
 
             Type type = obj.GetType();
 
@@ -320,8 +320,8 @@ namespace Icepack
                 field.Setter(structObj, value);
             }
 
-            if (structObj is IIcepackHooks)
-                ((IIcepackHooks)structObj).OnAfterDeserialize();
+            if (structObj is ISerializerListener)
+                ((ISerializerListener)structObj).OnAfterDeserialize();
 
             return structObj;
         }
@@ -423,8 +423,8 @@ namespace Icepack
                     }
                 }
 
-                if (classObj is IIcepackHooks)
-                    ((IIcepackHooks)classObj).OnAfterDeserialize();
+                if (classObj is ISerializerListener)
+                    ((ISerializerListener)classObj).OnAfterDeserialize();
             }
 
             return classObj;

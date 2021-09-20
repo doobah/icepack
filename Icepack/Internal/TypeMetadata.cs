@@ -53,7 +53,7 @@ namespace Icepack
             this.fields = new SortedList<string, FieldMetadata>();
             foreach (FieldInfo fieldInfo in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
-                IcepackIgnoreAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IcepackIgnoreAttribute>();
+                IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
                 if (ignoreAttr == null)
                     fields.Add(fieldInfo.Name, new FieldMetadata(fieldInfo));
             }

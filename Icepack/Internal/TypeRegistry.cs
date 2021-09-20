@@ -9,15 +9,13 @@ namespace Icepack
     /// <summary> Contains metadata about serializable structs and classes. </summary>
     internal class TypeRegistry
     {
-        private const ulong NULL_ID = 0;
-
         private Dictionary<string, TypeMetadata> types;
         private ulong largestTypeId;
 
         public TypeRegistry()
         {
             types = new Dictionary<string, TypeMetadata>();
-            largestTypeId = NULL_ID;
+            largestTypeId = Toolbox.NULL_ID;
         }
 
         /// <summary> Registers a type as serializable. </summary>
@@ -42,7 +40,7 @@ namespace Icepack
         {
             if (!IsTypeRegistered(type))
             {
-                object[] attributes = type.GetCustomAttributes(typeof(IcepackObjectAttribute), true);
+                object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
                 if (attributes.Length == 0)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
@@ -58,7 +56,7 @@ namespace Icepack
             if (!IsTypeRegistered(name))
             {
                 Type type = Type.GetType(name);
-                object[] attributes = type.GetCustomAttributes(typeof(IcepackObjectAttribute), true);
+                object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
                 if (attributes.Length == 0)
                     throw new IcepackException($"Type {type.AssemblyQualifiedName} is not registered for serialization!");
 

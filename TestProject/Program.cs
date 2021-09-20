@@ -74,7 +74,7 @@ namespace TestProject
 {
     class Program
     {
-        [IcepackObject]
+        [SerializableObject]
         private class ClassB
         {
             private bool boolField;
@@ -91,7 +91,7 @@ namespace TestProject
             }
         }
 
-        [IcepackObject]
+        [SerializableObject]
         private class ClassA
         {
             private int intField;
