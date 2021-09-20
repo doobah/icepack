@@ -42,7 +42,7 @@ namespace Icepack
         {
             if (!IsTypeRegistered(type))
             {
-                object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
+                object[] attributes = type.GetCustomAttributes(typeof(IcepackObjectAttribute), true);
                 if (attributes.Length == 0)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
@@ -58,7 +58,7 @@ namespace Icepack
             if (!IsTypeRegistered(name))
             {
                 Type type = Type.GetType(name);
-                object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
+                object[] attributes = type.GetCustomAttributes(typeof(IcepackObjectAttribute), true);
                 if (attributes.Length == 0)
                     throw new IcepackException($"Type {type.AssemblyQualifiedName} is not registered for serialization!");
 

@@ -63,18 +63,18 @@ namespace Icepack
         private string SerializeObject(object obj, SerializationContext context)
         {
             if (obj == null)
-                return "\"0\"";
+                return "0";
 
             Type type = obj.GetType();
 
             if (type == typeof(bool))
-                return ((bool)obj) ? "\"1\"" : "\"0\"";
+                return ((bool)obj) ? "1" : "0";
             else if (type.IsPrimitive || type == typeof(decimal))
-                return $"\"{obj}\"";
+                return obj.ToString();
             else if (type == typeof(string))
-                return $"\"{EscapeString((string)obj)}\"";
+                return Toolbox.EscapeString((string)obj);
             else if (type.IsEnum)
-                return $"\"{((int)obj)}\"";
+                return ((int)obj).ToString();
             else if (type.IsValueType)
                 return SerializeStruct(obj, context);
             else if (type.IsClass)
@@ -96,7 +96,7 @@ namespace Icepack
             StringBuilder builder = new StringBuilder();
 
             builder.Append('[');
-            builder.Append($"\"{typeMetadata.Id}\"");
+            builder.Append(typeMetadata.Id);
 
             foreach (FieldMetadata field in typeMetadata.Fields.Values)
             {
@@ -123,9 +123,9 @@ namespace Icepack
             StringBuilder builder = new StringBuilder();
 
             builder.Append('[');
-            builder.Append($"\"{context.GetInstanceId(obj)}\"");
+            builder.Append(context.GetInstanceId(obj));
             builder.Append(',');
-            builder.Append($"\"{typeMetadata.Id}\"");
+            builder.Append(typeMetadata.Id);
 
             if (type.IsArray)
             {
@@ -177,7 +177,7 @@ namespace Icepack
 
                     builder.Append(',');
                     builder.Append('[');
-                    builder.Append($"\"{currentTypeMetadata.Id}\"");
+                    builder.Append(currentTypeMetadata.Id);
 
                     foreach (FieldMetadata field in currentTypeMetadata.Fields.Values)
                     {
@@ -197,30 +197,16 @@ namespace Icepack
             return builder.ToString();
         }
 
-        private string EscapeString(string str)
-        {
-            StringBuilder builder = new StringBuilder(str.Length * 2);
-            foreach (char c in str)
-            {
-                if ("\"\\".Contains(c))
-                    builder.Append('\\');
-
-                builder.Append(c);
-            }
-
-            return builder.ToString();
-        }
-
         private string SerializeField(object value, bool isReference, SerializationContext context)
         {
             if (value != null && Toolbox.IsClass(value.GetType()) && isReference)
             {
                 if (context.IsObjectRegistered(value))
-                    return $"\"{context.GetInstanceId(value)}\"";
+                    return context.GetInstanceId(value).ToString();
 
                 ulong id = context.RegisterObject(value);
                 context.ObjectsToSerialize.Enqueue(value);
-                return $"\"{id}\"";
+                return id.ToString();
             }
             else
                 return SerializeObject(value, context);

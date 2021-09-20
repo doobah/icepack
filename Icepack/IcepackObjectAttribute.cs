@@ -7,5 +7,5 @@ using System.Threading.Tasks;
 namespace Icepack
 {
     /// <summary> Allows a class or struct to be serialized/deserialized via Icepack. </summary>
-    public class SerializableObjectAttribute : Attribute { }
+    public class IcepackObjectAttribute : Attribute { }
 }

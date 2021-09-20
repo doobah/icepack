@@ -95,16 +95,16 @@ namespace Icepack
                 {
                     StringBuilder strBuilder = new StringBuilder();
                     strBuilder.Append('[');
-                    strBuilder.Append($"\"{id}\"");
+                    strBuilder.Append(id);
                     strBuilder.Append(',');
-                    strBuilder.Append($"\"{type.AssemblyQualifiedName}\"");
+                    strBuilder.Append(Toolbox.EscapeString(type.AssemblyQualifiedName));
                     foreach (FieldMetadata field in fields.Values)
                     {
                         strBuilder.Append(',');
-                        strBuilder.Append($"\"{field.FieldInfo.Name}\"");
+                        strBuilder.Append(field.FieldInfo.Name);
                     }
                     strBuilder.Append(']');
-                    this.serializedStr = strBuilder.ToString();
+                    serializedStr = strBuilder.ToString();
                 }
 
                 return serializedStr;

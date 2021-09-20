@@ -19,5 +19,19 @@ namespace Icepack
         {
             return type.IsClass && type != typeof(string);
         }
+
+        public static string EscapeString(string str)
+        {
+            StringBuilder builder = new StringBuilder(str.Length * 2);
+            foreach (char c in str)
+            {
+                if (",]\\".Contains(c))
+                    builder.Append('\\');
+
+                builder.Append(c);
+            }
+
+            return builder.ToString();
+        }
     }
 }

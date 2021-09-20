@@ -1,4 +1,70 @@
-﻿using System;
+﻿/*
+using System;
+using Icepack;
+
+namespace Example
+{
+    [IcepackObject]
+    abstract class ClassZ
+    {
+        private string field1;
+
+        public ClassZ(string field1)
+        {
+            this.field1 = field1;
+        }
+
+        public override string ToString()
+        {
+            return $"ClassZ.field1={field1}";
+        }
+
+        public ClassZ() { }
+    }
+
+    [IcepackObject]
+    class ClassA : ClassZ
+    {
+        private int field1;
+        private ClassA field2;
+
+        public ClassA(int field1, ClassA field2, string baseField1) : base(baseField1)
+        {
+            this.field1 = field1;
+            this.field2 = field2;
+        }
+
+        public ClassA() : base() { }
+
+        public override string ToString()
+        {
+            return $"[ClassA.field1={field1}, ClassA.field2={field2}, {base.ToString()}]";
+        }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Serializer serializer = new Serializer();
+
+            ClassA nestedObj = new ClassA(123, null, "asdf");
+            ClassA rootObj = new ClassA(456, nestedObj, "qwer");
+
+            string str = serializer.Serialize(rootObj);
+            Console.WriteLine("___Serialized Output___");
+            Console.WriteLine(str);
+            Console.WriteLine("");
+
+            ClassA deserializedObj = serializer.Deserialize<ClassA>(str);
+            Console.WriteLine("___Deserialized Object___");
+            Console.WriteLine(deserializedObj);
+        }
+    }
+}
+*/
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Icepack;
@@ -7,7 +73,7 @@ namespace TestProject
 {
     class Program
     {
-        [SerializableObject]
+        [IcepackObject]
         private class ClassB
         {
             private bool boolField;
@@ -24,7 +90,7 @@ namespace TestProject
             }
         }
 
-        [SerializableObject]
+        [IcepackObject]
         private class ClassA
         {
             private int intField;

@@ -10,11 +10,10 @@ namespace IcepackTest
 {
     public class ObjectTreeParserTests
     {
-        private const string VALID_OBJ_TREE_STRING = "[[\"1\",\"a string\"],[\"2\",\"another string\"]]";
-        private const string CORRECTLY_ESCAPED_OBJ_TREE_STRING = "[[\"1\",\"a string\"],[\"2\",\"another \\\" string\"]]";
-        private const string INVALID_OBJ_TREE_STRING = "[[\"1\",\"a string\"],[\"2\",\"another string\"]";
-        private const string INCORRECTLY_ESCAPED_OBJ_TREE_STRING = "[[\"1\",\"a string\"],[\"2\",\"another \" string\"]";
-
+        private const string VALID_OBJ_TREE_STRING = "[[1,a string],[2,another string]]";
+        private const string CORRECTLY_ESCAPED_OBJ_TREE_STRING = "[[1,a string],[2,another \\] string]]";
+        private const string INVALID_OBJ_TREE_STRING = "[[1,a string],[2,another string]";
+        private const string INCORRECTLY_ESCAPED_OBJ_TREE_STRING = "[[1,a string],[2,another ] string]]";
 
         [Test]
         public void ValidString()
@@ -45,7 +44,7 @@ namespace IcepackTest
             Assert.IsInstanceOf(typeof(List<object>), objTree[1]);
             List<object> node1 = (List<object>)objTree[1];
             Assert.AreEqual("2", node1[0]);
-            Assert.AreEqual("another \" string", node1[1]);
+            Assert.AreEqual("another ] string", node1[1]);
         }
 
         [Test]

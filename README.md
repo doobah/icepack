@@ -27,12 +27,13 @@ The format of `objects` is:
 where
 
 * The first element is the root object
-* All elements in the format are either an array, e.g. `[ item 1, item 2 ]`, or a double-quoted string, e.g. `"some text"`. Arrays can be nested.
+* All elements in the format are either an array, e.g. `[ item 1, item 2 ]`, or a string, e.g. `some text`.
+* Arrays can be nested.
 * The supported types and their formats are:
   * **All numeric types:** A string representation of the number.
-  * **Boolean:** `"0"` if false, `"1"` if true.
+  * **Boolean:** `0` if false, `1` if true.
   * **Enum:** A string representation of the underlying numeric value.
-  * **String:** The string text. The `\` and `"` characters are escaped.
+  * **String:** The string text. The characters `,]\` are escaped with a `\` character.
   * **Object reference:** The ID of the referenced object.
   * **Struct:**
     ```
@@ -78,7 +79,7 @@ using Icepack;
 
 namespace Example
 {
-    [SerializableObject]
+    [IcepackObject]
     abstract class ClassZ
     {
         private string field1;
@@ -96,7 +97,7 @@ namespace Example
         public ClassZ() { }
     }
 
-    [SerializableObject]
+    [IcepackObject]
     class ClassA : ClassZ
     {
         private int field1;
@@ -142,7 +143,7 @@ which gives the output:
 
 ```
 ___Serialized Output___
-[[["1","1",["1","456","2"],["2","qwer"]],["2","1",["1","123","0"],["2","asdf"]]],[["1","Example.ClassA, TestProject, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null","field1","field2"],["2","Example.ClassZ, TestProject, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null","field1"]]]
+[[[1,1,[1,456,2],[2,qwer]],[2,1,[1,123,0],[2,asdf]]],[[1,Example.ClassA\, TestProject\, Version=1.0.0.0\, Culture=neutral\, PublicKeyToken=null,field1,field2],[2,Example.ClassZ\, TestProject\, Version=1.0.0.0\, Culture=neutral\, PublicKeyToken=null,field1]]]
 
 ___Deserialized Object___
 [ClassA.field1=456, ClassA.field2=[ClassA.field1=123, ClassA.field2=, ClassZ.field1=asdf], ClassZ.field1=qwer]

@@ -8,7 +8,7 @@ namespace IcepackTest
 {
     public class SerializationTests
     {
-        [SerializableObject]
+        [IcepackObject]
         private class FlatClass
         {
             public int Field1;
@@ -16,21 +16,21 @@ namespace IcepackTest
             public float Field3;
         }
 
-        [SerializableObject]
+        [IcepackObject]
         private struct SerializableStruct
         {
             public int Field1;
             public int Field2;
         }
 
-        [SerializableObject]
+        [IcepackObject]
         private class HierarchicalObject
         {
             public int Field1;
             public HierarchicalObject Nested;
         }
 
-        [SerializableObject]
+        [IcepackObject]
         private class ParentClass
         {
             private int field;
@@ -48,7 +48,7 @@ namespace IcepackTest
             }
         }
 
-        [SerializableObject]
+        [IcepackObject]
         private class ChildClass : ParentClass
         {
             private int field;
@@ -66,7 +66,7 @@ namespace IcepackTest
             }
         }
 
-        [SerializableObject]
+        [IcepackObject]
         private class ObjectWithIgnoredField
         {
             public int Field1 = 0;
@@ -75,19 +75,19 @@ namespace IcepackTest
             public int Field2 = 0;
         }
 
-        [SerializableObject]
+        [IcepackObject]
         private class RegisteredClass
         {
         }
 
-        [SerializableObject]
+        [IcepackObject]
         private class ObjectWithObjectReferences
         {
             public RegisteredClass Field1;
             public RegisteredClass Field2;
         }
 
-        [SerializableObject]
+        [IcepackObject]
         private class ClassWithNoReferenceFields
         {
             [ValueOnly]
@@ -107,7 +107,7 @@ namespace IcepackTest
         {
         }
 
-        [SerializableObject]
+        [IcepackObject]
         private class ClassWithSerializationHooks : IIcepackHooks
         {
             [IcepackIgnore]
@@ -333,10 +333,10 @@ namespace IcepackTest
         {
             Serializer serializer = new Serializer();
 
-            string typeName = typeof(UnregisteredClass).AssemblyQualifiedName;
+            string typeName = Toolbox.EscapeString(typeof(UnregisteredClass).AssemblyQualifiedName);
 
             Assert.Throws<IcepackException>(() => {
-                serializer.Deserialize<UnregisteredClass>($"[[[\"1\", \"1\",[\"1\"]]],[[\"1\",\"{typeName}\"]]]");
+                serializer.Deserialize<UnregisteredClass>($"[[[1,1,[1]]],[[1,{typeName}]]]");
             },
             $"Type {typeName} is not registered for serialization!");
         }
@@ -346,9 +346,9 @@ namespace IcepackTest
         {
             Serializer serializer = new Serializer();
 
-            string typeName = typeof(RegisteredClass).AssemblyQualifiedName;
+            string typeName = Toolbox.EscapeString(typeof(RegisteredClass).AssemblyQualifiedName);
 
-            RegisteredClass deserializedObj = serializer.Deserialize<RegisteredClass>($"[[[\"1\", \"1\",[\"1\"]]],[[\"1\",\"{typeName}\"]]]");
+            RegisteredClass deserializedObj = serializer.Deserialize<RegisteredClass>($"[[[1,1,[1]]],[[1,{typeName}]]]");
 
             Assert.NotNull(deserializedObj);
         }
