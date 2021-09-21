@@ -13,7 +13,7 @@ namespace Icepack
         /// Maps a type ID to information about the type. The type information is different from what is stored in the serializer's
         /// type registry since the document's type table is used when deserializing.
         /// </summary>
-        public Dictionary<ulong, TypeMetadata> Types { get; }
+        public TypeMetadata[] Types { get; set; }
 
         /// <summary> Maps an object ID to the object itself. </summary>
         public object[] Objects { get; set; }
@@ -22,7 +22,7 @@ namespace Icepack
 
         public DeserializationContext()
         {
-            Types = new Dictionary<ulong, TypeMetadata>();
+            Types = null;
             Objects = null;
             CurrentObjectId = Toolbox.NULL_ID;
         }

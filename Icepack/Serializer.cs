@@ -52,7 +52,7 @@ namespace Icepack
 
             // Serialize type data
             documentBuilder.Append('[');
-            documentBuilder.AppendJoin(',', context.Types.Values.Select(typeMetadata => typeMetadata.SerializedString));
+            documentBuilder.AppendJoin(',', context.Types.Values.Cast<TypeMetadata>().Select(typeMetadata => typeMetadata.SerializedString));
             documentBuilder.Append(']');
             
             documentBuilder.Append(']');
@@ -216,16 +216,20 @@ namespace Icepack
 
             // Extract types
             List<object> typeNodes = (List<object>)documentNodes[1];
-            foreach (object t in typeNodes)
+            context.Types = new TypeMetadata[typeNodes.Count];
+            for (int i = 0; i < typeNodes.Count; i++)
             {
-                List<object> typeNode = (List<object>)t;
-                string name = (string)typeNode[1];
+                List<object> typeNode = (List<object>)typeNodes[i];
+                string name = (string)typeNode[0];
                 TypeMetadata registeredTypeMetadata = typeRegistry.GetTypeMetadata(name);
                 if (registeredTypeMetadata == null)
+                {
+                    context.Types[i] = null;
                     continue;
+                }
 
-                TypeMetadata typeMetadata = new TypeMetadata(registeredTypeMetadata, typeNode);
-                context.Types.Add(typeMetadata.Id, typeMetadata);
+                TypeMetadata typeMetadata = new TypeMetadata(registeredTypeMetadata, typeNode, (ulong)i);
+                context.Types[i] = typeMetadata;
             }
 
             // Create empty objects

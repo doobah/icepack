@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,7 +10,7 @@ namespace Icepack
     internal class SerializationContext
     {
         public Queue<object> ObjectsToSerialize { get; }
-        public Dictionary<Type, TypeMetadata> Types { get; }
+        public OrderedDictionary Types { get; }
 
         private Dictionary<object, ulong> instanceIds;
         private ulong largestInstanceId;
@@ -21,8 +22,8 @@ namespace Icepack
             instanceIds = new Dictionary<object, ulong>();
             largestInstanceId = Toolbox.NULL_ID;
             ObjectsToSerialize = new Queue<object>();
-            Types = new Dictionary<Type, TypeMetadata>();
-            largestTypeId = Toolbox.NULL_ID;
+            Types = new OrderedDictionary();
+            largestTypeId = 0;
             this.typeRegistry = typeRegistry;
         }
 
@@ -59,17 +60,17 @@ namespace Icepack
                 if (registeredTypeMetadata == null)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
-                TypeMetadata newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId);
+                TypeMetadata newTypeMetadata = new TypeMetadata(registeredTypeMetadata, largestTypeId++);
                 Types.Add(type, newTypeMetadata);
                 return newTypeMetadata;
             }
 
-            return Types[type];
+            return (TypeMetadata)Types[type];
         }
 
         private bool IsTypeRegistered(Type type)
         {
-            return Types.ContainsKey(type);
+            return Types.Contains(type);
         }
     }
 }

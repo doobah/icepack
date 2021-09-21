@@ -36,14 +36,15 @@ namespace Icepack
         /// </summary>
         /// <param name="registeredTypeMetadata"> The registered type metadata to copy information from. </param>
         /// <param name="objectTree"> The object tree for type metadata extracted from the serialized data. </param>
-        public TypeMetadata(TypeMetadata registeredTypeMetadata, List<object> objectTree)
+        /// <param name="id"> A unique ID for the type. </param>
+        public TypeMetadata(TypeMetadata registeredTypeMetadata, List<object> objectTree, ulong id)
         {
-            id = ulong.Parse((string)objectTree[0]);
+            this.id = id;
             type = registeredTypeMetadata.type;
             isItemsNoReference = registeredTypeMetadata.isItemsNoReference;
 
             fields = new SortedList<string, FieldMetadata>();
-            for (int i = 2; i < objectTree.Count; i++)
+            for (int i = 1; i < objectTree.Count; i++)
             {
                 string fieldName = (string)objectTree[i];
                 FieldMetadata fieldMetadata = registeredTypeMetadata.Fields.GetValueOrDefault(fieldName, null);
@@ -107,8 +108,6 @@ namespace Icepack
                 {
                     StringBuilder strBuilder = new StringBuilder();
                     strBuilder.Append('[');
-                    strBuilder.Append(id);
-                    strBuilder.Append(',');
                     strBuilder.Append(Toolbox.EscapeString(type.AssemblyQualifiedName));
                     foreach (FieldMetadata field in fields.Values)
                     {

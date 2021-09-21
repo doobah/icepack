@@ -336,7 +336,7 @@ namespace IcepackTest
             string typeName = Toolbox.EscapeString(typeof(UnregisteredClass).AssemblyQualifiedName);
 
             Assert.Throws<IcepackException>(() => {
-                serializer.Deserialize<UnregisteredClass>($"[[[1,[1]]],[[1,{typeName}]]]");
+                serializer.Deserialize<UnregisteredClass>($"[[[0,[0]]],[[{typeName}]]]");
             },
             $"Type {typeName} is not registered for serialization!");
         }
@@ -348,7 +348,7 @@ namespace IcepackTest
 
             string typeName = Toolbox.EscapeString(typeof(RegisteredClass).AssemblyQualifiedName);
 
-            RegisteredClass deserializedObj = serializer.Deserialize<RegisteredClass>($"[[[1,[1]]],[[1,{typeName}]]]");
+            RegisteredClass deserializedObj = serializer.Deserialize<RegisteredClass>($"[[[0,[0]]],[[{typeName}]]]");
 
             Assert.NotNull(deserializedObj);
         }

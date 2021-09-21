@@ -1,10 +1,11 @@
 # v0.0.4
 
 * Index type metadata by type, not name. This speeds up serialization.
+* Modify logic to not include an ID field for a type, this slightly improves deserialization time since the type ID can be inferred from the declaration order in the document.
 
 # v0.0.3
 
-* Modify deserialization logic to not require an ID field for an object, this improves deserialization time since the object ID can be inferred from the declaration order in the document.
+* Modify logic to not include an ID field for an object, this improves deserialization time since the object ID can be inferred from the declaration order in the document.
 * Rename some public types.
 
 # v0.0.2
