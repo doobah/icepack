@@ -17,6 +17,19 @@ namespace Icepack
         private Action<object, object> hashSetAdder;
         private bool isItemsNoReference;
 
+        /// <summary> Called during serialization. </summary>
+        /// <param name="registeredTypeMetadata"></param>
+        /// <param name="id"> A unique ID for the type. </param>
+        public TypeMetadata(TypeMetadata registeredTypeMetadata, ulong id)
+        {
+            this.id = id;
+            type = registeredTypeMetadata.type;
+            isItemsNoReference = registeredTypeMetadata.isItemsNoReference;
+            fields = registeredTypeMetadata.fields;
+            serializedStr = null;
+            hashSetAdder = null;
+        }
+
         /// <summary>
         /// Called during deserialization. Copies relevant information from the registered type metadata and filters the fields based on
         /// what is expected by the serialized data.
@@ -27,6 +40,7 @@ namespace Icepack
         {
             id = ulong.Parse((string)objectTree[0]);
             type = registeredTypeMetadata.type;
+            isItemsNoReference = registeredTypeMetadata.isItemsNoReference;
 
             fields = new SortedList<string, FieldMetadata>();
             for (int i = 2; i < objectTree.Count; i++)
@@ -37,16 +51,14 @@ namespace Icepack
             }
 
             serializedStr = null;
-            hashSetAdder = registeredTypeMetadata.hashSetAdder;
-            isItemsNoReference = registeredTypeMetadata.isItemsNoReference;
+            hashSetAdder = null;
         }
 
         /// <summary> Called during serialization. </summary>
-        /// <param name="id"> A unique ID for the type. </param>
         /// <param name="type"> The type. </param>
-        public TypeMetadata(ulong id, Type type, bool isItemsNoReference)
+        public TypeMetadata(Type type, bool isItemsNoReference)
         {
-            this.id = id;
+            this.id = 0;
             this.type = type;
             this.isItemsNoReference = isItemsNoReference;
 

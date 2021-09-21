@@ -30,7 +30,7 @@ namespace Icepack
         /// <returns> The serialized object graph. </returns>
         public string Serialize(object obj)
         {
-            SerializationContext context = new SerializationContext();
+            SerializationContext context = new SerializationContext(typeRegistry);
 
             StringBuilder documentBuilder = new StringBuilder();
             documentBuilder.Append('[');
@@ -52,7 +52,7 @@ namespace Icepack
 
             // Serialize type data
             documentBuilder.Append('[');
-            documentBuilder.AppendJoin(',', context.UsedTypes.Select(type => typeRegistry.GetTypeMetadata(type).SerializedString));
+            documentBuilder.AppendJoin(',', context.Types.Values.Select(typeMetadata => typeMetadata.SerializedString));
             documentBuilder.Append(']');
             
             documentBuilder.Append(']');
@@ -90,8 +90,7 @@ namespace Icepack
 
             Type type = obj.GetType();
 
-            TypeMetadata typeMetadata = typeRegistry.GetTypeMetadata(type);
-            context.UsedTypes.Add(type);
+            TypeMetadata typeMetadata = context.GetTypeMetadata(type);
 
             StringBuilder builder = new StringBuilder();
 
@@ -117,8 +116,7 @@ namespace Icepack
 
             Type type = obj.GetType();
 
-            TypeMetadata typeMetadata = typeRegistry.GetTypeMetadata(type);
-            context.UsedTypes.Add(type);
+            TypeMetadata typeMetadata = context.GetTypeMetadata(type);
 
             StringBuilder builder = new StringBuilder();
 
@@ -170,8 +168,7 @@ namespace Icepack
                 Type currentType = obj.GetType();
                 while (currentType != typeof(object))
                 {
-                    TypeMetadata currentTypeMetadata = typeRegistry.GetTypeMetadata(currentType);
-                    context.UsedTypes.Add(currentType);
+                    TypeMetadata currentTypeMetadata = context.GetTypeMetadata(currentType);
 
                     builder.Append(',');
                     builder.Append('[');

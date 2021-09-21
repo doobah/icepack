@@ -9,27 +9,27 @@ namespace Icepack
     /// <summary> Contains metadata about serializable structs and classes. </summary>
     internal class TypeRegistry
     {
-        private Dictionary<string, TypeMetadata> types;
-        private ulong largestTypeId;
+        private Dictionary<Type, TypeMetadata> types;
 
         public TypeRegistry()
         {
-            types = new Dictionary<string, TypeMetadata>();
-            largestTypeId = Toolbox.NULL_ID;
+            types = new Dictionary<Type, TypeMetadata>();
         }
 
         /// <summary> Registers a type as serializable. </summary>
         /// <param name="type"> The type to register. </param>
         /// <remarks> This is generally used to allow types in other assemblies to be serialized. </remarks>
-        public void RegisterType(Type type, bool isItemsNoReference)
+        public TypeMetadata RegisterType(Type type, bool isItemsNoReference)
         {
-            if (IsTypeRegistered(type))
-                return;
+            if (types.ContainsKey(type))
+                return types[type];
 
             if (!Toolbox.IsClass(type) && !Toolbox.IsStruct(type) || type == typeof(object) || type == typeof(ValueType))
                 throw new IcepackException($"Type {type} cannot be registered for serialization!");
 
-            types.Add(type.AssemblyQualifiedName, new TypeMetadata(++largestTypeId, type, isItemsNoReference));
+            TypeMetadata newTypeMetadata = new TypeMetadata(type, isItemsNoReference);
+            types.Add(type, newTypeMetadata);
+            return newTypeMetadata;
         }
 
         /// <summary> Retrieves the metadata for a type. </summary>
@@ -44,18 +44,21 @@ namespace Icepack
                 if (attributes.Length == 0)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
-                // IsItemsNoReference is only set with a call to RegisterType which should already have happened.
-                RegisterType(type, false);
+                // IsItemsNoReference is only set with a user call to RegisterType which should already have happened.
+                return RegisterType(type, false);
             }
 
-            return types[type.AssemblyQualifiedName];
+            return types[type];
         }
 
         public TypeMetadata GetTypeMetadata(string name)
         {
-            if (!IsTypeRegistered(name))
+            Type type = Type.GetType(name);
+            if (type == null)
+                throw new IcepackException($"No type exists with name {name}");
+
+            if (!IsTypeRegistered(type))
             {
-                Type type = Type.GetType(name);
                 object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
                 if (attributes.Length == 0)
                     throw new IcepackException($"Type {type.AssemblyQualifiedName} is not registered for serialization!");
@@ -63,17 +66,12 @@ namespace Icepack
                 RegisterType(type, false);
             }
 
-            return types[name];
+            return types[type];
         }
 
         private bool IsTypeRegistered(Type type)
         {
-            return IsTypeRegistered(type.AssemblyQualifiedName);
-        }
-
-        private bool IsTypeRegistered(string name)
-        {
-            return types.ContainsKey(name);
+            return types.ContainsKey(type);
         }
     }
 }
