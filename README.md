@@ -78,7 +78,7 @@ using Icepack;
 
 namespace Example
 {
-    [IcepackObject]
+    [SerializableObject]
     abstract class ClassZ
     {
         private string field1;
@@ -96,7 +96,7 @@ namespace Example
         public ClassZ() { }
     }
 
-    [IcepackObject]
+    [SerializableObject]
     class ClassA : ClassZ
     {
         private int field1;
@@ -142,7 +142,7 @@ which gives the output:
 
 ```
 ___Serialized Output___
-[[[1,[1,456,2],[2,qwer]],[1,[1,123,0],[2,asdf]]],[[1,Example.ClassA\, TestProject\, Version=1.0.0.0\, Culture=neutral\, PublicKeyToken=null,field1,field2],[2,Example.ClassZ\, TestProject\, Version=1.0.0.0\, Culture=neutral\, PublicKeyToken=null,field1]]]
+[[[Example.ClassA\, TestProject\, Version=1.0.0.0\, Culture=neutral\, PublicKeyToken=null,field1,field2],[Example.ClassZ\, TestProject\, Version=1.0.0.0\, Culture=neutral\, PublicKeyToken=null,field1]],[[0,[0,456,2],[1,qwer]],[0,[0,123,0],[1,asdf]]]]
 
 ___Deserialized Object___
 [ClassA.field1=456, ClassA.field2=[ClassA.field1=123, ClassA.field2=, ClassZ.field1=asdf], ClassZ.field1=qwer]

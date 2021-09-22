@@ -32,29 +32,35 @@ namespace Icepack
         {
             SerializationContext context = new SerializationContext(typeRegistry);
 
-            StringBuilder documentBuilder = new StringBuilder();
-            documentBuilder.Append('[');
-
             // Serialize objects
-            documentBuilder.Append('[');
+            StringBuilder objectsBuilder = new StringBuilder();
             if (Toolbox.IsClass(obj.GetType()))
                 context.RegisterObject(obj);
-            documentBuilder.Append(SerializeObject(obj, context));
+            objectsBuilder.Append(SerializeObject(obj, context));
             while (context.ObjectsToSerialize.Count > 0)
             {
-                documentBuilder.Append(',');
+                objectsBuilder.Append(',');
                 object objToSerialize = context.ObjectsToSerialize.Dequeue();
-                documentBuilder.Append(SerializeObject(objToSerialize, context));
+                objectsBuilder.Append(SerializeObject(objToSerialize, context));
             }
-            documentBuilder.Append(']');
 
-            documentBuilder.Append(',');
-
-            // Serialize type data
+            // Construct document
+            StringBuilder documentBuilder = new StringBuilder();
+            /*
+            Version assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version;
+            documentBuilder.Append((char)assemblyVersion.Major);
+            documentBuilder.Append((char)assemblyVersion.Minor);
+            documentBuilder.Append((char)assemblyVersion.Build);
+            documentBuilder.Append((char)assemblyVersion.Revision);
+            */
+            documentBuilder.Append('[');
             documentBuilder.Append('[');
             documentBuilder.AppendJoin(',', context.Types.Values.Cast<TypeMetadata>().Select(typeMetadata => typeMetadata.SerializedString));
             documentBuilder.Append(']');
-            
+            documentBuilder.Append(',');
+            documentBuilder.Append('[');
+            documentBuilder.AppendJoin(',', objectsBuilder.ToString());
+            documentBuilder.Append(']');
             documentBuilder.Append(']');
 
             return documentBuilder.ToString();
@@ -215,7 +221,7 @@ namespace Icepack
             List<object> documentNodes = ObjectTreeParser.Parse(str);
 
             // Extract types
-            List<object> typeNodes = (List<object>)documentNodes[1];
+            List<object> typeNodes = (List<object>)documentNodes[0];
             context.Types = new TypeMetadata[typeNodes.Count];
             for (int i = 0; i < typeNodes.Count; i++)
             {
@@ -233,7 +239,7 @@ namespace Icepack
             }
 
             // Create empty objects
-            List<object> objectNodes = (List<object>)documentNodes[0];
+            List<object> objectNodes = (List<object>)documentNodes[1];
             int startIdx = Toolbox.IsClass(typeof(T)) ? 0 : 1;
             context.Objects = new object[objectNodes.Count - startIdx];
             for (int i = startIdx; i < objectNodes.Count; i++)

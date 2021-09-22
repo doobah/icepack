@@ -4,7 +4,7 @@ using Icepack;
 
 namespace Example
 {
-    [IcepackObject]
+    [SerializableObject]
     abstract class ClassZ
     {
         private string field1;
@@ -22,7 +22,7 @@ namespace Example
         public ClassZ() { }
     }
 
-    [IcepackObject]
+    [SerializableObject]
     class ClassA : ClassZ
     {
         private int field1;

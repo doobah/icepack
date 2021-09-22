@@ -1,3 +1,7 @@
+# v0.0.5
+
+* Switched the order of types and objecs in the output format.
+
 # v0.0.4
 
 * Index type metadata by type, not name. This speeds up serialization.
