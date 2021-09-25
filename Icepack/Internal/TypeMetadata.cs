@@ -14,10 +14,15 @@ namespace Icepack
         public uint Id { get; }
         public Type Type { get; }
         public bool AreItemsReference { get; }
+        public bool AreKeysReference { get; }
         public SortedList<string, FieldMetadata> Fields { get; }
         public uint ParentId { get; }
 
-        private Action<object, object> hashSetAdder;
+        public Action<object, object> HashSetAdder { get; }
+
+        public Func<DeserializationContext, object> DeserializeItem { get; }
+
+        public Func<DeserializationContext, object> DeserializeKey { get; }
 
         /// <summary> Called during serialization. </summary>
         /// <param name="registeredTypeMetadata"></param>
@@ -28,8 +33,11 @@ namespace Icepack
             ParentId = parentId;
             Type = registeredTypeMetadata.Type;
             AreItemsReference = registeredTypeMetadata.AreItemsReference;
+            AreKeysReference = registeredTypeMetadata.AreKeysReference;
             Fields = registeredTypeMetadata.Fields;
-            hashSetAdder = null;
+            HashSetAdder = registeredTypeMetadata.HashSetAdder;
+            DeserializeItem = registeredTypeMetadata.DeserializeItem;
+            DeserializeKey = registeredTypeMetadata.DeserializeKey;
         }
 
         /// <summary>
@@ -48,17 +56,22 @@ namespace Icepack
             {
                 Type = null;
                 AreItemsReference = false;
+                AreKeysReference = false;
                 Fields = new SortedList<string, FieldMetadata>(fieldNames.Count);
                 for (int i = 0; i < fieldNames.Count; i++)
                 {
                     string fieldName = fieldNames[i];
                     Fields.Add(fieldName, null);
                 }
+                HashSetAdder = null;
+                DeserializeItem = null;
+                DeserializeKey = null;
             }
             else
             {
                 Type = registeredTypeMetadata.Type;
                 AreItemsReference = registeredTypeMetadata.AreItemsReference;
+                AreKeysReference = registeredTypeMetadata.AreKeysReference;
 
                 Fields = new SortedList<string, FieldMetadata>(fieldNames.Count);
                 for (int i = 0; i < fieldNames.Count; i++)
@@ -67,9 +80,11 @@ namespace Icepack
                     FieldMetadata fieldMetadata = registeredTypeMetadata.Fields.GetValueOrDefault(fieldName, null);
                     Fields.Add(fieldName, fieldMetadata);
                 }
-            }
 
-            hashSetAdder = null;
+                HashSetAdder = registeredTypeMetadata.HashSetAdder;
+                DeserializeItem = registeredTypeMetadata.DeserializeItem;
+                DeserializeKey = registeredTypeMetadata.DeserializeKey;
+            }
         }
 
         /// <summary> Called during type registration. </summary>
@@ -79,21 +94,76 @@ namespace Icepack
             Id = 0;
             ParentId = 0;
             Type = type;
-            AreItemsReference = calculateAreItemsReference(type, areItemsReference);
+            AreItemsReference = CalculateAreItemsReference(type, areItemsReference);
+            AreKeysReference = CalculateAreKeysReference(type, areItemsReference);
 
             Fields = new SortedList<string, FieldMetadata>();
-            foreach (FieldInfo fieldInfo in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            if (!IsSpecialClassType(type))
             {
-                IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
-                if (ignoreAttr == null)
-                    Fields.Add(fieldInfo.Name, new FieldMetadata(fieldInfo));
+                foreach (FieldInfo fieldInfo in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                {
+                    IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
+                    if (ignoreAttr == null)
+                        Fields.Add(fieldInfo.Name, new FieldMetadata(fieldInfo));
+                }
             }
 
-            // These are lazy-initialized
-            hashSetAdder = null;
+            HashSetAdder = null;
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(HashSet<>))
+                HashSetAdder = BuildHashSetAdder();
+
+            DeserializeItem = null;
+            if (type.IsArray)
+            {
+                Type elementType = type.GetElementType();
+                DeserializeItem = DeserializationOperationFactory.GetOperation(elementType, areItemsReference);
+            }
+            else if (type.IsGenericType)
+            {
+                if (type.GetGenericTypeDefinition() == typeof(List<>))
+                {
+                    Type itemType = type.GenericTypeArguments[0];
+                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType, areItemsReference);
+                }
+                else if (type.GetGenericTypeDefinition() == typeof(HashSet<>))
+                {
+                    Type itemType = type.GenericTypeArguments[0];
+                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType, areItemsReference);
+                }
+                else if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+                {
+                    Type itemType = type.GenericTypeArguments[1];
+                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType, areItemsReference);
+                }
+            }
+
+            DeserializeKey = null;
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+            {
+                Type keyType = type.GenericTypeArguments[0];
+                DeserializeKey = DeserializationOperationFactory.GetOperation(keyType, areItemsReference);
+            }
         }
 
-        private bool calculateAreItemsReference(Type type, bool areItemsReference)
+        private bool IsSpecialClassType(Type type)
+        {
+            if (type.IsArray)
+                return true;
+
+            if (type.IsGenericType)
+            {
+                if (type.GetGenericTypeDefinition() == typeof(List<>) ||
+                    type.GetGenericTypeDefinition() == typeof(HashSet<>) ||
+                    type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool CalculateAreItemsReference(Type type, bool areItemsReference)
         {
             if (!areItemsReference)
                 return false;
@@ -117,26 +187,37 @@ namespace Icepack
             return true;
         }
 
-        public Action<object, object> HashSetAdder
+        private bool CalculateAreKeysReference(Type type, bool areItemsReference)
         {
-            get
+            if (!areItemsReference)
+                return false;
+
+            if (type.IsGenericType)
             {
-                if (hashSetAdder == null)
+                if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
                 {
-                    MethodInfo methodInfo = Type.GetMethod("Add");
-                    Type itemType = Type.GetGenericArguments()[0];
-
-                    ParameterExpression exInstance = Expression.Parameter(typeof(object));
-                    UnaryExpression exConvertInstanceToDeclaringType = Expression.Convert(exInstance, Type);
-                    ParameterExpression exValue = Expression.Parameter(typeof(object));
-                    UnaryExpression exConvertValueToItemType = Expression.Convert(exValue, itemType);
-                    MethodCallExpression exAdd = Expression.Call(exConvertInstanceToDeclaringType, methodInfo, exConvertValueToItemType);
-                    Expression<Action<object, object>> lambda = Expression.Lambda<Action<object, object>>(exAdd, exInstance, exValue);
-                    hashSetAdder = lambda.Compile();
+                    Type[] genericArgs = type.GetGenericArguments();
+                    return Toolbox.IsClass(genericArgs[0]) && Toolbox.IsClass(genericArgs[1]);
                 }
-
-                return hashSetAdder;
             }
+
+            return true;
+        }
+
+        private Action<object, object> BuildHashSetAdder()
+        {
+            MethodInfo methodInfo = Type.GetMethod("Add");
+            Type itemType = Type.GetGenericArguments()[0];
+
+            ParameterExpression exInstance = Expression.Parameter(typeof(object));
+            UnaryExpression exConvertInstanceToDeclaringType = Expression.Convert(exInstance, Type);
+            ParameterExpression exValue = Expression.Parameter(typeof(object));
+            UnaryExpression exConvertValueToItemType = Expression.Convert(exValue, itemType);
+            MethodCallExpression exAdd = Expression.Call(exConvertInstanceToDeclaringType, methodInfo, exConvertValueToItemType);
+            Expression<Action<object, object>> lambda = Expression.Lambda<Action<object, object>>(exAdd, exInstance, exValue);
+            Action<object, object> action = lambda.Compile();
+
+            return action;
         }
     }
 }

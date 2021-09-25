@@ -23,12 +23,15 @@ namespace Icepack
         /// <summary> Sets the value of this field for a given object. The parameters are (object, value). </summary>
         public Action<object, object> Setter { get; }
 
+        public Func<DeserializationContext, object> Deserialize { get; }
+
         public FieldMetadata(FieldInfo fieldInfo)
         {
             FieldInfo = fieldInfo;
             IsReference = Toolbox.IsClass(fieldInfo.FieldType) && fieldInfo.GetCustomAttribute<ValueOnlyAttribute>() == null;
             Getter = BuildGetter(fieldInfo);
             Setter = BuildSetter(fieldInfo);
+            Deserialize = DeserializationOperationFactory.GetOperation(fieldInfo.FieldType, IsReference);
         }
 
         private Func<object, object> BuildGetter(FieldInfo fieldInfo)

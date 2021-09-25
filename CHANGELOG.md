@@ -1,3 +1,7 @@
+# v0.0.7
+
+* Precalculating deserialization operation for fields and types eliminates redundant type checks, greatly improving deserialization efficiency.
+
 # v0.0.6
 
 * Switched to a binary format. This uses BinaryReader/Writer and is about twice as fast.

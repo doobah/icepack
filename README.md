@@ -82,6 +82,8 @@ Other rules:
 * Enums are serialized as their underlying integral type.
 * `nuint` and `nint` are not supported.
 * `span` and other exotic types are not supported.
+* Boxed value types are not supported.
+* Serializing delegates is not supported.
 * The compatibility version indicates which other versions of the Icepack serializer are able to deserialize the output.
 
 # Other Features
