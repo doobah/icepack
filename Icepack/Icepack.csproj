@@ -6,10 +6,12 @@
     <Authors>arcraith</Authors>
     <Company>Icedece</Company>
     <Description>A lightweight serialization library for C#.</Description>
-    <Version>0.0.5</Version>
+    <Version>0.0.6</Version>
     <RepositoryUrl>https://gitlab.com/arcraith/icepack</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageIcon>Logo.png</PackageIcon>
+    <PackageIconUrl />
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +22,10 @@
 
   <ItemGroup>
     <None Include="..\LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\Logo.png">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>

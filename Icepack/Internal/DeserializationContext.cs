@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Icepack
 {
     /// <summary> Stores state for the current deserialization operation. </summary>
-    internal class DeserializationContext
+    internal class DeserializationContext : IDisposable
     {
         /// <summary>
         /// Maps a type ID to information about the type. The type information is different from what is stored in the serializer's
@@ -18,13 +19,24 @@ namespace Icepack
         /// <summary> Maps an object ID to the object itself. </summary>
         public object[] Objects { get; set; }
 
-        public ulong CurrentObjectId { get; set; }
+        public TypeMetadata[] ObjectTypes { get; set; }
 
-        public DeserializationContext()
+        public uint CurrentObjectId { get; set; }
+
+        public BinaryReader Reader { get; }
+
+        public DeserializationContext(Stream inputStream)
         {
             Types = null;
             Objects = null;
-            CurrentObjectId = Toolbox.NULL_ID;
+            ObjectTypes = null;
+            CurrentObjectId = 0;
+            Reader = new BinaryReader(inputStream, Encoding.Unicode, true);
+        }
+
+        public void Dispose()
+        {
+            Reader.Dispose();
         }
     }
 }

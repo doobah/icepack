@@ -3,6 +3,8 @@ using Icepack;
 using System.Collections.Generic;
 using System;
 using Newtonsoft.Json;
+using System.IO;
+using System.Text;
 
 namespace IcepackTest
 {
@@ -88,6 +90,13 @@ namespace IcepackTest
         }
 
         [SerializableObject]
+        private struct StructWithObjectReferences
+        {
+            public FlatClass Field1;
+            public int Field2;
+        }
+
+        [SerializableObject]
         private class ClassWithNoReferenceFields
         {
             [ValueOnly]
@@ -110,19 +119,16 @@ namespace IcepackTest
         [SerializableObject]
         private class ClassWithSerializationHooks : ISerializerListener
         {
-            [IgnoreField]
-            public int RuntimeField;
-
-            public int SerializedField;
+            public int Field;
 
             public void OnBeforeSerialize()
             {
-                SerializedField = RuntimeField * 2;
+                Field = Field * 2;
             }
 
             public void OnAfterDeserialize()
             {
-                RuntimeField = SerializedField / 2;
+                Field = Field + 1;
             }
         }
 
@@ -133,8 +139,10 @@ namespace IcepackTest
 
             FlatClass obj = new FlatClass() { Field1 = 123, Field2 = "asdf", Field3 = 6.78f };
 
-            string str = serializer.Serialize(obj);
-            FlatClass deserializedObj = serializer.Deserialize<FlatClass>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
+            stream.Close();
 
             Assert.AreEqual(123, deserializedObj.Field1);
             Assert.AreEqual("asdf", deserializedObj.Field2);
@@ -149,8 +157,10 @@ namespace IcepackTest
             HierarchicalObject nestedObj = new HierarchicalObject() { Field1 = 123, Nested = null };
             HierarchicalObject rootObj = new HierarchicalObject() { Field1 = 456, Nested = nestedObj };
 
-            string str = serializer.Serialize(rootObj);
-            HierarchicalObject deserializedObj = serializer.Deserialize<HierarchicalObject>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(rootObj, stream);
+            HierarchicalObject deserializedObj = serializer.Deserialize<HierarchicalObject>(stream);
+            stream.Close();
 
             Assert.AreEqual(456, deserializedObj.Field1);
             Assert.NotNull(deserializedObj.Nested);
@@ -168,8 +178,10 @@ namespace IcepackTest
 
             ChildClass obj = new ChildClass(123, 456);
 
-            string str = serializer.Serialize(obj);
-            ChildClass deserializedObj = serializer.Deserialize<ChildClass>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ChildClass deserializedObj = serializer.Deserialize<ChildClass>(stream);
+            stream.Close();
 
             Assert.AreEqual(123, deserializedObj.Field);
             Assert.AreEqual(456, deserializedObj.ParentField);
@@ -182,11 +194,10 @@ namespace IcepackTest
 
             ObjectWithIgnoredField obj = new ObjectWithIgnoredField() { Field1 = 123, Field2 = 456 };
 
-            string str = serializer.Serialize(obj);
-
-            Assert.IsFalse(str.Contains("Field2"));
-
-            ObjectWithIgnoredField deserializedObj = serializer.Deserialize<ObjectWithIgnoredField>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ObjectWithIgnoredField deserializedObj = serializer.Deserialize<ObjectWithIgnoredField>(stream);
+            stream.Close();
 
             Assert.AreEqual(123, deserializedObj.Field1);
             Assert.AreEqual(0, deserializedObj.Field2);
@@ -200,8 +211,10 @@ namespace IcepackTest
             RegisteredClass nestedObj = new RegisteredClass();
             ObjectWithObjectReferences obj = new ObjectWithObjectReferences() { Field1 = nestedObj, Field2 = nestedObj };
 
-            string str = serializer.Serialize(obj);
-            ObjectWithObjectReferences deserializedObj = serializer.Deserialize<ObjectWithObjectReferences>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ObjectWithObjectReferences deserializedObj = serializer.Deserialize<ObjectWithObjectReferences>(stream);
+            stream.Close();
 
             Assert.NotNull(deserializedObj.Field1);
             Assert.NotNull(deserializedObj.Field2);
@@ -216,8 +229,10 @@ namespace IcepackTest
 
             int[] array = new int[] { 1, 2, 3 };
 
-            string str = serializer.Serialize(array);
-            int[] deserializedArray = serializer.Deserialize<int[]>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(array, stream);
+            int[] deserializedArray = serializer.Deserialize<int[]>(stream);
+            stream.Close();
 
             Assert.NotNull(deserializedArray);
             Assert.AreEqual(3, deserializedArray.Length);
@@ -234,8 +249,10 @@ namespace IcepackTest
 
             List<string> list = new List<string>() { "qwer", "asdf", "zxcv" };
 
-            string str = serializer.Serialize(list);
-            List<string> deserializedList = serializer.Deserialize<List<string>>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(list, stream);
+            List<string> deserializedList = serializer.Deserialize<List<string>>(stream);
+            stream.Close();
 
             Assert.NotNull(deserializedList);
             Assert.AreEqual(3, deserializedList.Count);
@@ -252,8 +269,10 @@ namespace IcepackTest
 
             HashSet<string> set = new HashSet<string>() { "qwer", "asdf", "zxcv" };
 
-            string str = serializer.Serialize(set);
-            HashSet<string> deserializedSet = serializer.Deserialize<HashSet<string>>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(set, stream);
+            HashSet<string> deserializedSet = serializer.Deserialize<HashSet<string>>(stream);
+            stream.Close();
 
             Assert.NotNull(deserializedSet);
             Assert.AreEqual(3, deserializedSet.Count);
@@ -270,8 +289,10 @@ namespace IcepackTest
 
             Dictionary<int, string> dictionary = new Dictionary<int, string>() { { 1, "asdf" }, { 2, "zxcv" } };
 
-            string str = serializer.Serialize(dictionary);
-            Dictionary<int, string> deserializedDictionary = serializer.Deserialize<Dictionary<int, string>>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(dictionary, stream);
+            Dictionary<int, string> deserializedDictionary = serializer.Deserialize<Dictionary<int, string>>(stream);
+            stream.Close();
 
             Assert.NotNull(deserializedDictionary);
             Assert.AreEqual(2, deserializedDictionary.Count);
@@ -286,8 +307,10 @@ namespace IcepackTest
         {
             Serializer serializer = new Serializer();
 
-            string str = serializer.Serialize(SerializableEnum.Option2);
-            SerializableEnum deserializedEnum = serializer.Deserialize<SerializableEnum>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(SerializableEnum.Option2, stream);
+            SerializableEnum deserializedEnum = serializer.Deserialize<SerializableEnum>(stream);
+            stream.Close();
 
             Assert.AreEqual(SerializableEnum.Option2, deserializedEnum);
         }
@@ -299,11 +322,33 @@ namespace IcepackTest
 
             SerializableStruct s = new SerializableStruct() { Field1 = 123, Field2 = 456 };
 
-            string str = serializer.Serialize(s);
-            SerializableStruct deserializedStruct = serializer.Deserialize<SerializableStruct>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(s, stream);
+            SerializableStruct deserializedStruct = serializer.Deserialize<SerializableStruct>(stream);
+            stream.Close();
 
             Assert.AreEqual(123, deserializedStruct.Field1);
             Assert.AreEqual(456, deserializedStruct.Field2);
+        }
+
+        [Test]
+        public void SerializeStructWithObjectReferences()
+        {
+            Serializer serializer = new Serializer();
+
+            FlatClass nestedObj = new FlatClass() { Field1 = 234, Field2 = "asdf", Field3 = 1.23f };
+            StructWithObjectReferences obj = new StructWithObjectReferences() { Field1 = nestedObj, Field2 = 123 };
+
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            StructWithObjectReferences deserializedObj = serializer.Deserialize<StructWithObjectReferences>(stream);
+            stream.Close();
+
+            Assert.NotNull(deserializedObj.Field1);
+            Assert.AreEqual(234, deserializedObj.Field1.Field1);
+            Assert.AreEqual("asdf", deserializedObj.Field1.Field2);
+            Assert.AreEqual(1.23f, deserializedObj.Field1.Field3);
+            Assert.AreEqual(123, deserializedObj.Field2);
         }
 
         [Test]
@@ -311,8 +356,10 @@ namespace IcepackTest
         {
             Serializer serializer = new Serializer();
 
-            string str = serializer.Serialize("\"");
-            string deserializedStr = serializer.Deserialize<string>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize("\"", stream);
+            string deserializedStr = serializer.Deserialize<string>(stream);
+            stream.Close();
 
             Assert.AreEqual("\"", deserializedStr);
         }
@@ -323,9 +370,32 @@ namespace IcepackTest
             Serializer serializer = new Serializer();
             UnregisteredClass obj = new UnregisteredClass();
 
+            MemoryStream stream = new MemoryStream();
             Assert.Throws<IcepackException>(() => {
-                string str = serializer.Serialize(obj);
+                serializer.Serialize(obj, stream);
             });
+            stream.Close();
+        }
+
+        [Test]
+        public void CompatibilityVersionMismatch()
+        {
+            Serializer serializer = new Serializer();
+
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            writer.Write((ushort)0);    // Compatibility version
+            writer.Write(0);            // Number of types
+            writer.Write(0);            // Number of objects
+            writer.Write(false);        // Root object is value-type
+            writer.Write(123);          // Root object
+            writer.Close();
+
+            Assert.Throws<IcepackException>(() => {
+                int output = serializer.Deserialize<int>(stream);
+            });
+
+            stream.Close();
         }
 
         [Test]
@@ -333,12 +403,25 @@ namespace IcepackTest
         {
             Serializer serializer = new Serializer();
 
-            string typeName = Toolbox.EscapeString(typeof(UnregisteredClass).AssemblyQualifiedName);
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            writer.Write(Serializer.CompatibilityVersion);
+            writer.Write(1);            // Number of types
+            writer.Write(typeof(UnregisteredClass).AssemblyQualifiedName);     // Type name
+            writer.Write((uint)0);      // Parent type ID
+            writer.Write(0);            // Number of fields
+            writer.Write(1);            // Number of objects
+            writer.Write(true);         // Root object is reference-type
+            writer.Write((uint)1);      // Type ID
+            writer.Write((uint)1);      // Type ID
+            writer.Write((uint)1);      // Type ID
+            writer.Close();
 
             Assert.Throws<IcepackException>(() => {
-                serializer.Deserialize<UnregisteredClass>($"[[[{typeName}]],[[0,[0]]]]");
-            },
-            $"Type {typeName} is not registered for serialization!");
+                serializer.Deserialize<UnregisteredClass>(stream);
+            });
+
+            stream.Close();
         }
 
         [Test]
@@ -346,9 +429,21 @@ namespace IcepackTest
         {
             Serializer serializer = new Serializer();
 
-            string typeName = Toolbox.EscapeString(typeof(RegisteredClass).AssemblyQualifiedName);
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            writer.Write(Serializer.CompatibilityVersion);
+            writer.Write(1);            // Number of types
+            writer.Write(typeof(RegisteredClass).AssemblyQualifiedName);     // Type name
+            writer.Write((uint)0);      // Parent type ID
+            writer.Write(0);            // Number of fields
+            writer.Write(1);            // Number of objects
+            writer.Write(true);         // Root object is reference-type
+            writer.Write((uint)1);      // Type ID
+            writer.Write((uint)1);      // Type ID
+            writer.Write((uint)1);      // Type ID
+            writer.Close();
 
-            RegisteredClass deserializedObj = serializer.Deserialize<RegisteredClass>($"[[[{typeName}]],[[0,[0]]]]");
+            RegisteredClass deserializedObj = serializer.Deserialize<RegisteredClass>(stream);
 
             Assert.NotNull(deserializedObj);
         }
@@ -361,8 +456,10 @@ namespace IcepackTest
             RegisteredClass nestedObj = new RegisteredClass();
             ClassWithNoReferenceFields obj = new ClassWithNoReferenceFields() { Field1 = nestedObj, Field2 = nestedObj };
 
-            string str = serializer.Serialize(obj);
-            ClassWithNoReferenceFields deserializedObj = serializer.Deserialize<ClassWithNoReferenceFields>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ClassWithNoReferenceFields deserializedObj = serializer.Deserialize<ClassWithNoReferenceFields>(stream);
+            stream.Close();
 
             Assert.NotNull(deserializedObj.Field1);
             Assert.NotNull(deserializedObj.Field2);
@@ -373,13 +470,16 @@ namespace IcepackTest
         public void SerializeArrayWithNoReferenceAttribute()
         {
             Serializer serializer = new Serializer();
-            serializer.RegisterType(typeof(RegisteredClass[]), true);
+            serializer.RegisterType(typeof(RegisteredClass));
+            serializer.RegisterType(typeof(RegisteredClass[]), false);
 
             RegisteredClass nestedObj = new RegisteredClass();
             RegisteredClass[] obj = new RegisteredClass[] { nestedObj, nestedObj };
 
-            string str = serializer.Serialize(obj);
-            RegisteredClass[] deserializedArray = serializer.Deserialize<RegisteredClass[]>(str);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            RegisteredClass[] deserializedArray = serializer.Deserialize<RegisteredClass[]>(stream);
+            stream.Close();
 
             Assert.NotNull(deserializedArray[0]);
             Assert.NotNull(deserializedArray[1]);
@@ -391,16 +491,14 @@ namespace IcepackTest
         {
             Serializer serializer = new Serializer();
 
-            ClassWithSerializationHooks obj = new ClassWithSerializationHooks() { RuntimeField = 123 };
+            ClassWithSerializationHooks obj = new ClassWithSerializationHooks() { Field = 123 };
 
-            string str = serializer.Serialize(obj);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ClassWithSerializationHooks deserializedObj = serializer.Deserialize<ClassWithSerializationHooks>(stream);
+            stream.Close();
 
-            Assert.True(str.Contains("246"));
-            Assert.False(str.Contains("123"));
-
-            ClassWithSerializationHooks deserializedObj = serializer.Deserialize<ClassWithSerializationHooks>(str);
-
-            Assert.AreEqual(123, deserializedObj.RuntimeField);
+            Assert.AreEqual(247, deserializedObj.Field);
         }
     }
 }

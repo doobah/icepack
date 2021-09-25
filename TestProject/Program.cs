@@ -69,6 +69,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Icepack;
+using System.IO;
 
 namespace TestProject
 {
@@ -140,18 +141,20 @@ namespace TestProject
             serializer.RegisterType(typeof(List<ClassA>));
             serializer.RegisterType(typeof(bool[]));
 
+            MemoryStream stream = new MemoryStream();
+
             startTime = DateTime.Now;
-            string str = serializer.Serialize(list);
+            serializer.Serialize(list, stream);
             endTime = DateTime.Now;
 
             Console.WriteLine($"Serialize time: {endTime - startTime}");
-            Console.WriteLine($"Serialize size: {str.Length}");
-
+            Console.WriteLine($"Serialize size: {stream.Length}");
+            
             startTime = DateTime.Now;
-            serializer.Deserialize<List<ClassA>>(str);
+            List<ClassA> obj = serializer.Deserialize<List<ClassA>>(stream);
             endTime = DateTime.Now;
-
             Console.WriteLine($"Deserialize time: {endTime - startTime}");
+            
         }
     }
 }

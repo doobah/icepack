@@ -2,71 +2,94 @@
 
 Icepack is a lightweight serialization library for C#.
 
-It was designed as part of a game development project, specifically to address limitations that other serialization libraries have when serializing inheritance hierarchies. Libraries such as MessagePack and Protobuf provide a way for the user to inform the serializer about class hierarchies, by assigning fixed IDs to child classes. A scenario where this does not work well is a game engine's entity/component system, where in order to build functionality on top of the engine, the user needs to extend some classes exposed by the engine. If the user then wishes to import third-party libraries that extend the same classes, it is very impractical to find out which IDs have already been used, and to stay backwards compatible. Icepack solves this by including type information as part of the serialization format, while avoiding the verbosity of serializers like Json.NET by automatically assigning IDs to types and field names, and storing these in lookup tables. The additional size overhead of the type and field names is reasonable for game development projects, where the serialized objects are likely to be large and composed of hierarchies containing many instances of the same types, for example, scenes or state machines. Icepack also avoids another limitation of Json.NET, by relating every field to the class that it is declared in, so that there are no field name clashes between classes in the same inheritance hierarchy.
+It was designed as part of a game development project, specifically to address limitations that other serialization libraries have when serializing inheritance hierarchies. Libraries such as MessagePack and Protobuf provide a way for the user to inform the serializer about class hierarchies, by assigning fixed IDs to child classes. A scenario where this does not work well is a game engine's entity/component system, where in order to build functionality on top of the engine, the user needs to extend some classes exposed by the engine. If the user then wishes to import third-party libraries that extend the same classes, it is very impractical to find out which IDs have already been used, and to stay backwards compatible. Icepack solves this by including type information as part of the serialization format, while avoiding the verbosity of serializers like Json.NET by automatically assigning IDs to types and field names, and storing these in lookup tables. The additional size overhead of the type and field names is reasonable for game development projects, where the serialized objects are likely to be large and composed of hierarchies containing many instances of the same types, for example, scenes or state machines. Icepack also avoids another limitation of other libraries, by relating every field to the class that it is declared in, so that there are no field name clashes between classes in the same inheritance hierarchy.
 
-In terms of performance, Icepack is similar to Json.NET, and in some cases faster, especially when serializing object references. However, it has several of its own limitations such as:
+In terms of performance, Icepack is faster than string-based serializers like Json.NET. However, it has several of its own limitations such as:
 
-* The lack of key/value pairs in the output makes it much less human-readable than JSON.
+* It is a binary format so is not human-readable.
 * Currently only fields are serialized, although this could be fairly easily expanded to properties.
 * The library lacks most of the extensibility/customization features of other libraries.
 
 # Serialization Format
 
-The format of an Icepack document is (not including whitespace):
+The Icepack serializer uses a BinaryWriter internally to generate its output, as a byte stream encoded in UTF-16, little endian:
 
 ```
-[ objects, types ]
+- Compatibility version [ushort]
+- The number of types [int]
+- For each type:
+  - The type's assembly qualified name [string]
+  - The ID of the type's parent [uint]
+  - The number of serializable fields in the type [int]
+  - For each field:
+    - The field name [string]
+- The number of objects [int]
+- A flag stating whether the root object is a reference type [bool]
+- For each reference-type object:
+  - The object's type ID [uint]
+  - If the object is an array:
+    - The length of the array [int]
+- If the root object is a value type:
+  - The serialized form of the root object [?]
+- For each object:
+  - The serialized form of that object [?] (see sub-formats below)
 ```
 
-The format of `objects` is:
-
-```  
-[ object 1, object 2, ... ]
-```
-    
-where
-
-* The first element is the root object
-* All elements in the format are either an array, e.g. `[ item 1, item 2 ]`, or a string, e.g. `some text`.
-* Arrays can be nested.
-* The supported types and their formats are:
-  * **All numeric types:** A string representation of the number.
-  * **Boolean:** `0` if false, `1` if true.
-  * **Enum:** A string representation of the underlying numeric value.
-  * **String:** The string text. The characters `,]\` are escaped with a `\` character.
-  * **Object reference:** The ID of the referenced object.
-  * **Struct:**
-    ```
-    [ type id, field 1, field 2, ... ]
-    ```
-  * **Array/List/HashSet:**
-    ```
-    [ type id, element 1, element 2, ... ]
-    ``` 
-  * **Dictionary:**
-    ```
-    [ type id, key 1, key 2, ..., value 1, value 2, ... ]
-    ```
-  * **A regular class:**
-    ```
-    [
-      type id,
-      [ id of class type, field 1, field 2, ... ],
-      [ id of base class type, field 1, field 2, ... ],
-      [ id of base-base class type, field 1, field 2, ... ],
-      ...
-    ]
-    ```
-
-The format of `types` is:
+Structs have the format:
 
 ```
-[
-  [ type 1 id, type 2 name, field 1 name, field 2 name, ... ],
-  [ type 2 id, type 2 name, field 1 name, field 2 name, ... ],
-  ...
-]
+- Type ID [uint]
+- For each field:
+  - The serialized form of the field value [?]
 ```
+
+Arrays, Lists (based on **List<>**), and HashSets (based on **HashSet<>**) have the format:
+
+```
+- Type ID [uint]
+- Length [int]
+- For each element:
+  - The serialized form of that element [?]
+```
+
+Dictionaries (based on **Dictionary<,>**) have the format:
+
+```
+- Type ID [uint]
+- Number of items [int]
+- For each key/value pair:
+  - The serialized form of the key [?]
+  - The serialized form of the value [?]
+```
+
+Other classes have the format:
+
+```
+- Type ID [uint]
+- Starting from the class type, and iterating up the inheritance chain until 'object':
+  - Type ID [uint]
+  - For each field:
+    - The serialized form of the field value [?]
+```
+
+Other rules:
+
+* Object references are serialized as their object ID (`uint`).
+* The first object in the object list is the root object, this does not have to be a reference type, but the rest of the objects in the list do.
+* Objects marked to be serialized as value-only are serialized inline and not included in the object list.
+* Primitives are serialized as-is.
+* Strings are prefixed with their length.
+* Enums are serialized as their underlying integral type.
+* `nuint` and `nint` are not supported.
+* `span` and other exotic types are not supported.
+* The compatibility version indicates which other versions of the Icepack serializer are able to deserialize the output.
+
+# Other Features
+
+* Types can be included for serialization by calling the serializer's `RegisterType` method, or annotating the type with the `SerializableObject` attribute.
+* Fields can be ignored by annotating them with the `IgnoreField` attribute.
+* Fields that are reference-type are serialized as references by default, but these can be serialized as value-only using the `ValueOnly` attribute.
+* The `ISerializer` interface is provided to allow classes to execute additional logic before serialization and after deserialization.
 
 # Usage Example
 

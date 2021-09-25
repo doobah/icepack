@@ -4,48 +4,57 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Icepack
 {
-    internal class SerializationContext
+    internal class SerializationContext : IDisposable
     {
         public Queue<object> ObjectsToSerialize { get; }
-        public OrderedDictionary Types { get; }
+        public Dictionary<Type, TypeMetadata> Types { get; }
+        public List<TypeMetadata> TypesInOrder { get; }
+        public BinaryWriter Writer { get; }
+        public Dictionary<object, ObjectMetadata> Objects { get; }
+        public List<ObjectMetadata> ObjectsInOrder { get; }
 
-        private Dictionary<object, ulong> instanceIds;
-        private ulong largestInstanceId;
-        private ulong largestTypeId;
+        private uint largestInstanceId;
+        private uint largestTypeId;
         private TypeRegistry typeRegistry;
 
-        public SerializationContext(TypeRegistry typeRegistry)
+        public SerializationContext(TypeRegistry typeRegistry, Stream objectStream)
         {
-            instanceIds = new Dictionary<object, ulong>();
-            largestInstanceId = Toolbox.NULL_ID;
+            Objects = new Dictionary<object, ObjectMetadata>();
+            ObjectsInOrder = new List<ObjectMetadata>();
             ObjectsToSerialize = new Queue<object>();
-            Types = new OrderedDictionary();
+            Types = new Dictionary<Type, TypeMetadata>();
+            TypesInOrder = new List<TypeMetadata>();
+            Writer = new BinaryWriter(objectStream, Encoding.Unicode, true);
+
+            largestInstanceId = 0;
             largestTypeId = 0;
             this.typeRegistry = typeRegistry;
         }
 
-        public ulong GetInstanceId(object obj)
+        public void Dispose()
         {
-            if (instanceIds.ContainsKey(obj))
-                return instanceIds[obj];
-
-            return Toolbox.NULL_ID;
+            Writer.Dispose();
         }
 
-        public ulong RegisterObject(object obj)
+        public uint RegisterObject(object obj)
         {
-            ulong newId = ++largestInstanceId;
-            instanceIds.Add(obj, newId);
+            uint newId = ++largestInstanceId;
+            Type type = obj.GetType();
+            TypeMetadata typeMetadata = GetTypeMetadata(type);
 
+            int arrayLength = 0;
+            if (type.IsArray)
+                arrayLength = ((Array)obj).Length;
+
+            ObjectMetadata objMetadata = new ObjectMetadata(newId, typeMetadata, arrayLength);
+            Objects.Add(obj, objMetadata);
+            ObjectsInOrder.Add(objMetadata);
+            
             return newId;
-        }
-
-        public bool IsObjectRegistered(object obj)
-        {
-            return instanceIds.ContainsKey(obj);
         }
 
         /// <summary> Retrieves the metadata for a type. </summary>
@@ -54,23 +63,23 @@ namespace Icepack
         /// <remarks> This method lazy-registers types that have the <see cref="SerializableObjectAttribute"/> attribute. </remarks>
         public TypeMetadata GetTypeMetadata(Type type)
         {
-            if (!IsTypeRegistered(type))
+            if (!Types.ContainsKey(type))
             {
+                uint parentId = 0;
+                if (type.BaseType != typeof(object) && type.BaseType != typeof(ValueType) && type.BaseType != typeof(Array))
+                    parentId = GetTypeMetadata(type.BaseType).Id;
+
                 TypeMetadata registeredTypeMetadata = typeRegistry.GetTypeMetadata(type);
                 if (registeredTypeMetadata == null)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
-                TypeMetadata newTypeMetadata = new TypeMetadata(registeredTypeMetadata, largestTypeId++);
+                TypeMetadata newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, parentId);
                 Types.Add(type, newTypeMetadata);
+                TypesInOrder.Add(newTypeMetadata);
                 return newTypeMetadata;
             }
 
-            return (TypeMetadata)Types[type];
-        }
-
-        private bool IsTypeRegistered(Type type)
-        {
-            return Types.Contains(type);
+            return Types[type];
         }
     }
 }

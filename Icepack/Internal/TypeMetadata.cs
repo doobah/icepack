@@ -4,29 +4,31 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Reflection;
+using System.IO;
 
 namespace Icepack
 {
     /// <summary> Contains information necessary to serialize and deserialize a type. </summary>
     internal class TypeMetadata
     {
-        private ulong id;
-        private Type type;
-        private SortedList<string, FieldMetadata> fields;
-        private string serializedStr;
+        public uint Id { get; }
+        public Type Type { get; }
+        public bool AreItemsReference { get; }
+        public SortedList<string, FieldMetadata> Fields { get; }
+        public uint ParentId { get; }
+
         private Action<object, object> hashSetAdder;
-        private bool isItemsNoReference;
 
         /// <summary> Called during serialization. </summary>
         /// <param name="registeredTypeMetadata"></param>
         /// <param name="id"> A unique ID for the type. </param>
-        public TypeMetadata(TypeMetadata registeredTypeMetadata, ulong id)
+        public TypeMetadata(TypeMetadata registeredTypeMetadata, uint id, uint parentId)
         {
-            this.id = id;
-            type = registeredTypeMetadata.type;
-            isItemsNoReference = registeredTypeMetadata.isItemsNoReference;
-            fields = registeredTypeMetadata.fields;
-            serializedStr = null;
+            Id = id;
+            ParentId = parentId;
+            Type = registeredTypeMetadata.Type;
+            AreItemsReference = registeredTypeMetadata.AreItemsReference;
+            Fields = registeredTypeMetadata.Fields;
             hashSetAdder = null;
         }
 
@@ -37,89 +39,82 @@ namespace Icepack
         /// <param name="registeredTypeMetadata"> The registered type metadata to copy information from. </param>
         /// <param name="objectTree"> The object tree for type metadata extracted from the serialized data. </param>
         /// <param name="id"> A unique ID for the type. </param>
-        public TypeMetadata(TypeMetadata registeredTypeMetadata, List<object> objectTree, ulong id)
+        public TypeMetadata(TypeMetadata registeredTypeMetadata, List<string> fieldNames, uint id, uint parentId)
         {
-            this.id = id;
-            type = registeredTypeMetadata.type;
-            isItemsNoReference = registeredTypeMetadata.isItemsNoReference;
+            Id = id;
+            ParentId = parentId;
 
-            fields = new SortedList<string, FieldMetadata>();
-            for (int i = 1; i < objectTree.Count; i++)
+            if (registeredTypeMetadata == null)
             {
-                string fieldName = (string)objectTree[i];
-                FieldMetadata fieldMetadata = registeredTypeMetadata.Fields.GetValueOrDefault(fieldName, null);
-                fields.Add(fieldName, fieldMetadata);
+                Type = null;
+                AreItemsReference = false;
+                Fields = new SortedList<string, FieldMetadata>(fieldNames.Count);
+                for (int i = 0; i < fieldNames.Count; i++)
+                {
+                    string fieldName = fieldNames[i];
+                    Fields.Add(fieldName, null);
+                }
+            }
+            else
+            {
+                Type = registeredTypeMetadata.Type;
+                AreItemsReference = registeredTypeMetadata.AreItemsReference;
+
+                Fields = new SortedList<string, FieldMetadata>(fieldNames.Count);
+                for (int i = 0; i < fieldNames.Count; i++)
+                {
+                    string fieldName = fieldNames[i];
+                    FieldMetadata fieldMetadata = registeredTypeMetadata.Fields.GetValueOrDefault(fieldName, null);
+                    Fields.Add(fieldName, fieldMetadata);
+                }
             }
 
-            serializedStr = null;
             hashSetAdder = null;
         }
 
-        /// <summary> Called during serialization. </summary>
+        /// <summary> Called during type registration. </summary>
         /// <param name="type"> The type. </param>
-        public TypeMetadata(Type type, bool isItemsNoReference)
+        public TypeMetadata(Type type, bool areItemsReference)
         {
-            this.id = 0;
-            this.type = type;
-            this.isItemsNoReference = isItemsNoReference;
+            Id = 0;
+            ParentId = 0;
+            Type = type;
+            AreItemsReference = calculateAreItemsReference(type, areItemsReference);
 
-            this.fields = new SortedList<string, FieldMetadata>();
+            Fields = new SortedList<string, FieldMetadata>();
             foreach (FieldInfo fieldInfo in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
                 IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
                 if (ignoreAttr == null)
-                    fields.Add(fieldInfo.Name, new FieldMetadata(fieldInfo));
+                    Fields.Add(fieldInfo.Name, new FieldMetadata(fieldInfo));
             }
 
             // These are lazy-initialized
-            this.serializedStr = null;
-            this.hashSetAdder = null;
+            hashSetAdder = null;
         }
 
-        /// <summary> A unique ID for the type. </summary>
-        public ulong Id
+        private bool calculateAreItemsReference(Type type, bool areItemsReference)
         {
-            get { return id; }
-        }
+            if (!areItemsReference)
+                return false;
 
-        /// <summary> The type. </summary>
-        public Type Type
-        {
-            get { return type; }
-        }
+            if (type.IsArray)
+                return Toolbox.IsClass(type.GetElementType());
 
-        public bool IsItemsNoReference
-        {
-            get { return isItemsNoReference; }
-        }
-
-        /// <summary> A dictionary that maps a field name to information about the field. </summary>
-        public SortedList<string, FieldMetadata> Fields
-        {
-            get { return fields; }
-        }
-
-        /// <summary> The serialized representation of this type. This is lazy-initialized as it is only needed for serialization. </summary>
-        public string SerializedString
-        {
-            get
+            if (type.IsGenericType)
             {
-                if (serializedStr == null)
+                if (type.GetGenericTypeDefinition() == typeof(List<>))
+                    return Toolbox.IsClass(type.GetGenericArguments()[0]);
+                else if (type.GetGenericTypeDefinition() == typeof(HashSet<>))
+                    return Toolbox.IsClass(type.GetGenericArguments()[0]);
+                else if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
                 {
-                    StringBuilder strBuilder = new StringBuilder();
-                    strBuilder.Append('[');
-                    strBuilder.Append(Toolbox.EscapeString(type.AssemblyQualifiedName));
-                    foreach (FieldMetadata field in fields.Values)
-                    {
-                        strBuilder.Append(',');
-                        strBuilder.Append(field.FieldInfo.Name);
-                    }
-                    strBuilder.Append(']');
-                    serializedStr = strBuilder.ToString();
+                    Type[] genericArgs = type.GetGenericArguments();
+                    return Toolbox.IsClass(genericArgs[0]) && Toolbox.IsClass(genericArgs[1]);
                 }
-
-                return serializedStr;
             }
+
+            return true;
         }
 
         public Action<object, object> HashSetAdder
@@ -128,11 +123,11 @@ namespace Icepack
             {
                 if (hashSetAdder == null)
                 {
-                    MethodInfo methodInfo = type.GetMethod("Add");
-                    Type itemType = type.GetGenericArguments()[0];
+                    MethodInfo methodInfo = Type.GetMethod("Add");
+                    Type itemType = Type.GetGenericArguments()[0];
 
                     ParameterExpression exInstance = Expression.Parameter(typeof(object));
-                    UnaryExpression exConvertInstanceToDeclaringType = Expression.Convert(exInstance, type);
+                    UnaryExpression exConvertInstanceToDeclaringType = Expression.Convert(exInstance, Type);
                     ParameterExpression exValue = Expression.Parameter(typeof(object));
                     UnaryExpression exConvertValueToItemType = Expression.Convert(exValue, itemType);
                     MethodCallExpression exAdd = Expression.Call(exConvertInstanceToDeclaringType, methodInfo, exConvertValueToItemType);

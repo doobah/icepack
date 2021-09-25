@@ -1,3 +1,7 @@
+# v0.0.6
+
+* Switched to a binary format. This uses BinaryReader/Writer and is about twice as fast.
+
 # v0.0.5
 
 * Switched the order of types and objecs in the output format.
