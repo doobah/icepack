@@ -19,7 +19,7 @@ namespace Icepack
         /// <summary> Registers a type as serializable. </summary>
         /// <param name="type"> The type to register. </param>
         /// <remarks> This is generally used to allow types in other assemblies to be serialized. </remarks>
-        public TypeMetadata RegisterType(Type type, bool areItemsReference)
+        public TypeMetadata RegisterType(Type type)
         {
             if (types.ContainsKey(type))
                 return types[type];
@@ -27,7 +27,7 @@ namespace Icepack
             if (!Toolbox.IsClass(type) && !Toolbox.IsStruct(type) || type == typeof(object) || type == typeof(ValueType))
                 throw new IcepackException($"Type {type} cannot be registered for serialization!");
 
-            TypeMetadata newTypeMetadata = new TypeMetadata(type, areItemsReference);
+            TypeMetadata newTypeMetadata = new TypeMetadata(type);
             types.Add(type, newTypeMetadata);
 
             return newTypeMetadata;
@@ -45,8 +45,7 @@ namespace Icepack
                 if (attributes.Length == 0)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
-                // IsItemsNoReference is only set with a user call to RegisterType which should already have happened.
-                return RegisterType(type, false);
+                return RegisterType(type);
             }
 
             return types[type];
@@ -64,7 +63,7 @@ namespace Icepack
                 if (attributes.Length == 0)
                     throw new IcepackException($"Type {type.AssemblyQualifiedName} is not registered for serialization!");
 
-                RegisterType(type, false);
+                RegisterType(type);
             }
 
             return types[type];

@@ -14,9 +14,6 @@ namespace Icepack
         /// <summary> Reflection data for the field. </summary>
         public FieldInfo FieldInfo { get; }
 
-        /// <summary> Whether this field is a reference to an object. </summary>
-        public bool IsReference { get; }
-
         /// <summary> Gets the value of this field for a given object. </summary>
         public Func<object, object> Getter { get; }
 
@@ -30,11 +27,10 @@ namespace Icepack
         public FieldMetadata(FieldInfo fieldInfo)
         {
             FieldInfo = fieldInfo;
-            IsReference = Toolbox.IsClass(fieldInfo.FieldType) && fieldInfo.GetCustomAttribute<ValueOnlyAttribute>() == null;
             Getter = BuildGetter(fieldInfo);
             Setter = BuildSetter(fieldInfo);
-            Deserialize = DeserializationOperationFactory.GetOperation(fieldInfo.FieldType, IsReference);
-            Serialize = SerializationOperationFactory.GetOperation(fieldInfo.FieldType, IsReference);
+            Deserialize = DeserializationOperationFactory.GetOperation(fieldInfo.FieldType);
+            Serialize = SerializationOperationFactory.GetOperation(fieldInfo.FieldType);
         }
 
         private Func<object, object> BuildGetter(FieldInfo fieldInfo)

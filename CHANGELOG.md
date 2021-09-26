@@ -1,3 +1,7 @@
+# v0.0.8
+
+* Initialize capacity of lists, hashsets, dictionaries to equal length to avoid reallocation.
+
 # v0.0.7
 
 * Precalculating serialization and deserialization operations for fields and types eliminates redundant type checks, greatly improving efficiency.

@@ -23,9 +23,9 @@ namespace Icepack
 
         /// <summary> Registers a type as serializable. </summary>
         /// <param name="type"> The type to register. </param>
-        public void RegisterType(Type type, bool areItemsReference = true)
+        public void RegisterType(Type type)
         {
-            typeRegistry.RegisterType(type, areItemsReference);
+            typeRegistry.RegisterType(type);
         }
 
         /// <summary> Serializes an object graph as a string. </summary>
@@ -48,9 +48,14 @@ namespace Icepack
             {
                 context.RegisterObject(rootObj);
                 rootObjectIsReferenceType = true;
+                SerializationOperationFactory.SerializeClass(rootObj, context);
             }
-            var serializationOperation = SerializationOperationFactory.GetOperation(rootObj.GetType(), false);
-            serializationOperation(rootObj, context);
+            else
+            {
+                var serializationOperation = SerializationOperationFactory.GetOperation(rootObj.GetType());
+                serializationOperation(rootObj, context);
+            }
+
             while (context.ObjectsToSerialize.Count > 0)
             {
                 object objToSerialize = context.ObjectsToSerialize.Dequeue();
@@ -88,7 +93,9 @@ namespace Icepack
                         objectMetadata.Type.Type.GetGenericTypeDefinition() == typeof(HashSet<>) ||
                         objectMetadata.Type.Type.GetGenericTypeDefinition() == typeof(Dictionary<,>)
                     ))
+                {
                     writer.Write(objectMetadata.Length);
+                }
             }
 
             objectStream.Position = 0;
@@ -178,7 +185,7 @@ namespace Icepack
                 rootObject = (T)context.Objects[0];
             else
             {
-                var deserializationOperation = DeserializationOperationFactory.GetOperation(typeof(T), false);
+                var deserializationOperation = DeserializationOperationFactory.GetOperation(typeof(T));
                 rootObject = (T)deserializationOperation(context);
             }
 

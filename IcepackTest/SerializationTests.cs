@@ -96,15 +96,6 @@ namespace IcepackTest
             public int Field2;
         }
 
-        [SerializableObject]
-        private class ClassWithNoReferenceFields
-        {
-            [ValueOnly]
-            public RegisteredClass Field1;
-            [ValueOnly]
-            public RegisteredClass Field2;
-        }
-
         private enum SerializableEnum
         {
             Option1,
@@ -446,44 +437,6 @@ namespace IcepackTest
             RegisteredClass deserializedObj = serializer.Deserialize<RegisteredClass>(stream);
 
             Assert.NotNull(deserializedObj);
-        }
-
-        [Test]
-        public void SerializeClassWithNoReferenceAttribute()
-        {
-            Serializer serializer = new Serializer();
-
-            RegisteredClass nestedObj = new RegisteredClass();
-            ClassWithNoReferenceFields obj = new ClassWithNoReferenceFields() { Field1 = nestedObj, Field2 = nestedObj };
-
-            MemoryStream stream = new MemoryStream();
-            serializer.Serialize(obj, stream);
-            ClassWithNoReferenceFields deserializedObj = serializer.Deserialize<ClassWithNoReferenceFields>(stream);
-            stream.Close();
-
-            Assert.NotNull(deserializedObj.Field1);
-            Assert.NotNull(deserializedObj.Field2);
-            Assert.AreNotEqual(deserializedObj.Field1, deserializedObj.Field2);
-        }
-
-        [Test]
-        public void SerializeArrayWithNoReferenceAttribute()
-        {
-            Serializer serializer = new Serializer();
-            serializer.RegisterType(typeof(RegisteredClass));
-            serializer.RegisterType(typeof(RegisteredClass[]), false);
-
-            RegisteredClass nestedObj = new RegisteredClass();
-            RegisteredClass[] obj = new RegisteredClass[] { nestedObj, nestedObj };
-
-            MemoryStream stream = new MemoryStream();
-            serializer.Serialize(obj, stream);
-            RegisteredClass[] deserializedArray = serializer.Deserialize<RegisteredClass[]>(stream);
-            stream.Close();
-
-            Assert.NotNull(deserializedArray[0]);
-            Assert.NotNull(deserializedArray[1]);
-            Assert.AreNotEqual(deserializedArray[0], deserializedArray[1]);
         }
 
         [Test]

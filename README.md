@@ -85,7 +85,6 @@ Other rules:
 
 * Types can be included for serialization by calling the serializer's `RegisterType` method, or annotating the type with the `SerializableObject` attribute.
 * Fields can be ignored by annotating them with the `IgnoreField` attribute.
-* Fields that are reference-type are serialized as references by default, but these can be serialized as value-only using the `ValueOnly` attribute.
 * The `ISerializer` interface is provided to allow classes to execute additional logic before serialization and after deserialization.
 
 # Usage Example

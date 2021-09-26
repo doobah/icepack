@@ -256,7 +256,7 @@ namespace Icepack
                 throw new IcepackException($"Invalid enum type: {type}");
         }
 
-        public static Func<DeserializationContext, object> GetOperation(Type type, bool isReference)
+        public static Func<DeserializationContext, object> GetOperation(Type type)
         {
             if (type == typeof(byte))
                 return DeserializeByte;
@@ -291,12 +291,7 @@ namespace Icepack
             else if (type.IsValueType)
                 return DeserializeStruct;
             else if (type.IsClass)
-            {
-                if (isReference)
-                    return DeserializeObjectReference;
-                else
-                    return DeserializeClass;
-            }
+                return DeserializeObjectReference;
             else
                 throw new IcepackException($"Unable to deserialize object of type: {type}");
         }

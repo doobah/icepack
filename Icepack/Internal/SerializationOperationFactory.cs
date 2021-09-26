@@ -79,73 +79,6 @@ namespace Icepack
             context.Writer.Write((string)obj);
         }
 
-        public static void SerializeObject(object obj, SerializationContext context)
-        {
-            Type type = obj.GetType();
-
-            if (type == typeof(byte))
-                SerializeByte(obj, context);
-            else if (type == typeof(sbyte))
-                SerializeSByte(obj, context);
-            else if (type == typeof(bool))
-                SerializeBool(obj, context);
-            else if (type == typeof(char))
-                SerializeChar(obj, context);
-            else if (type == typeof(short))
-                SerializeInt16(obj, context);
-            else if (type == typeof(ushort))
-                SerializeUInt16(obj, context);
-            else if (type == typeof(int))
-                SerializeInt32(obj, context);
-            else if (type == typeof(uint))
-                SerializeUInt32(obj, context);
-            else if (type == typeof(long))
-                SerializeInt64(obj, context);
-            else if (type == typeof(ulong))
-                SerializeUInt64(obj, context);
-            else if (type == typeof(float))
-                SerializeSingle(obj, context);
-            else if (type == typeof(double))
-                SerializeDouble(obj, context);
-            else if (type == typeof(decimal))
-                SerializeDecimal(obj, context);
-            else if (type == typeof(string))
-                SerializeString(obj, context);
-            else if (type.IsEnum)
-                SerializeEnum(obj, context);
-            else if (type.IsValueType)
-                SerializeStruct(obj, context);
-            else if (type.IsClass)
-                SerializeClass(obj, context);
-            else
-                throw new IcepackException($"Unable to serialize object: {obj}");
-        }
-
-        public static void SerializeEnum(object obj, SerializationContext context)
-        {
-            Type type = obj.GetType();
-
-            Type underlyingType = Enum.GetUnderlyingType(type);
-            if (underlyingType == typeof(byte))
-                SerializeByte(obj, context);
-            else if (underlyingType == typeof(sbyte))
-                SerializeSByte(obj, context);
-            else if (underlyingType == typeof(short))
-                SerializeInt16(obj, context);
-            else if (underlyingType == typeof(ushort))
-                SerializeUInt16(obj, context);
-            else if (underlyingType == typeof(int))
-                SerializeInt32(obj, context);
-            else if (underlyingType == typeof(uint))
-                SerializeUInt32(obj, context);
-            else if (underlyingType == typeof(long))
-                SerializeInt64(obj, context);
-            else if (underlyingType == typeof(ulong))
-                SerializeUInt64(obj, context);
-            else
-                throw new IcepackException($"Unable to serialize enum: {obj}");
-        }
-
         public static void SerializeObjectReference(object value, SerializationContext context)
         {
             if (value == null)
@@ -295,7 +228,7 @@ namespace Icepack
                 throw new IcepackException($"Invalid enum type: {type}");
         }
 
-        public static Action<object, SerializationContext> GetOperation(Type type, bool isReference)
+        public static Action<object, SerializationContext> GetOperation(Type type)
         {
             if (type == typeof(byte))
                 return SerializeByte;
@@ -330,12 +263,7 @@ namespace Icepack
             else if (type.IsValueType)
                 return SerializeStruct;
             else if (type.IsClass)
-            {
-                if (isReference)
-                    return SerializeObjectReference;
-                else
-                    return SerializeClass;
-            }
+                return SerializeObjectReference;
             else
                 throw new IcepackException($"Unable to serialize object of type: {type}");
         }

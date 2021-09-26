@@ -86,7 +86,7 @@ namespace Icepack
 
         /// <summary> Called during type registration. </summary>
         /// <param name="type"> The type. </param>
-        public TypeMetadata(Type type, bool areItemsReference)
+        public TypeMetadata(Type type)
         {
             Id = 0;
             ParentId = 0;
@@ -109,16 +109,13 @@ namespace Icepack
 
             // Serialization/Deserialization operations
 
-            bool areKeysReference = CalculateAreKeysReference(type, areItemsReference);
-            bool areElementsReference = CalculateAreItemsReference(type, areItemsReference);
-
             SerializeKey = null;
             DeserializeKey = null;
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
             {
                 Type keyType = type.GenericTypeArguments[0];
-                SerializeKey = SerializationOperationFactory.GetOperation(keyType, areKeysReference);
-                DeserializeKey = DeserializationOperationFactory.GetOperation(keyType, areKeysReference);
+                SerializeKey = SerializationOperationFactory.GetOperation(keyType);
+                DeserializeKey = DeserializationOperationFactory.GetOperation(keyType);
             }
 
             SerializeItem = null;
@@ -126,28 +123,28 @@ namespace Icepack
             if (type.IsArray)
             {
                 Type elementType = type.GetElementType();
-                SerializeItem = SerializationOperationFactory.GetOperation(elementType, areElementsReference);
-                DeserializeItem = DeserializationOperationFactory.GetOperation(elementType, areElementsReference);
+                SerializeItem = SerializationOperationFactory.GetOperation(elementType);
+                DeserializeItem = DeserializationOperationFactory.GetOperation(elementType);
             }
             else if (type.IsGenericType)
             {
                 if (type.GetGenericTypeDefinition() == typeof(List<>))
                 {
                     Type itemType = type.GenericTypeArguments[0];
-                    SerializeItem = SerializationOperationFactory.GetOperation(itemType, areElementsReference);
-                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType, areElementsReference);
+                    SerializeItem = SerializationOperationFactory.GetOperation(itemType);
+                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType);
                 }
                 else if (type.GetGenericTypeDefinition() == typeof(HashSet<>))
                 {
                     Type itemType = type.GenericTypeArguments[0];
-                    SerializeItem = SerializationOperationFactory.GetOperation(itemType, areElementsReference);
-                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType, areElementsReference);
+                    SerializeItem = SerializationOperationFactory.GetOperation(itemType);
+                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType);
                 }
                 else if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
                 {
                     Type itemType = type.GenericTypeArguments[1];
-                    SerializeItem = SerializationOperationFactory.GetOperation(itemType, areElementsReference);
-                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType, areElementsReference);
+                    SerializeItem = SerializationOperationFactory.GetOperation(itemType);
+                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType);
                 }
             }
         }
@@ -168,47 +165,6 @@ namespace Icepack
             }
 
             return false;
-        }
-
-        private bool CalculateAreItemsReference(Type type, bool areItemsReference)
-        {
-            if (!areItemsReference)
-                return false;
-
-            if (type.IsArray)
-                return Toolbox.IsClass(type.GetElementType());
-
-            if (type.IsGenericType)
-            {
-                if (type.GetGenericTypeDefinition() == typeof(List<>))
-                    return Toolbox.IsClass(type.GetGenericArguments()[0]);
-                else if (type.GetGenericTypeDefinition() == typeof(HashSet<>))
-                    return Toolbox.IsClass(type.GetGenericArguments()[0]);
-                else if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-                {
-                    Type[] genericArgs = type.GetGenericArguments();
-                    return Toolbox.IsClass(genericArgs[0]) && Toolbox.IsClass(genericArgs[1]);
-                }
-            }
-
-            return true;
-        }
-
-        private bool CalculateAreKeysReference(Type type, bool areItemsReference)
-        {
-            if (!areItemsReference)
-                return false;
-
-            if (type.IsGenericType)
-            {
-                if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-                {
-                    Type[] genericArgs = type.GetGenericArguments();
-                    return Toolbox.IsClass(genericArgs[0]) && Toolbox.IsClass(genericArgs[1]);
-                }
-            }
-
-            return true;
         }
 
         private Action<object, object> BuildHashSetAdder()
