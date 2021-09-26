@@ -82,8 +82,13 @@ namespace Icepack
             {
                 ObjectMetadata objectMetadata = context.ObjectsInOrder[objectIdx];
                 writer.Write(objectMetadata.Type.Id);
-                if (objectMetadata.Type.Type.IsArray)
-                    writer.Write(objectMetadata.ArrayLength);
+                if (objectMetadata.Type.Type.IsArray ||
+                    objectMetadata.Type.Type.IsGenericType && (
+                        objectMetadata.Type.Type.GetGenericTypeDefinition() == typeof(List<>) ||
+                        objectMetadata.Type.Type.GetGenericTypeDefinition() == typeof(HashSet<>) ||
+                        objectMetadata.Type.Type.GetGenericTypeDefinition() == typeof(Dictionary<,>)
+                    ))
+                    writer.Write(objectMetadata.Length);
             }
 
             objectStream.Position = 0;
@@ -152,6 +157,14 @@ namespace Icepack
                     Type elementType = objectType.GetElementType();
                     int arrayLength = context.Reader.ReadInt32();
                     obj = Array.CreateInstance(elementType, arrayLength);
+                }
+                else if (objectType.IsGenericType && (
+                    objectType.GetGenericTypeDefinition() == typeof(List<>) ||
+                    objectType.GetGenericTypeDefinition() == typeof(HashSet<>) ||
+                    objectType.GetGenericTypeDefinition() == typeof(Dictionary<,>)))
+                {
+                    int length = context.Reader.ReadInt32();
+                    obj = Activator.CreateInstance(objectType, length);
                 }
                 else
                     obj = Activator.CreateInstance(objectType);

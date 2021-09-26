@@ -10,13 +10,13 @@ namespace Icepack
     {
         public uint Id { get; }
         public TypeMetadata Type { get; }
-        public int ArrayLength { get; }
+        public int Length { get; }
 
-        public ObjectMetadata(uint id, TypeMetadata type, int arrayLength)
+        public ObjectMetadata(uint id, TypeMetadata type, int length)
         {
             Id = id;
             Type = type;
-            ArrayLength = arrayLength;
+            Length = length;
         }
     }
 }

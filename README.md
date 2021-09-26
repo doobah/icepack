@@ -4,15 +4,9 @@ Icepack is a lightweight serialization library for C#.
 
 It was designed as part of a game development project, specifically to address limitations that other serialization libraries have when serializing inheritance hierarchies. Libraries such as MessagePack and Protobuf provide a way for the user to inform the serializer about class hierarchies, by assigning fixed IDs to child classes. A scenario where this does not work well is a game engine's entity/component system, where in order to build functionality on top of the engine, the user needs to extend some classes exposed by the engine. If the user then wishes to import third-party libraries that extend the same classes, it is very impractical to find out which IDs have already been used, and to stay backwards compatible. Icepack solves this by including type information as part of the serialization format, while avoiding the verbosity of serializers like Json.NET by automatically assigning IDs to types and field names, and storing these in lookup tables. The additional size overhead of the type and field names is reasonable for game development projects, where the serialized objects are likely to be large and composed of hierarchies containing many instances of the same types, for example, scenes or state machines. Icepack also avoids another limitation of other libraries, by relating every field to the class that it is declared in, so that there are no field name clashes between classes in the same inheritance hierarchy.
 
-In terms of performance, Icepack is faster than string-based serializers like Json.NET. However, it has several of its own limitations such as:
-
-* It is a binary format so is not human-readable.
-* Currently only fields are serialized, although this could be fairly easily expanded to properties.
-* The library lacks most of the extensibility/customization features of other libraries.
-
 # Serialization Format
 
-The Icepack serializer uses a BinaryWriter internally to generate its output, as a byte stream encoded in UTF-16, little endian:
+The Icepack serializer uses a `BinaryWriter` internally to generate its output, as a byte stream encoded in UTF-16, little endian:
 
 ```
 - Compatibility version [ushort]
@@ -27,12 +21,12 @@ The Icepack serializer uses a BinaryWriter internally to generate its output, as
 - A flag stating whether the root object is a reference type [bool]
 - For each reference-type object:
   - The object's type ID [uint]
-  - If the object is an array:
-    - The length of the array [int]
+  - If the object is an array, list, hashset, or dictionary:
+    - The length [int]
 - If the root object is a value type:
   - The serialized form of the root object [?]
 - For each object:
-  - The serialized form of that object [?] (see sub-formats below)
+  - The serialized form of that object [?]
 ```
 
 Structs have the format:
@@ -56,7 +50,7 @@ Dictionaries (based on **Dictionary<,>**) have the format:
 
 ```
 - Type ID [uint]
-- Number of items [int]
+- Length [int]
 - For each key/value pair:
   - The serialized form of the key [?]
   - The serialized form of the value [?]
@@ -85,6 +79,7 @@ Other rules:
 * Boxed value types are not supported.
 * Serializing delegates is not supported.
 * The compatibility version indicates which other versions of the Icepack serializer are able to deserialize the output.
+* Currently only fields (both private and public) are serialized, not properties.
 
 # Other Features
 

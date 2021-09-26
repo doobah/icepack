@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
+using System.Collections;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -46,11 +46,24 @@ namespace Icepack
             Type type = obj.GetType();
             TypeMetadata typeMetadata = GetTypeMetadata(type);
 
-            int arrayLength = 0;
+            int length = 0;
             if (type.IsArray)
-                arrayLength = ((Array)obj).Length;
+                length = ((Array)obj).Length;
+            else if (type.IsGenericType)
+            {
+                if (type.GetGenericTypeDefinition() == typeof(List<>))
+                    length = ((IList)obj).Count;
+                else if (type.GetGenericTypeDefinition() == typeof(HashSet<>))
+                {
+                    length = 0;
+                    foreach (object item in (IEnumerable)obj)
+                        length++;
+                }
+                else if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+                    length = ((IDictionary)obj).Count;
+            }
 
-            ObjectMetadata objMetadata = new ObjectMetadata(newId, typeMetadata, arrayLength);
+            ObjectMetadata objMetadata = new ObjectMetadata(newId, typeMetadata, length);
             Objects.Add(obj, objMetadata);
             ObjectsInOrder.Add(objMetadata);
             

@@ -193,6 +193,14 @@ namespace Icepack
                     int arrayLength = context.Reader.ReadInt32();
                     classObj = Array.CreateInstance(elementType, arrayLength);
                 }
+                else if (classType.IsGenericType && (
+                    classType.GetGenericTypeDefinition() == typeof(List<>) ||
+                    classType.GetGenericTypeDefinition() == typeof(HashSet<>) ||
+                    classType.GetGenericTypeDefinition() == typeof(Dictionary<,>)))
+                {
+                    int length = context.Reader.ReadInt32();
+                    classObj = Activator.CreateInstance(classType, length);
+                }
                 else
                     classObj = Activator.CreateInstance(classType);
             }
