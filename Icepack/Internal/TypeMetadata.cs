@@ -13,16 +13,13 @@ namespace Icepack
     {
         public uint Id { get; }
         public Type Type { get; }
-        public bool AreItemsReference { get; }
-        public bool AreKeysReference { get; }
         public SortedList<string, FieldMetadata> Fields { get; }
         public uint ParentId { get; }
-
         public Action<object, object> HashSetAdder { get; }
-
-        public Func<DeserializationContext, object> DeserializeItem { get; }
-
+        public Action<object, SerializationContext> SerializeKey { get; }
+        public Action<object, SerializationContext> SerializeItem { get; }
         public Func<DeserializationContext, object> DeserializeKey { get; }
+        public Func<DeserializationContext, object> DeserializeItem { get; }
 
         /// <summary> Called during serialization. </summary>
         /// <param name="registeredTypeMetadata"></param>
@@ -32,12 +29,12 @@ namespace Icepack
             Id = id;
             ParentId = parentId;
             Type = registeredTypeMetadata.Type;
-            AreItemsReference = registeredTypeMetadata.AreItemsReference;
-            AreKeysReference = registeredTypeMetadata.AreKeysReference;
             Fields = registeredTypeMetadata.Fields;
             HashSetAdder = registeredTypeMetadata.HashSetAdder;
-            DeserializeItem = registeredTypeMetadata.DeserializeItem;
+            SerializeKey = registeredTypeMetadata.SerializeKey;
+            SerializeItem = registeredTypeMetadata.SerializeItem;
             DeserializeKey = registeredTypeMetadata.DeserializeKey;
+            DeserializeItem = registeredTypeMetadata.DeserializeItem;
         }
 
         /// <summary>
@@ -55,8 +52,6 @@ namespace Icepack
             if (registeredTypeMetadata == null)
             {
                 Type = null;
-                AreItemsReference = false;
-                AreKeysReference = false;
                 Fields = new SortedList<string, FieldMetadata>(fieldNames.Count);
                 for (int i = 0; i < fieldNames.Count; i++)
                 {
@@ -64,14 +59,14 @@ namespace Icepack
                     Fields.Add(fieldName, null);
                 }
                 HashSetAdder = null;
-                DeserializeItem = null;
+                SerializeKey = null;
+                SerializeItem = null;
                 DeserializeKey = null;
+                DeserializeItem = null;
             }
             else
             {
                 Type = registeredTypeMetadata.Type;
-                AreItemsReference = registeredTypeMetadata.AreItemsReference;
-                AreKeysReference = registeredTypeMetadata.AreKeysReference;
 
                 Fields = new SortedList<string, FieldMetadata>(fieldNames.Count);
                 for (int i = 0; i < fieldNames.Count; i++)
@@ -82,8 +77,10 @@ namespace Icepack
                 }
 
                 HashSetAdder = registeredTypeMetadata.HashSetAdder;
-                DeserializeItem = registeredTypeMetadata.DeserializeItem;
+                SerializeKey = registeredTypeMetadata.SerializeKey;
+                SerializeItem = registeredTypeMetadata.SerializeItem;
                 DeserializeKey = registeredTypeMetadata.DeserializeKey;
+                DeserializeItem = registeredTypeMetadata.DeserializeItem;
             }
         }
 
@@ -94,8 +91,6 @@ namespace Icepack
             Id = 0;
             ParentId = 0;
             Type = type;
-            AreItemsReference = CalculateAreItemsReference(type, areItemsReference);
-            AreKeysReference = CalculateAreKeysReference(type, areItemsReference);
 
             Fields = new SortedList<string, FieldMetadata>();
             if (!IsSpecialClassType(type))
@@ -112,36 +107,48 @@ namespace Icepack
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(HashSet<>))
                 HashSetAdder = BuildHashSetAdder();
 
+            // Serialization/Deserialization operations
+
+            bool areKeysReference = CalculateAreKeysReference(type, areItemsReference);
+            bool areElementsReference = CalculateAreItemsReference(type, areItemsReference);
+
+            SerializeKey = null;
+            DeserializeKey = null;
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+            {
+                Type keyType = type.GenericTypeArguments[0];
+                SerializeKey = SerializationOperationFactory.GetOperation(keyType, areKeysReference);
+                DeserializeKey = DeserializationOperationFactory.GetOperation(keyType, areKeysReference);
+            }
+
+            SerializeItem = null;
             DeserializeItem = null;
             if (type.IsArray)
             {
                 Type elementType = type.GetElementType();
-                DeserializeItem = DeserializationOperationFactory.GetOperation(elementType, areItemsReference);
+                SerializeItem = SerializationOperationFactory.GetOperation(elementType, areElementsReference);
+                DeserializeItem = DeserializationOperationFactory.GetOperation(elementType, areElementsReference);
             }
             else if (type.IsGenericType)
             {
                 if (type.GetGenericTypeDefinition() == typeof(List<>))
                 {
                     Type itemType = type.GenericTypeArguments[0];
-                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType, areItemsReference);
+                    SerializeItem = SerializationOperationFactory.GetOperation(itemType, areElementsReference);
+                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType, areElementsReference);
                 }
                 else if (type.GetGenericTypeDefinition() == typeof(HashSet<>))
                 {
                     Type itemType = type.GenericTypeArguments[0];
-                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType, areItemsReference);
+                    SerializeItem = SerializationOperationFactory.GetOperation(itemType, areElementsReference);
+                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType, areElementsReference);
                 }
                 else if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
                 {
                     Type itemType = type.GenericTypeArguments[1];
-                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType, areItemsReference);
+                    SerializeItem = SerializationOperationFactory.GetOperation(itemType, areElementsReference);
+                    DeserializeItem = DeserializationOperationFactory.GetOperation(itemType, areElementsReference);
                 }
-            }
-
-            DeserializeKey = null;
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-            {
-                Type keyType = type.GenericTypeArguments[0];
-                DeserializeKey = DeserializationOperationFactory.GetOperation(keyType, areItemsReference);
             }
         }
 

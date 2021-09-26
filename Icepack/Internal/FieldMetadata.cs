@@ -25,6 +25,8 @@ namespace Icepack
 
         public Func<DeserializationContext, object> Deserialize { get; }
 
+        public Action<object, SerializationContext> Serialize { get; }
+
         public FieldMetadata(FieldInfo fieldInfo)
         {
             FieldInfo = fieldInfo;
@@ -32,6 +34,7 @@ namespace Icepack
             Getter = BuildGetter(fieldInfo);
             Setter = BuildSetter(fieldInfo);
             Deserialize = DeserializationOperationFactory.GetOperation(fieldInfo.FieldType, IsReference);
+            Serialize = SerializationOperationFactory.GetOperation(fieldInfo.FieldType, IsReference);
         }
 
         private Func<object, object> BuildGetter(FieldInfo fieldInfo)

@@ -9,77 +9,77 @@ namespace Icepack
 {
     internal static class DeserializationOperationFactory
     {
-        private static object DeserializeByte(DeserializationContext context)
+        public static object DeserializeByte(DeserializationContext context)
         {
             return context.Reader.ReadByte();
         }
 
-        private static object DeserializeSByte(DeserializationContext context)
+        public static object DeserializeSByte(DeserializationContext context)
         {
             return context.Reader.ReadSByte();
         }
 
-        private static object DeserializeChar(DeserializationContext context)
+        public static object DeserializeChar(DeserializationContext context)
         {
             return context.Reader.ReadChar();
         }
 
-        private static object DeserializeBoolean(DeserializationContext context)
+        public static object DeserializeBoolean(DeserializationContext context)
         {
             return context.Reader.ReadBoolean();
         }
 
-        private static object DeserializeInt32(DeserializationContext context)
+        public static object DeserializeInt32(DeserializationContext context)
         {
             return context.Reader.ReadInt32();
         }
 
-        private static object DeserializeUInt32(DeserializationContext context)
+        public static object DeserializeUInt32(DeserializationContext context)
         {
             return context.Reader.ReadUInt32();
         }
 
-        private static object DeserializeInt16(DeserializationContext context)
+        public static object DeserializeInt16(DeserializationContext context)
         {
             return context.Reader.ReadInt16();
         }
 
-        private static object DeserializeUInt16(DeserializationContext context)
+        public static object DeserializeUInt16(DeserializationContext context)
         {
             return context.Reader.ReadUInt16();
         }
 
-        private static object DeserializeInt64(DeserializationContext context)
+        public static object DeserializeInt64(DeserializationContext context)
         {
             return context.Reader.ReadInt64();
         }
 
-        private static object DeserializeUInt64(DeserializationContext context)
+        public static object DeserializeUInt64(DeserializationContext context)
         {
             return context.Reader.ReadUInt64();
         }
 
-        private static object DeserializeDecimal(DeserializationContext context)
+        public static object DeserializeDecimal(DeserializationContext context)
         {
             return context.Reader.ReadDecimal();
         }
 
-        private static object DeserializeSingle(DeserializationContext context)
+        public static object DeserializeSingle(DeserializationContext context)
         {
             return context.Reader.ReadSingle();
         }
 
-        private static object DeserializeDouble(DeserializationContext context)
+        public static object DeserializeDouble(DeserializationContext context)
         {
             return context.Reader.ReadDouble();
         }
 
-        private static object DeserializeString(DeserializationContext context)
+        public static object DeserializeString(DeserializationContext context)
         {
             return context.Reader.ReadString();
         }
 
-        private static object DeserializeStruct(DeserializationContext context)
+        public static object DeserializeStruct(DeserializationContext context)
         {
             uint typeId = context.Reader.ReadUInt32();
             TypeMetadata typeMetadata = context.Types[typeId - 1];
@@ -100,11 +100,10 @@ namespace Icepack
             return structObj;
         }
 
-        private static void DeserializeArray(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
+        public static void DeserializeArray(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
         {
             Array arrayObj = (Array)classObj;
             Type elementType = classTypeMetadata.Type.GetElementType();
-            bool isReference = Toolbox.IsClass(elementType) && classTypeMetadata.AreItemsReference;
 
             for (int i = 0; i < arrayObj.Length; i++)
             {
@@ -113,11 +112,10 @@ namespace Icepack
             }
         }
 
-        private static void DeserializeList(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
+        public static void DeserializeList(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
         {
             IList listObj = (IList)classObj;
             Type elementType = classTypeMetadata.Type.GenericTypeArguments[0];
-            bool isReference = Toolbox.IsClass(elementType) && classTypeMetadata.AreItemsReference;
 
             int length = context.Reader.ReadInt32();
             for (int i = 0; i < length; i++)
@@ -127,10 +125,9 @@ namespace Icepack
             }
         }
 
-        private static void DeserializeHashSet(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
+        public static void DeserializeHashSet(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
         {
             Type elementType = classTypeMetadata.Type.GenericTypeArguments[0];
-            bool isReference = Toolbox.IsClass(elementType) && classTypeMetadata.AreItemsReference;
 
             int length = context.Reader.ReadInt32();
             for (int i = 0; i < length; i++)
@@ -140,13 +137,11 @@ namespace Icepack
             }
         }
 
-        private static void DeserializeDictionary(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
+        public static void DeserializeDictionary(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
         {
             IDictionary dictObj = (IDictionary)classObj;
             Type keyType = classTypeMetadata.Type.GenericTypeArguments[0];
-            bool isKeyReference = Toolbox.IsClass(keyType) && classTypeMetadata.AreItemsReference;
             Type valueType = classTypeMetadata.Type.GenericTypeArguments[1];
-            bool isValueReference = Toolbox.IsClass(valueType) && classTypeMetadata.AreItemsReference;
             int length = context.Reader.ReadInt32();
 
             for (int i = 0; i < length; i++)
@@ -157,7 +152,7 @@ namespace Icepack
             }
         }
 
-        private static void DeserializeNormalClass(object classObj, DeserializationContext context)
+        public static void DeserializeNormalClass(object classObj, DeserializationContext context)
         {
             while (true)
             {
@@ -223,13 +218,13 @@ namespace Icepack
             return classObj;
         }
 
-        private static object DeserializeObjectReference(DeserializationContext context)
+        public static object DeserializeObjectReference(DeserializationContext context)
         {
             uint objId = context.Reader.ReadUInt32();
             return (objId == 0) ? null : context.Objects[objId - 1];
         }
 
-        private static Func<DeserializationContext, object> GetEnumOperation(Type type)
+        public static Func<DeserializationContext, object> GetEnumOperation(Type type)
         {
             Type underlyingType = type.GetEnumUnderlyingType();
 

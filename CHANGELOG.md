@@ -1,6 +1,6 @@
 # v0.0.7
 
-* Precalculating deserialization operation for fields and types eliminates redundant type checks, greatly improving deserialization efficiency.
+* Precalculating serialization and deserialization operations for fields and types eliminates redundant type checks, greatly improving efficiency.
 
 # v0.0.6
 
