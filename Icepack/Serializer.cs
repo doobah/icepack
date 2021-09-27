@@ -19,6 +19,8 @@ namespace Icepack
         public Serializer()
         {
             typeRegistry = new TypeRegistry();
+
+            RegisterType(typeof(string));
         }
 
         /// <summary> Registers a type as serializable. </summary>
@@ -44,7 +46,7 @@ namespace Icepack
             // Serialize objects
 
             bool rootObjectIsReferenceType = false;
-            if (Toolbox.IsClass(rootObj.GetType()))
+            if (rootObj.GetType().IsClass)
             {
                 context.RegisterObject(rootObj);
                 rootObjectIsReferenceType = true;
@@ -69,7 +71,7 @@ namespace Icepack
             {
                 TypeMetadata typeMetadata = context.TypesInOrder[typeIdx];
                 writer.Write(typeMetadata.Type.AssemblyQualifiedName);
-                writer.Write(typeMetadata.ParentId);
+                writer.Write(typeMetadata.HasParent);
                 writer.Write(typeMetadata.Fields.Count);
                 for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
                 {
@@ -87,7 +89,11 @@ namespace Icepack
             {
                 ObjectMetadata objectMetadata = context.ObjectsInOrder[objectIdx];
                 writer.Write(objectMetadata.Type.Id);
-                if (objectMetadata.Type.Type.IsArray ||
+                if (objectMetadata.Type.Type == typeof(string))
+                {
+                    writer.Write((string)objectMetadata.Value);
+                }
+                else if (objectMetadata.Type.Type.IsArray ||
                     objectMetadata.Type.Type.IsGenericType && (
                         objectMetadata.Type.Type.GetGenericTypeDefinition() == typeof(List<>) ||
                         objectMetadata.Type.Type.GetGenericTypeDefinition() == typeof(HashSet<>) ||
@@ -130,14 +136,14 @@ namespace Icepack
                 string typeName = context.Reader.ReadString();
                 TypeMetadata registeredTypeMetadata = typeRegistry.GetTypeMetadata(typeName);
 
-                uint parentId = context.Reader.ReadUInt32();
+                bool hasParent = context.Reader.ReadBoolean();
 
                 int numberOfFields = context.Reader.ReadInt32();
                 List<string> fieldNames = new List<string>(numberOfFields);
                 for (int f = 0; f < numberOfFields; f++)
                     fieldNames.Add(context.Reader.ReadString());
 
-                TypeMetadata typeMetadata = new TypeMetadata(registeredTypeMetadata, fieldNames, (uint)(t + 1), parentId);
+                TypeMetadata typeMetadata = new TypeMetadata(registeredTypeMetadata, fieldNames, (uint)(t + 1), hasParent);
                 context.Types[t] = typeMetadata;
             }
 
@@ -148,18 +154,18 @@ namespace Icepack
 
             context.Objects = new object[numberOfObjects];
             context.ObjectTypes = new TypeMetadata[numberOfObjects];
-            context.CurrentObjectId = 0;
 
             for (int i = 0; i < numberOfObjects; i++)
             {
                 uint typeId = context.Reader.ReadUInt32();
                 TypeMetadata objectTypeMetadata = context.Types[typeId - 1];
                 Type objectType = objectTypeMetadata.Type;
-
                 context.ObjectTypes[i] = objectTypeMetadata;
 
                 object obj;
-                if (objectType.IsArray)
+                if (objectType == typeof(string))
+                    obj = context.Reader.ReadString();
+                else if (objectType.IsArray)
                 {
                     Type elementType = objectType.GetElementType();
                     int arrayLength = context.Reader.ReadInt32();
@@ -191,8 +197,8 @@ namespace Icepack
 
             for (int i = 0; i < numberOfObjects; i++)
             {
-                context.CurrentObjectId = (uint)i + 1;
-                DeserializationOperationFactory.DeserializeClass(context);
+                object classObj = context.Objects[i];
+                DeserializationOperationFactory.DeserializeClass(classObj, context);
             }
 
             // Clean up

@@ -14,7 +14,7 @@ namespace Icepack
         public uint Id { get; }
         public Type Type { get; }
         public SortedList<string, FieldMetadata> Fields { get; }
-        public uint ParentId { get; }
+        public bool HasParent { get; }
         public Action<object, object> HashSetAdder { get; }
         public Action<object, SerializationContext> SerializeKey { get; }
         public Action<object, SerializationContext> SerializeItem { get; }
@@ -24,10 +24,10 @@ namespace Icepack
         /// <summary> Called during serialization. </summary>
         /// <param name="registeredTypeMetadata"></param>
         /// <param name="id"> A unique ID for the type. </param>
-        public TypeMetadata(TypeMetadata registeredTypeMetadata, uint id, uint parentId)
+        public TypeMetadata(TypeMetadata registeredTypeMetadata, uint id, bool hasParent)
         {
             Id = id;
-            ParentId = parentId;
+            HasParent = hasParent;
             Type = registeredTypeMetadata.Type;
             Fields = registeredTypeMetadata.Fields;
             HashSetAdder = registeredTypeMetadata.HashSetAdder;
@@ -44,10 +44,10 @@ namespace Icepack
         /// <param name="registeredTypeMetadata"> The registered type metadata to copy information from. </param>
         /// <param name="objectTree"> The object tree for type metadata extracted from the serialized data. </param>
         /// <param name="id"> A unique ID for the type. </param>
-        public TypeMetadata(TypeMetadata registeredTypeMetadata, List<string> fieldNames, uint id, uint parentId)
+        public TypeMetadata(TypeMetadata registeredTypeMetadata, List<string> fieldNames, uint id, bool hasParent)
         {
             Id = id;
-            ParentId = parentId;
+            HasParent = hasParent;
 
             if (registeredTypeMetadata == null)
             {
@@ -89,7 +89,7 @@ namespace Icepack
         public TypeMetadata(Type type)
         {
             Id = 0;
-            ParentId = 0;
+            HasParent = false;
             Type = type;
 
             Fields = new SortedList<string, FieldMetadata>();
@@ -151,6 +151,9 @@ namespace Icepack
 
         private bool IsSpecialClassType(Type type)
         {
+            if (type == typeof(string))
+                return true;
+
             if (type.IsArray)
                 return true;
 

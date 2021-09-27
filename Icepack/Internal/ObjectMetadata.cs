@@ -11,12 +11,14 @@ namespace Icepack
         public uint Id { get; }
         public TypeMetadata Type { get; }
         public int Length { get; }
+        public object Value { get; }
 
-        public ObjectMetadata(uint id, TypeMetadata type, int length)
+        public ObjectMetadata(uint id, TypeMetadata type, int length, object value)
         {
             Id = id;
             Type = type;
             Length = length;
+            Value = value;
         }
     }
 }

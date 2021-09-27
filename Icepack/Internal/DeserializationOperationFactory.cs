@@ -84,14 +84,16 @@ namespace Icepack
             uint typeId = context.Reader.ReadUInt32();
             TypeMetadata typeMetadata = context.Types[typeId - 1];
             object structObj = Activator.CreateInstance(typeMetadata.Type);
-            context.CurrentObjectId = 0;
 
             for (int i = 0; i < typeMetadata.Fields.Count; i++)
             {
                 FieldMetadata field = typeMetadata.Fields.Values[i];
-                Type fieldType = field.FieldInfo.FieldType;
-                object value = field.Deserialize(context);
-                field.Setter(structObj, value);
+                if (field != null)
+                {
+                    Type fieldType = field.FieldInfo.FieldType;
+                    object value = field.Deserialize(context);
+                    field.Setter(structObj, value);
+                }
             }
 
             if (structObj is ISerializerListener)
@@ -105,7 +107,9 @@ namespace Icepack
             Array arrayObj = (Array)classObj;
             Type elementType = classTypeMetadata.Type.GetElementType();
 
-            for (int i = 0; i < arrayObj.Length; i++)
+            int arrayLength = context.Reader.ReadInt32();
+
+            for (int i = 0; i < arrayLength; i++)
             {
                 object value = classTypeMetadata.DeserializeItem(context);
                 arrayObj.SetValue(value, i);
@@ -161,13 +165,15 @@ namespace Icepack
                 for (int fieldIdx = 0; fieldIdx < partialClassTypeMetadata.Fields.Count; fieldIdx++)
                 {
                     FieldMetadata field = partialClassTypeMetadata.Fields.Values[fieldIdx];
-                    Type fieldType = field.FieldInfo.FieldType;
-                    object value = field.Deserialize(context);
-                    field.Setter(classObj, value);
+                    if (field != null)
+                    {
+                        Type fieldType = field.FieldInfo.FieldType;
+                        object value = field.Deserialize(context);
+                        field.Setter(classObj, value);
+                    }
                 }
 
-                uint partialClassParentTypeId = partialClassTypeMetadata.ParentId;
-                if (partialClassParentTypeId == 0)
+                if (!partialClassTypeMetadata.HasParent)
                     break;
             }
 
@@ -175,43 +181,14 @@ namespace Icepack
                 ((ISerializerListener)classObj).OnAfterDeserialize();
         }
 
-        public static object DeserializeClass(DeserializationContext context)
+        public static void DeserializeClass(object classObj, DeserializationContext context)
         {
-            uint objId = context.CurrentObjectId;
             uint typeId = context.Reader.ReadUInt32();
             TypeMetadata classTypeMetadata = context.Types[typeId - 1];
             Type classType = classTypeMetadata.Type;
-            context.CurrentObjectId = 0;
 
-            object classObj;
-            if (objId == 0)
-            {
-                // Create the object inline if it is a value-type
-                if (classType.IsArray)
-                {
-                    Type elementType = classType.GetElementType();
-                    int arrayLength = context.Reader.ReadInt32();
-                    classObj = Array.CreateInstance(elementType, arrayLength);
-                }
-                else if (classType.IsGenericType && (
-                    classType.GetGenericTypeDefinition() == typeof(List<>) ||
-                    classType.GetGenericTypeDefinition() == typeof(HashSet<>) ||
-                    classType.GetGenericTypeDefinition() == typeof(Dictionary<,>)))
-                {
-                    int length = context.Reader.ReadInt32();
-                    classObj = Activator.CreateInstance(classType, length);
-                }
-                else
-                    classObj = Activator.CreateInstance(classType);
-            }
-            else
-            {
-                if (classType.IsArray)
-                    context.Reader.ReadInt32(); // Not used if this is a reference
-
-                classObj = context.Objects[objId - 1];
-            }
-
+            if (classType == typeof(string))
+                return;                 // String is already deserialized as metadata
             if (classType.IsArray)
                 DeserializeArray(classObj, classTypeMetadata, context);
             else if (classType.IsGenericType && classType.GetGenericTypeDefinition() == typeof(List<>))
@@ -222,8 +199,6 @@ namespace Icepack
                 DeserializeDictionary(classObj, classTypeMetadata, context);
             else
                 DeserializeNormalClass(classObj, context);
-
-            return classObj;
         }
 
         public static object DeserializeObjectReference(DeserializationContext context)
@@ -284,8 +259,6 @@ namespace Icepack
                 return DeserializeSingle;
             else if (type == typeof(double))
                 return DeserializeDouble;
-            else if (type == typeof(string))
-                return DeserializeString;
             else if (type.IsEnum)
                 return GetEnumOperation(type);
             else if (type.IsValueType)

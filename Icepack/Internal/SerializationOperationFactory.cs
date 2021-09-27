@@ -74,11 +74,6 @@ namespace Icepack
             context.Writer.Write((decimal)obj);
         }
 
-        public static void SerializeString(object obj, SerializationContext context)
-        {
-            context.Writer.Write((string)obj);
-        }
-
         public static void SerializeObjectReference(object value, SerializationContext context)
         {
             if (value == null)
@@ -193,7 +188,9 @@ namespace Icepack
             TypeMetadata typeMetadata = context.GetTypeMetadata(type);
             context.Writer.Write(typeMetadata.Id);
 
-            if (type.IsArray)
+            if (type == typeof(string))
+                return;                 // String is already deserialized as metadata
+            else if (type.IsArray)
                 SerializeArray(obj, typeMetadata, context);
             else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
                 SerializeList(obj, typeMetadata, context);
@@ -256,8 +253,6 @@ namespace Icepack
                 return SerializeDouble;
             else if (type == typeof(decimal))
                 return SerializeDecimal;
-            else if (type == typeof(string))
-                return SerializeString;
             else if (type.IsEnum)
                 return GetEnumOperation(type);
             else if (type.IsValueType)

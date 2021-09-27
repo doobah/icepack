@@ -13,14 +13,16 @@ The Icepack serializer uses a `BinaryWriter` internally to generate its output, 
 - The number of types [int]
 - For each type:
   - The type's assembly qualified name [string]
-  - The ID of the type's parent [uint]
+  - Whether the type has a parent [bool]
   - The number of serializable fields in the type [int]
   - For each field:
     - The field name [string]
 - The number of objects [int]
 - A flag stating whether the root object is a reference type [bool]
-- For each reference-type object:
+- For each reference-type object, include some metadata used to pre-instantiate the object:
   - The object's type ID [uint]
+  - If the object is a string:
+    - The value of the string [string]
   - If the object is an array, list, hashset, or dictionary:
     - The length [int]
 - If the root object is a value type:
@@ -37,7 +39,13 @@ Structs have the format:
   - The serialized form of the field value [?]
 ```
 
-Arrays, Lists (based on **List<>**), and HashSets (based on **HashSet<>**) have the format:
+Strings are serialized as only a type ID since they are already serialized as metadata:
+
+```
+- Type ID [uint]
+```
+
+Arrays, Lists (based on `List<>`), and HashSets (based on `HashSet<>`) have the format:
 
 ```
 - Type ID [uint]
@@ -46,7 +54,7 @@ Arrays, Lists (based on **List<>**), and HashSets (based on **HashSet<>**) have 
   - The serialized form of that element [?]
 ```
 
-Dictionaries (based on **Dictionary<,>**) have the format:
+Dictionaries (based on `Dictionary<,>`) have the format:
 
 ```
 - Type ID [uint]

@@ -10,12 +10,7 @@ namespace Icepack
     {
         public static bool IsStruct(Type type)
         {
-            return type.IsValueType && !type.IsPrimitive && !type.IsEnum && type != typeof(string) && type != typeof(decimal);
-        }
-
-        public static bool IsClass(Type type)
-        {
-            return type.IsClass && type != typeof(string);
+            return type.IsValueType && !type.IsPrimitive && !type.IsEnum && type != typeof(decimal);
         }
     }
 }

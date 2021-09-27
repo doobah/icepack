@@ -21,8 +21,6 @@ namespace Icepack
 
         public TypeMetadata[] ObjectTypes { get; set; }
 
-        public uint CurrentObjectId { get; set; }
-
         public BinaryReader Reader { get; }
 
         public DeserializationContext(Stream inputStream)
@@ -30,7 +28,6 @@ namespace Icepack
             Types = null;
             Objects = null;
             ObjectTypes = null;
-            CurrentObjectId = 0;
             Reader = new BinaryReader(inputStream, Encoding.Unicode, true);
         }
 

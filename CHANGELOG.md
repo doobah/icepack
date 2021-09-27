@@ -1,6 +1,8 @@
 # v0.0.8
 
 * Initialize capacity of lists, hashsets, dictionaries to equal length to avoid reallocation.
+* Treat `string` similarly to other reference types. This is to keep objects a fixed size to make it easier to add support for handling deleted fields, etc, later on. As a bonus, this significantly improves the efficiency of deserializing strings.
+* Change parent ID in type metadata to a flag indicating whether a type has a parent.
 
 # v0.0.7
 

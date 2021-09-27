@@ -47,6 +47,7 @@ namespace Icepack
             TypeMetadata typeMetadata = GetTypeMetadata(type);
 
             int length = 0;
+
             if (type.IsArray)
                 length = ((Array)obj).Length;
             else if (type.IsGenericType)
@@ -63,7 +64,7 @@ namespace Icepack
                     length = ((IDictionary)obj).Count;
             }
 
-            ObjectMetadata objMetadata = new ObjectMetadata(newId, typeMetadata, length);
+            ObjectMetadata objMetadata = new ObjectMetadata(newId, typeMetadata, length, obj);
             Objects.Add(obj, objMetadata);
             ObjectsInOrder.Add(objMetadata);
             
@@ -78,15 +79,21 @@ namespace Icepack
         {
             if (!Types.ContainsKey(type))
             {
-                uint parentId = 0;
-                if (type.BaseType != typeof(object) && type.BaseType != typeof(ValueType) && type.BaseType != typeof(Array))
-                    parentId = GetTypeMetadata(type.BaseType).Id;
-
                 TypeMetadata registeredTypeMetadata = typeRegistry.GetTypeMetadata(type);
                 if (registeredTypeMetadata == null)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
-                TypeMetadata newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, parentId);
+                bool hasParent =
+                    type.BaseType != typeof(object) &&
+                    type.BaseType != typeof(ValueType) &&
+                    type.BaseType != typeof(Array) &&
+                    (!type.IsGenericType || (
+                        type.GetGenericTypeDefinition() != typeof(List<>) &&
+                        type.GetGenericTypeDefinition() != typeof(HashSet<>) &&
+                        type.GetGenericTypeDefinition() != typeof(Dictionary<,>)
+                    ));
+
+                TypeMetadata newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, hasParent);
                 Types.Add(type, newTypeMetadata);
                 TypesInOrder.Add(newTypeMetadata);
                 return newTypeMetadata;

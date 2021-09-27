@@ -141,6 +141,23 @@ namespace IcepackTest
         }
 
         [Test]
+        public void SerializeFlatObjectWithNullString()
+        {
+            Serializer serializer = new Serializer();
+
+            FlatClass obj = new FlatClass() { Field1 = 123, Field2 = null, Field3 = 6.78f };
+
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
+            stream.Close();
+
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual(null, deserializedObj.Field2);
+            Assert.AreEqual(6.78f, deserializedObj.Field3);
+        }
+
+        [Test]
         public void SerializeHierarchicalObject()
         {
             Serializer serializer = new Serializer();
@@ -343,19 +360,6 @@ namespace IcepackTest
         }
 
         [Test]
-        public void SerializeStringWithSpecialCharacter()
-        {
-            Serializer serializer = new Serializer();
-
-            MemoryStream stream = new MemoryStream();
-            serializer.Serialize("\"", stream);
-            string deserializedStr = serializer.Deserialize<string>(stream);
-            stream.Close();
-
-            Assert.AreEqual("\"", deserializedStr);
-        }
-
-        [Test]
         public void SerializeUnregisteredClass()
         {
             Serializer serializer = new Serializer();
@@ -365,6 +369,27 @@ namespace IcepackTest
             Assert.Throws<IcepackException>(() => {
                 serializer.Serialize(obj, stream);
             });
+            stream.Close();
+        }
+
+        [Test]
+        public void CompatibilityMatch()
+        {
+            Serializer serializer = new Serializer();
+
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            writer.Write(Serializer.CompatibilityVersion);
+            writer.Write(0);            // Number of types
+            writer.Write(0);            // Number of objects
+            writer.Write(false);        // Root object is value-type
+            writer.Write(123);          // Root object
+            writer.Close();
+
+            Assert.DoesNotThrow(() => {
+                int output = serializer.Deserialize<int>(stream);
+            });
+
             stream.Close();
         }
 
@@ -399,7 +424,7 @@ namespace IcepackTest
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(1);            // Number of types
             writer.Write(typeof(UnregisteredClass).AssemblyQualifiedName);     // Type name
-            writer.Write((uint)0);      // Parent type ID
+            writer.Write(false);        // Type has no parent
             writer.Write(0);            // Number of fields
             writer.Write(1);            // Number of objects
             writer.Write(true);         // Root object is reference-type
@@ -425,7 +450,7 @@ namespace IcepackTest
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(1);            // Number of types
             writer.Write(typeof(RegisteredClass).AssemblyQualifiedName);     // Type name
-            writer.Write((uint)0);      // Parent type ID
+            writer.Write(false);        // Type has no parent
             writer.Write(0);            // Number of fields
             writer.Write(1);            // Number of objects
             writer.Write(true);         // Root object is reference-type
@@ -437,6 +462,41 @@ namespace IcepackTest
             RegisteredClass deserializedObj = serializer.Deserialize<RegisteredClass>(stream);
 
             Assert.NotNull(deserializedObj);
+        }
+        
+        [Test]
+        public void DeserializeClassDeletedField()
+        {
+            Serializer serializer = new Serializer();
+
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            writer.Write(Serializer.CompatibilityVersion);
+            writer.Write(1);            // Number of types
+            writer.Write(typeof(FlatClass).AssemblyQualifiedName);     // Type name
+            writer.Write(false);        // Type has no parent
+            writer.Write(4);            // Number of fields
+            writer.Write("Field1");
+            writer.Write("Field2");
+            writer.Write("Field2andHalf");
+            writer.Write("Field3");
+            writer.Write(1);            // Number of objects
+            writer.Write(true);         // Root object is reference-type
+            writer.Write((uint)1);      // Type ID
+            writer.Write((uint)1);      // Type ID
+            writer.Write((uint)1);      // Type ID
+            writer.Write(123);          // Field1
+            writer.Write("asdf");       // Field2
+            writer.Write("some stuff"); // Field2andHalf
+            writer.Write(2.34f);        // Field3
+            writer.Close();
+
+            FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual("asdf", deserializedObj.Field2);
+            Assert.AreEqual(2.34f, deserializedObj.Field3);
         }
 
         [Test]
