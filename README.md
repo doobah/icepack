@@ -14,9 +14,19 @@ The Icepack serializer uses a `BinaryWriter` internally to generate its output, 
 - For each type:
   - The type's assembly qualified name [string]
   - Whether the type has a parent [bool]
+  - if the object is a string:
+    (Empty)
+  - if the object is a dictionary:
+    - The size of a key [int]
+    - The size of an item [int]
+  - if the type is an array, list, hashset:
+    - The size of an item [int]
+  - if the type is none of the above:
+    - The size of the type [int]
   - The number of serializable fields in the type [int]
   - For each field:
     - The field name [string]
+    - The size of the field in bytes [int]
 - The number of objects [int]
 - A flag stating whether the root object is a reference type [bool]
 - For each reference-type object, include some metadata used to pre-instantiate the object:
@@ -39,16 +49,15 @@ Structs have the format:
   - The serialized form of the field value [?]
 ```
 
-Strings are serialized as only a type ID since they are already serialized as metadata:
+Strings do not have any object data since since they are already serialized as metadata:
 
 ```
-- Type ID [uint]
+(Empty)
 ```
 
 Arrays, Lists (based on `List<>`), and HashSets (based on `HashSet<>`) have the format:
 
 ```
-- Type ID [uint]
 - Length [int]
 - For each element:
   - The serialized form of that element [?]
@@ -57,7 +66,6 @@ Arrays, Lists (based on `List<>`), and HashSets (based on `HashSet<>`) have the 
 Dictionaries (based on `Dictionary<,>`) have the format:
 
 ```
-- Type ID [uint]
 - Length [int]
 - For each key/value pair:
   - The serialized form of the key [?]
@@ -67,7 +75,6 @@ Dictionaries (based on `Dictionary<,>`) have the format:
 Other classes have the format:
 
 ```
-- Type ID [uint]
 - Starting from the class type, and iterating up the inheritance chain until 'object':
   - Type ID [uint]
   - For each field:
@@ -78,9 +85,8 @@ Other rules:
 
 * Object references are serialized as their object ID (`uint`).
 * The first object in the object list is the root object, this does not have to be a reference type, but the rest of the objects in the list do.
-* Objects marked to be serialized as value-only are serialized inline and not included in the object list.
 * Primitives are serialized as-is.
-* Strings are prefixed with their length.
+* The `string` type is automatically registered for serialization.
 * Enums are serialized as their underlying integral type.
 * `nuint` and `nint` are not supported.
 * `span` and other exotic types are not supported.
@@ -94,6 +100,7 @@ Other rules:
 * Types can be included for serialization by calling the serializer's `RegisterType` method, or annotating the type with the `SerializableObject` attribute.
 * Fields can be ignored by annotating them with the `IgnoreField` attribute.
 * The `ISerializer` interface is provided to allow classes to execute additional logic before serialization and after deserialization.
+* On deserialization, fields that have been added or removed since serialization will be ignored. Deserializing after changing the type of a serialized field results in undefined behaviour.
 
 # Usage Example
 

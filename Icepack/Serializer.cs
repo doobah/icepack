@@ -20,6 +20,7 @@ namespace Icepack
         {
             typeRegistry = new TypeRegistry();
 
+            // string type is automatically registered
             RegisterType(typeof(string));
         }
 
@@ -72,11 +73,40 @@ namespace Icepack
                 TypeMetadata typeMetadata = context.TypesInOrder[typeIdx];
                 writer.Write(typeMetadata.Type.AssemblyQualifiedName);
                 writer.Write(typeMetadata.HasParent);
+
+                Type type = typeMetadata.Type;
+                if (type == typeof(string)) { }
+                else if (type.IsArray)
+                    writer.Write(typeMetadata.ItemSize);
+                else if (type.IsGenericType)
+                {
+                    Type genericTypeDef = type.GetGenericTypeDefinition();
+                    if (genericTypeDef == typeof(Dictionary<,>))
+                    {
+                        writer.Write(typeMetadata.KeySize);
+                        writer.Write(typeMetadata.ItemSize);
+                    }
+                    else if (genericTypeDef == typeof(List<>) ||
+                             genericTypeDef == typeof(HashSet<>))
+                    {
+                        writer.Write(typeMetadata.ItemSize);
+                    }
+                    else
+                    {
+                        writer.Write(typeMetadata.Size);
+                    }
+                }
+                else
+                {
+                    writer.Write(typeMetadata.Size);
+                }
+
                 writer.Write(typeMetadata.Fields.Count);
                 for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
                 {
                     FieldMetadata fieldMetadata = typeMetadata.Fields.Values[fieldIdx];
                     writer.Write(fieldMetadata.FieldInfo.Name);
+                    writer.Write(fieldMetadata.Size);
                 }
             }
 
@@ -138,12 +168,47 @@ namespace Icepack
 
                 bool hasParent = context.Reader.ReadBoolean();
 
+                int size = 0;
+                int keySize = 0;
+                int itemSize = 0;
+                Type type = registeredTypeMetadata.Type;
+                if (type == typeof(string)) { }
+                else if (type.IsArray)
+                    itemSize = context.Reader.ReadInt32();
+                else if (type.IsGenericType)
+                {
+                    Type genericTypeDef = type.GetGenericTypeDefinition();
+                    if (genericTypeDef == typeof(Dictionary<,>))
+                    {
+                        keySize = context.Reader.ReadInt32();
+                        itemSize = context.Reader.ReadInt32();
+                    }
+                    else if (genericTypeDef == typeof(List<>) ||
+                             genericTypeDef == typeof(HashSet<>))
+                    {
+                        itemSize = context.Reader.ReadInt32();
+                    }
+                    else
+                    {
+                        size = context.Reader.ReadInt32();
+                    }
+                }
+                else
+                {
+                    size = context.Reader.ReadInt32();
+                }
+
                 int numberOfFields = context.Reader.ReadInt32();
                 List<string> fieldNames = new List<string>(numberOfFields);
+                List<int> fieldSizes = new List<int>(numberOfFields);
                 for (int f = 0; f < numberOfFields; f++)
+                {
                     fieldNames.Add(context.Reader.ReadString());
+                    fieldSizes.Add(context.Reader.ReadInt32());
+                }
 
-                TypeMetadata typeMetadata = new TypeMetadata(registeredTypeMetadata, fieldNames, (uint)(t + 1), hasParent);
+                TypeMetadata typeMetadata = new TypeMetadata(registeredTypeMetadata, fieldNames, fieldSizes, (uint)(t + 1),
+                    hasParent, size, keySize, itemSize);
                 context.Types[t] = typeMetadata;
             }
 
@@ -198,7 +263,7 @@ namespace Icepack
             for (int i = 0; i < numberOfObjects; i++)
             {
                 object classObj = context.Objects[i];
-                DeserializationOperationFactory.DeserializeClass(classObj, context);
+                DeserializationOperationFactory.DeserializeClass(classObj, context.ObjectTypes[i], context);
             }
 
             // Clean up

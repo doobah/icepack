@@ -186,7 +186,6 @@ namespace Icepack
 
             Type type = obj.GetType();
             TypeMetadata typeMetadata = context.GetTypeMetadata(type);
-            context.Writer.Write(typeMetadata.Id);
 
             if (type == typeof(string))
                 return;                 // String is already deserialized as metadata

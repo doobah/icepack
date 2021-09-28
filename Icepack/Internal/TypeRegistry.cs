@@ -27,7 +27,7 @@ namespace Icepack
             if (!type.IsClass && !Toolbox.IsStruct(type) || type == typeof(object) || type == typeof(ValueType))
                 throw new IcepackException($"Type {type} cannot be registered for serialization!");
 
-            TypeMetadata newTypeMetadata = new TypeMetadata(type);
+            TypeMetadata newTypeMetadata = new TypeMetadata(type, this);
             types.Add(type, newTypeMetadata);
 
             return newTypeMetadata;

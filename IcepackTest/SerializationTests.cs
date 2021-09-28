@@ -123,6 +123,16 @@ namespace IcepackTest
             }
         }
 
+        private struct StructWithNestedStruct
+        {
+            public NestedStruct Field;
+        }
+
+        private struct NestedStruct
+        {
+            public int Field;
+        }
+
         [Test]
         public void SerializeFlatObject()
         {
@@ -425,10 +435,10 @@ namespace IcepackTest
             writer.Write(1);            // Number of types
             writer.Write(typeof(UnregisteredClass).AssemblyQualifiedName);     // Type name
             writer.Write(false);        // Type has no parent
+            writer.Write(1);            // Size of type
             writer.Write(0);            // Number of fields
             writer.Write(1);            // Number of objects
             writer.Write(true);         // Root object is reference-type
-            writer.Write((uint)1);      // Type ID
             writer.Write((uint)1);      // Type ID
             writer.Write((uint)1);      // Type ID
             writer.Close();
@@ -451,10 +461,10 @@ namespace IcepackTest
             writer.Write(1);            // Number of types
             writer.Write(typeof(RegisteredClass).AssemblyQualifiedName);     // Type name
             writer.Write(false);        // Type has no parent
+            writer.Write(1);            // Size of type
             writer.Write(0);            // Number of fields
             writer.Write(1);            // Number of objects
             writer.Write(true);         // Root object is reference-type
-            writer.Write((uint)1);      // Type ID
             writer.Write((uint)1);      // Type ID
             writer.Write((uint)1);      // Type ID
             writer.Close();
@@ -463,9 +473,9 @@ namespace IcepackTest
 
             Assert.NotNull(deserializedObj);
         }
-        
+
         [Test]
-        public void DeserializeClassDeletedField()
+        public void DeserializeClassWithAdditionalField()
         {
             Serializer serializer = new Serializer();
 
@@ -473,21 +483,119 @@ namespace IcepackTest
             BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(1);            // Number of types
-            writer.Write(typeof(FlatClass).AssemblyQualifiedName);     // Type name
-            writer.Write(false);        // Type has no parent
-            writer.Write(4);            // Number of fields
+            writer.Write(typeof(FlatClass).AssemblyQualifiedName);
+            writer.Write(false);        // Has no parent
+            writer.Write(8);            // Type size
+            writer.Write(2);            // Number of fields
             writer.Write("Field1");
-            writer.Write("Field2");
-            writer.Write("Field2andHalf");
+            writer.Write(4);            // Size of int
             writer.Write("Field3");
+            writer.Write(4);            // Size of float
             writer.Write(1);            // Number of objects
             writer.Write(true);         // Root object is reference-type
-            writer.Write((uint)1);      // Type ID
-            writer.Write((uint)1);      // Type ID
-            writer.Write((uint)1);      // Type ID
+            writer.Write((uint)1);      // Type ID of root object
+            writer.Write((uint)1);      // Type ID of root object
             writer.Write(123);          // Field1
-            writer.Write("asdf");       // Field2
-            writer.Write("some stuff"); // Field2andHalf
+            writer.Write(2.34f);        // Field3
+            writer.Close();
+
+            FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual(null, deserializedObj.Field2);
+            Assert.AreEqual(2.34f, deserializedObj.Field3);
+        }
+
+        [Test]
+        public void DeserializeClassWithDeletedReferenceField()
+        {
+            Serializer serializer = new Serializer();
+
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            writer.Write(Serializer.CompatibilityVersion);
+            writer.Write(2);            // Number of types
+            writer.Write(typeof(string).AssemblyQualifiedName);
+            writer.Write(false);        // Has no parent
+            writer.Write(0);            // No fields
+            writer.Write(typeof(FlatClass).AssemblyQualifiedName);
+            writer.Write(false);        // Has no parent
+            writer.Write(16);           // Type size
+            writer.Write(4);            // Number of fields
+            writer.Write("Field1");
+            writer.Write(4);            // Size of int
+            writer.Write("Field2");
+            writer.Write(4);            // Size of object reference
+            writer.Write("Field2andHalf");
+            writer.Write(4);            // Size of object reference
+            writer.Write("Field3");
+            writer.Write(4);            // Size of float
+            writer.Write(3);            // Number of objects
+            writer.Write(true);         // Root object is reference-type
+            writer.Write((uint)2);      // Type ID of root object
+            writer.Write((uint)1);      // Type ID of object 2
+            writer.Write("asdf");       // String value
+            writer.Write((uint)1);      // Type ID of object 3
+            writer.Write("some stuff"); // String value
+            writer.Write((uint)2);      // Type ID of root object
+            writer.Write(123);          // Field1
+            writer.Write((uint)2);      // Field2
+            writer.Write((uint)3);      // Field2andHalf
+            writer.Write(2.34f);        // Field3
+            writer.Close();
+
+            FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual("asdf", deserializedObj.Field2);
+            Assert.AreEqual(2.34f, deserializedObj.Field3);
+        }
+
+        [Test]
+        public void DeserializeClassWithDeletedStructField()
+        {
+            Serializer serializer = new Serializer();
+
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            writer.Write(Serializer.CompatibilityVersion);
+            writer.Write(3);            // Number of types
+            writer.Write(typeof(string).AssemblyQualifiedName);
+            writer.Write(false);        // Has no parent
+            writer.Write(0);            // No fields
+            writer.Write(typeof(SerializableStruct).AssemblyQualifiedName);
+            writer.Write(false);        // Has no parent
+            writer.Write(12);           // Type size (int + int + 4)
+            writer.Write(2);            // 2 fields
+            writer.Write("Field1");
+            writer.Write(4);            // int
+            writer.Write("Field2");
+            writer.Write(4);            // int
+            writer.Write(typeof(FlatClass).AssemblyQualifiedName);
+            writer.Write(false);        // Has no parent
+            writer.Write(16);           // Type size
+            writer.Write(4);            // Number of fields
+            writer.Write("Field1");
+            writer.Write(4);            // Size of int
+            writer.Write("Field2");
+            writer.Write(4);            // Size of object reference
+            writer.Write("Field2andHalf");
+            writer.Write(12);           // Size of struct
+            writer.Write("Field3");
+            writer.Write(4);            // Size of float
+            writer.Write(2);            // Number of objects
+            writer.Write(true);         // Root object is reference-type
+            writer.Write((uint)3);      // Type ID of root object
+            writer.Write((uint)1);      // Type ID of object 2
+            writer.Write("asdf");       // String value
+            writer.Write((uint)3);      // Type ID of root object
+            writer.Write(123);          // Field1
+            writer.Write((uint)2);      // Field2
+            writer.Write((uint)2);      // Field2andHalf type ID
+            writer.Write(222);          // struct Field1
+            writer.Write(444);          // struct Field2
             writer.Write(2.34f);        // Field3
             writer.Close();
 
@@ -512,6 +620,25 @@ namespace IcepackTest
             stream.Close();
 
             Assert.AreEqual(247, deserializedObj.Field);
+        }
+
+        [Test]
+        public void RegisterDependantStructBeforeDependency()
+        {
+            Serializer serializer = new Serializer();
+
+            Assert.Throws<IcepackException>(() => {
+                serializer.RegisterType(typeof(StructWithNestedStruct));
+            });
+        }
+
+        [Test]
+        public void RegisterDependencyStructBeforeDependant()
+        {
+            Serializer serializer = new Serializer();
+
+            serializer.RegisterType(typeof(NestedStruct));
+            serializer.RegisterType(typeof(StructWithNestedStruct));
         }
     }
 }

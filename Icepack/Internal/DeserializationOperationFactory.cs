@@ -88,7 +88,11 @@ namespace Icepack
             for (int i = 0; i < typeMetadata.Fields.Count; i++)
             {
                 FieldMetadata field = typeMetadata.Fields.Values[i];
-                if (field != null)
+                if (field.FieldInfo == null)
+                {
+                    context.Reader.BaseStream.Position += field.Size;
+                }
+                else
                 {
                     Type fieldType = field.FieldInfo.FieldType;
                     object value = field.Deserialize(context);
@@ -165,7 +169,9 @@ namespace Icepack
                 for (int fieldIdx = 0; fieldIdx < partialClassTypeMetadata.Fields.Count; fieldIdx++)
                 {
                     FieldMetadata field = partialClassTypeMetadata.Fields.Values[fieldIdx];
-                    if (field != null)
+                    if (field.FieldInfo == null)
+                        context.Reader.BaseStream.Position += field.Size;
+                    else
                     {
                         Type fieldType = field.FieldInfo.FieldType;
                         object value = field.Deserialize(context);
@@ -181,10 +187,8 @@ namespace Icepack
                 ((ISerializerListener)classObj).OnAfterDeserialize();
         }
 
-        public static void DeserializeClass(object classObj, DeserializationContext context)
+        public static void DeserializeClass(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
         {
-            uint typeId = context.Reader.ReadUInt32();
-            TypeMetadata classTypeMetadata = context.Types[typeId - 1];
             Type classType = classTypeMetadata.Type;
 
             if (classType == typeof(string))

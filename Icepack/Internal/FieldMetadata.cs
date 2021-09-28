@@ -24,16 +24,38 @@ namespace Icepack
 
         public Action<object, SerializationContext> Serialize { get; }
 
-        public FieldMetadata(FieldInfo fieldInfo)
+        public int Size { get; }
+
+        public FieldMetadata(int fieldSize, FieldMetadata registeredFieldMetadata)
+        {
+            Size = fieldSize;
+
+            FieldInfo = null;
+            Getter = null;
+            Setter = null;
+            Deserialize = null;
+            Serialize = null;
+            if (registeredFieldMetadata != null)
+            {
+                FieldInfo = registeredFieldMetadata.FieldInfo;
+                Getter = registeredFieldMetadata.Getter;
+                Setter = registeredFieldMetadata.Setter;
+                Deserialize = registeredFieldMetadata.Deserialize;
+                Serialize = registeredFieldMetadata.Serialize;
+            }
+        }
+
+        public FieldMetadata(FieldInfo fieldInfo, TypeRegistry typeRegistry)
         {
             FieldInfo = fieldInfo;
             Getter = BuildGetter(fieldInfo);
             Setter = BuildSetter(fieldInfo);
             Deserialize = DeserializationOperationFactory.GetOperation(fieldInfo.FieldType);
             Serialize = SerializationOperationFactory.GetOperation(fieldInfo.FieldType);
+            Size = TypeSizeFactory.GetFieldSize(fieldInfo.FieldType, typeRegistry);
         }
 
-        private Func<object, object> BuildGetter(FieldInfo fieldInfo)
+        private static Func<object, object> BuildGetter(FieldInfo fieldInfo)
         {
             ParameterExpression exInstance = Expression.Parameter(typeof(object));
             UnaryExpression exConvertToDeclaringType = Expression.Convert(exInstance, fieldInfo.DeclaringType);
@@ -45,7 +67,7 @@ namespace Icepack
             return action;
         }
 
-        private Action<object, object> BuildSetter(FieldInfo fieldInfo)
+        private static Action<object, object> BuildSetter(FieldInfo fieldInfo)
         {
             ParameterExpression exInstance = Expression.Parameter(typeof(object));
             UnaryExpression exConvertInstanceToDeclaringType;

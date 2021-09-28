@@ -83,17 +83,7 @@ namespace Icepack
                 if (registeredTypeMetadata == null)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
-                bool hasParent =
-                    type.BaseType != typeof(object) &&
-                    type.BaseType != typeof(ValueType) &&
-                    type.BaseType != typeof(Array) &&
-                    (!type.IsGenericType || (
-                        type.GetGenericTypeDefinition() != typeof(List<>) &&
-                        type.GetGenericTypeDefinition() != typeof(HashSet<>) &&
-                        type.GetGenericTypeDefinition() != typeof(Dictionary<,>)
-                    ));
-
-                TypeMetadata newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, hasParent);
+                TypeMetadata newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId);
                 Types.Add(type, newTypeMetadata);
                 TypesInOrder.Add(newTypeMetadata);
                 return newTypeMetadata;

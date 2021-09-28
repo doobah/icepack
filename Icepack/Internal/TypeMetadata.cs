@@ -20,16 +20,23 @@ namespace Icepack
         public Action<object, SerializationContext> SerializeItem { get; }
         public Func<DeserializationContext, object> DeserializeKey { get; }
         public Func<DeserializationContext, object> DeserializeItem { get; }
+        public int Size { get; }
+        public int KeySize { get; }
+        public int ItemSize { get; }
 
         /// <summary> Called during serialization. </summary>
         /// <param name="registeredTypeMetadata"></param>
         /// <param name="id"> A unique ID for the type. </param>
-        public TypeMetadata(TypeMetadata registeredTypeMetadata, uint id, bool hasParent)
+        public TypeMetadata(TypeMetadata registeredTypeMetadata, uint id)
         {
             Id = id;
-            HasParent = hasParent;
+
+            HasParent = registeredTypeMetadata.HasParent;
             Type = registeredTypeMetadata.Type;
             Fields = registeredTypeMetadata.Fields;
+            Size = registeredTypeMetadata.Size;
+            KeySize = registeredTypeMetadata.KeySize;
+            ItemSize = registeredTypeMetadata.ItemSize;
             HashSetAdder = registeredTypeMetadata.HashSetAdder;
             SerializeKey = registeredTypeMetadata.SerializeKey;
             SerializeItem = registeredTypeMetadata.SerializeItem;
@@ -44,7 +51,8 @@ namespace Icepack
         /// <param name="registeredTypeMetadata"> The registered type metadata to copy information from. </param>
         /// <param name="objectTree"> The object tree for type metadata extracted from the serialized data. </param>
         /// <param name="id"> A unique ID for the type. </param>
-        public TypeMetadata(TypeMetadata registeredTypeMetadata, List<string> fieldNames, uint id, bool hasParent)
+        public TypeMetadata(TypeMetadata registeredTypeMetadata, List<string> fieldNames, List<int> fieldSizes,
+            uint id, bool hasParent, int size, int keySize, int itemSize)
         {
             Id = id;
             HasParent = hasParent;
@@ -58,6 +66,9 @@ namespace Icepack
                     string fieldName = fieldNames[i];
                     Fields.Add(fieldName, null);
                 }
+                Size = 0;
+                KeySize = 0;
+                ItemSize = 0;
                 HashSetAdder = null;
                 SerializeKey = null;
                 SerializeItem = null;
@@ -72,10 +83,13 @@ namespace Icepack
                 for (int i = 0; i < fieldNames.Count; i++)
                 {
                     string fieldName = fieldNames[i];
-                    FieldMetadata fieldMetadata = registeredTypeMetadata.Fields.GetValueOrDefault(fieldName, null);
+                    int fieldSize = fieldSizes[i];
+                    FieldMetadata fieldMetadata = new FieldMetadata(fieldSize, registeredTypeMetadata.Fields.GetValueOrDefault(fieldName, null));
                     Fields.Add(fieldName, fieldMetadata);
                 }
-
+                Size = size;
+                KeySize = keySize;
+                ItemSize = itemSize;
                 HashSetAdder = registeredTypeMetadata.HashSetAdder;
                 SerializeKey = registeredTypeMetadata.SerializeKey;
                 SerializeItem = registeredTypeMetadata.SerializeItem;
@@ -86,11 +100,21 @@ namespace Icepack
 
         /// <summary> Called during type registration. </summary>
         /// <param name="type"> The type. </param>
-        public TypeMetadata(Type type)
+        public TypeMetadata(Type type, TypeRegistry typeRegistry)
         {
             Id = 0;
             HasParent = false;
             Type = type;
+
+            HasParent =
+                type.BaseType != typeof(object) &&
+                type.BaseType != typeof(ValueType) &&
+                type.BaseType != typeof(Array) &&
+                (!type.IsGenericType || (
+                    type.GetGenericTypeDefinition() != typeof(List<>) &&
+                    type.GetGenericTypeDefinition() != typeof(HashSet<>) &&
+                    type.GetGenericTypeDefinition() != typeof(Dictionary<,>)
+                ));
 
             Fields = new SortedList<string, FieldMetadata>();
             if (!IsSpecialClassType(type))
@@ -99,9 +123,15 @@ namespace Icepack
                 {
                     IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
                     if (ignoreAttr == null)
-                        Fields.Add(fieldInfo.Name, new FieldMetadata(fieldInfo));
+                        Fields.Add(fieldInfo.Name, new FieldMetadata(fieldInfo, typeRegistry));
                 }
             }
+
+            Size = 0;
+            foreach (FieldMetadata field in Fields.Values)
+                Size += field.Size;
+            if (Toolbox.IsStruct(type))
+                Size += 4;      // Struct has type ID
 
             HashSetAdder = null;
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(HashSet<>))
@@ -111,20 +141,16 @@ namespace Icepack
 
             SerializeKey = null;
             DeserializeKey = null;
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-            {
-                Type keyType = type.GenericTypeArguments[0];
-                SerializeKey = SerializationOperationFactory.GetOperation(keyType);
-                DeserializeKey = DeserializationOperationFactory.GetOperation(keyType);
-            }
-
             SerializeItem = null;
             DeserializeItem = null;
+            KeySize = 0;
+            ItemSize = 0;
             if (type.IsArray)
             {
                 Type elementType = type.GetElementType();
                 SerializeItem = SerializationOperationFactory.GetOperation(elementType);
                 DeserializeItem = DeserializationOperationFactory.GetOperation(elementType);
+                ItemSize = TypeSizeFactory.GetFieldSize(elementType, typeRegistry);
             }
             else if (type.IsGenericType)
             {
@@ -133,23 +159,30 @@ namespace Icepack
                     Type itemType = type.GenericTypeArguments[0];
                     SerializeItem = SerializationOperationFactory.GetOperation(itemType);
                     DeserializeItem = DeserializationOperationFactory.GetOperation(itemType);
+                    ItemSize = TypeSizeFactory.GetFieldSize(itemType, typeRegistry);
                 }
                 else if (type.GetGenericTypeDefinition() == typeof(HashSet<>))
                 {
                     Type itemType = type.GenericTypeArguments[0];
                     SerializeItem = SerializationOperationFactory.GetOperation(itemType);
                     DeserializeItem = DeserializationOperationFactory.GetOperation(itemType);
+                    ItemSize = TypeSizeFactory.GetFieldSize(itemType, typeRegistry);
                 }
                 else if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
                 {
+                    Type keyType = type.GenericTypeArguments[0];
+                    SerializeKey = SerializationOperationFactory.GetOperation(keyType);
+                    DeserializeKey = DeserializationOperationFactory.GetOperation(keyType);
+                    KeySize = TypeSizeFactory.GetFieldSize(keyType, typeRegistry);
                     Type itemType = type.GenericTypeArguments[1];
                     SerializeItem = SerializationOperationFactory.GetOperation(itemType);
                     DeserializeItem = DeserializationOperationFactory.GetOperation(itemType);
+                    ItemSize = TypeSizeFactory.GetFieldSize(itemType, typeRegistry);
                 }
             }
         }
 
-        private bool IsSpecialClassType(Type type)
+        private static bool IsSpecialClassType(Type type)
         {
             if (type == typeof(string))
                 return true;

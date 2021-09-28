@@ -1,8 +1,13 @@
+# v0.0.9
+
+
+
 # v0.0.8
 
 * Initialize capacity of lists, hashsets, dictionaries to equal length to avoid reallocation.
-* Treat `string` similarly to other reference types. This is to keep objects a fixed size to make it easier to add support for handling deleted fields, etc, later on. As a bonus, this significantly improves the efficiency of deserializing strings.
+* Treat `string` similarly to other reference types. This is to keep objects a fixed size to make it easier to add support for handling deleted fields, etc, later on. It also allows for nullable string fields. Additionally, this significantly improves the efficiency of deserializing many instances of the same string.
 * Change parent ID in type metadata to a flag indicating whether a type has a parent.
+* Remove `ValueOnlyAttribute`. Serializing object references is already fairly performant, and serializing classes inline makes it hard to reason about the serialized size of an object, and adds a lot of unnecessary complexity.
 
 # v0.0.7
 

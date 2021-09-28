@@ -6,7 +6,7 @@
     <Authors>arcraith</Authors>
     <Company>Icedece</Company>
     <Description>A lightweight serialization library for C#.</Description>
-    <Version>0.0.8</Version>
+    <Version>0.0.9</Version>
     <RepositoryUrl>https://gitlab.com/arcraith/icepack</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
