@@ -13,28 +13,44 @@ The Icepack serializer uses a `BinaryWriter` internally to generate its output, 
 - The number of types [int]
 - For each type:
   - The type's assembly qualified name [string]
-  - Whether the type has a parent [bool]
-  - if the object is a string:
-    (Empty)
-  - if the object is a dictionary:
-    - The size of a key [int]
-    - The size of an item [int]
-  - if the type is an array, list, hashset:
-    - The size of an item [int]
-  - if the type is none of the above:
-    - The size of the type [int]
-  - The number of serializable fields in the type [int]
-  - For each field:
-    - The field name [string]
-    - The size of the field in bytes [int]
+  - If the type is a string:
+    - Category ID = 0 [byte]
+  - If the type is an array:
+    - Category ID = 1 [byte]
+    - Size of an item [int]
+  - If the type is a list:
+    - Category ID = 2 [byte]
+    - Size of an item [int]
+  - If the type is a hashset:
+    - Category ID = 3 [byte]
+    - Size of an item [int]
+  - If the type is a dictionary:
+    - Category ID = 4 [byte]
+    - Size of a key [int]
+    - Size of an item [int]
+  - If the type is a struct:
+    - Category ID = 5 [byte]
+    - Size of an instance [int]
+    - The number of serializable fields in the type [int]
+    - For each field:
+      - The field name [string]
+      - The size of the field in bytes [int]
+  - If the type is a normal class:
+    - Category ID = 6 [byte]
+    - Size of an instance [int]
+    - Whether the type has a parent [bool]
+    - The number of serializable fields in the type [int]
+    - For each field:
+      - The field name [string]
+      - The size of the field in bytes [int]
 - The number of objects [int]
-- A flag stating whether the root object is a reference type [bool]
 - For each reference-type object, include some metadata used to pre-instantiate the object:
   - The object's type ID [uint]
   - If the object is a string:
     - The value of the string [string]
   - If the object is an array, list, hashset, or dictionary:
-    - The length [int]
+    - Length [uint]
+- A flag stating whether the root object is a value type [bool]
 - If the root object is a value type:
   - The serialized form of the root object [?]
 - For each object:
@@ -55,7 +71,14 @@ Strings do not have any object data since since they are already serialized as m
 (Empty)
 ```
 
-Arrays, Lists (based on `List<>`), and HashSets (based on `HashSet<>`) have the format:
+Arrays have the format:
+
+```
+- For each element:
+  - The serialized form of that element [?]
+```
+
+Lists (based on `List<>`), and HashSets (based on `HashSet<>`) have the format:
 
 ```
 - Length [int]
@@ -89,8 +112,10 @@ Other rules:
 * The `string` type is automatically registered for serialization.
 * Enums are serialized as their underlying integral type.
 * `nuint` and `nint` are not supported.
+* Fields of type `object` or `ValueType` are not supported.
 * `span` and other exotic types are not supported.
 * Boxed value types are not supported.
+* Serializing interfaces is not supported.
 * Serializing delegates is not supported.
 * The compatibility version indicates which other versions of the Icepack serializer are able to deserialize the output.
 * Currently only fields (both private and public) are serialized, not properties.
@@ -100,7 +125,7 @@ Other rules:
 * Types can be included for serialization by calling the serializer's `RegisterType` method, or annotating the type with the `SerializableObject` attribute.
 * Fields can be ignored by annotating them with the `IgnoreField` attribute.
 * The `ISerializer` interface is provided to allow classes to execute additional logic before serialization and after deserialization.
-* On deserialization, fields that have been added or removed since serialization will be ignored. Deserializing after changing the type of a serialized field results in undefined behaviour.
+* On deserialization, fields that have been added or removed since serialization will be ignored. Deserializing after changing the type of a serialized field results in undefined behaviour. A field that was serialized as an instance of a missing class is also ignored.
 
 # Usage Example
 

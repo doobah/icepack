@@ -110,8 +110,6 @@ namespace Icepack
         {
             Array array = (Array)obj;
 
-            context.Writer.Write(array.Length);
-
             for (int arrayIdx = 0; arrayIdx < array.Length; arrayIdx++)
             {
                 object item = array.GetValue(arrayIdx);

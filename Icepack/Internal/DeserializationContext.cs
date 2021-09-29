@@ -17,9 +17,7 @@ namespace Icepack
         public TypeMetadata[] Types { get; set; }
 
         /// <summary> Maps an object ID to the object itself. </summary>
-        public object[] Objects { get; set; }
-
-        public TypeMetadata[] ObjectTypes { get; set; }
+        public ObjectMetadata[] Objects { get; set; }
 
         public BinaryReader Reader { get; }
 
@@ -27,7 +25,6 @@ namespace Icepack
         {
             Types = null;
             Objects = null;
-            ObjectTypes = null;
             Reader = new BinaryReader(inputStream, Encoding.Unicode, true);
         }
 

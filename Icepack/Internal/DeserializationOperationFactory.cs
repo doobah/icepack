@@ -83,6 +83,10 @@ namespace Icepack
         {
             uint typeId = context.Reader.ReadUInt32();
             TypeMetadata typeMetadata = context.Types[typeId - 1];
+
+            if (typeMetadata.Type == null)
+                context.Reader.BaseStream.Position += typeMetadata.InstanceSize;
+
             object structObj = Activator.CreateInstance(typeMetadata.Type);
 
             for (int i = 0; i < typeMetadata.Fields.Count; i++)
@@ -111,9 +115,7 @@ namespace Icepack
             Array arrayObj = (Array)classObj;
             Type elementType = classTypeMetadata.Type.GetElementType();
 
-            int arrayLength = context.Reader.ReadInt32();
-
-            for (int i = 0; i < arrayLength; i++)
+            for (int i = 0; i < arrayObj.Length; i++)
             {
                 object value = classTypeMetadata.DeserializeItem(context);
                 arrayObj.SetValue(value, i);
@@ -187,28 +189,79 @@ namespace Icepack
                 ((ISerializerListener)classObj).OnAfterDeserialize();
         }
 
-        public static void DeserializeClass(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
+        public static void DeserializeClass(ObjectMetadata objectMetadata, DeserializationContext context)
         {
-            Type classType = classTypeMetadata.Type;
+            TypeMetadata classTypeMetadata = objectMetadata.Type;
+            object classObj = objectMetadata.Value;
 
-            if (classType == typeof(string))
-                return;                 // String is already deserialized as metadata
-            if (classType.IsArray)
-                DeserializeArray(classObj, classTypeMetadata, context);
-            else if (classType.IsGenericType && classType.GetGenericTypeDefinition() == typeof(List<>))
-                DeserializeList(classObj, classTypeMetadata, context);
-            else if (classType.IsGenericType && classType.GetGenericTypeDefinition() == typeof(HashSet<>))
-                DeserializeHashSet(classObj, classTypeMetadata, context);
-            else if (classType.IsGenericType && classType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-                DeserializeDictionary(classObj, classTypeMetadata, context);
+            if (classTypeMetadata.Type == null)
+            {
+                switch (classTypeMetadata.CategoryId)
+                {
+                    case 0: // String
+                        throw new IcepackException($"Unexpected category ID: {classTypeMetadata.CategoryId}");
+                    case 1: // Array
+                        context.Reader.BaseStream.Position += objectMetadata.Length * classTypeMetadata.ItemSize;
+                        break;
+                    case 2: // List
+                        context.Reader.BaseStream.Position += 4 + objectMetadata.Length * classTypeMetadata.ItemSize;
+                        break;
+                    case 3: // HashSet
+                        context.Reader.BaseStream.Position += 4 + objectMetadata.Length * classTypeMetadata.ItemSize;
+                        break;
+                    case 4: // Dictionary
+                        context.Reader.BaseStream.Position += 4 + objectMetadata.Length * (classTypeMetadata.KeySize + classTypeMetadata.ItemSize);
+                        break;
+                    case 5: // Struct
+                        throw new IcepackException($"Unexpected category ID: {classTypeMetadata.CategoryId}");
+                    case 6: // Class
+                        while (true)
+                        {
+                            uint partialClassTypeId = context.Reader.ReadUInt32();
+                            TypeMetadata partialClassTypeMetadata = context.Types[partialClassTypeId - 1];
+                            context.Reader.BaseStream.Position += partialClassTypeMetadata.InstanceSize;
+
+                            if (!partialClassTypeMetadata.HasParent)
+                                break;
+                        }
+                        break;
+                    default:
+                        throw new IcepackException($"Unexpected category ID: {classTypeMetadata.CategoryId}");
+                }
+            }
             else
-                DeserializeNormalClass(classObj, context);
+            {
+                switch (classTypeMetadata.CategoryId)
+                {
+                    case 0: // String
+                        return;
+                    case 1: // Array
+                        DeserializeArray(classObj, classTypeMetadata, context);
+                        break;
+                    case 2: // List
+                        DeserializeList(classObj, classTypeMetadata, context);
+                        break;
+                    case 3: // HashSet
+                        DeserializeHashSet(classObj, classTypeMetadata, context);
+                        break;
+                    case 4: // Dictionary
+                        DeserializeDictionary(classObj, classTypeMetadata, context);
+                        break;
+                    case 5: // Struct
+                        throw new IcepackException($"Unexpected category ID: {classTypeMetadata.CategoryId}");
+                    case 6: // Class
+                        DeserializeNormalClass(classObj, context);
+                        break;
+                    default:
+                        throw new IcepackException($"Invalid category ID: {classTypeMetadata.CategoryId}");
+                }
+            }
         }
 
         public static object DeserializeObjectReference(DeserializationContext context)
         {
             uint objId = context.Reader.ReadUInt32();
-            return (objId == 0) ? null : context.Objects[objId - 1];
+            return (objId == 0) ? null : context.Objects[objId - 1].Value;
         }
 
         public static Func<DeserializationContext, object> GetEnumOperation(Type type)

@@ -51,11 +51,14 @@ namespace Icepack
             return types[type];
         }
 
+        /// <summary> Called during deserialization to match a type name to a registered type. </summary>
+        /// <param name="name"> The assembly qualified name of the type. </param>
+        /// <returns> Metadata for the specified type. </returns>
         public TypeMetadata GetTypeMetadata(string name)
         {
             Type type = Type.GetType(name);
             if (type == null)
-                throw new IcepackException($"No type exists with name {name}");
+                return null;
 
             if (!IsTypeRegistered(type))
             {

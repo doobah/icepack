@@ -46,8 +46,7 @@ namespace Icepack
             Type type = obj.GetType();
             TypeMetadata typeMetadata = GetTypeMetadata(type);
 
-            int length = 0;
-
+            int length;
             if (type.IsArray)
                 length = ((Array)obj).Length;
             else if (type.IsGenericType)
@@ -62,7 +61,11 @@ namespace Icepack
                 }
                 else if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
                     length = ((IDictionary)obj).Count;
+                else
+                    length = 0;
             }
+            else
+                length = 0;
 
             ObjectMetadata objMetadata = new ObjectMetadata(newId, typeMetadata, length, obj);
             Objects.Add(obj, objMetadata);

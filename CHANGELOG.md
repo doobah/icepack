@@ -1,6 +1,9 @@
 # v0.0.9
 
-
+* Include size information in the type and field metadata.
+* Ignore added/removed fields.
+* Remove the type ID from the start of each reference type. This improves deserialization performance.
+* Ignore removed classes.
 
 # v0.0.8
 

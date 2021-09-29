@@ -46,15 +46,16 @@ namespace Icepack
 
             // Serialize objects
 
-            bool rootObjectIsReferenceType = false;
+            bool rootObjectIsValueType;
             if (rootObj.GetType().IsClass)
             {
+                rootObjectIsValueType = false;
                 context.RegisterObject(rootObj);
-                rootObjectIsReferenceType = true;
                 SerializationOperationFactory.SerializeClass(rootObj, context);
             }
             else
             {
+                rootObjectIsValueType = true;
                 var serializationOperation = SerializationOperationFactory.GetOperation(rootObj.GetType());
                 serializationOperation(rootObj, context);
             }
@@ -65,74 +66,10 @@ namespace Icepack
                 SerializationOperationFactory.SerializeClass(objToSerialize, context);
             }
 
-            // Write type data
+            SerializeTypeMetadata(writer, context);
+            SerializeObjectMetadata(writer, context);
 
-            writer.Write(context.Types.Count);
-            for (int typeIdx = 0; typeIdx < context.TypesInOrder.Count; typeIdx++)
-            {
-                TypeMetadata typeMetadata = context.TypesInOrder[typeIdx];
-                writer.Write(typeMetadata.Type.AssemblyQualifiedName);
-                writer.Write(typeMetadata.HasParent);
-
-                Type type = typeMetadata.Type;
-                if (type == typeof(string)) { }
-                else if (type.IsArray)
-                    writer.Write(typeMetadata.ItemSize);
-                else if (type.IsGenericType)
-                {
-                    Type genericTypeDef = type.GetGenericTypeDefinition();
-                    if (genericTypeDef == typeof(Dictionary<,>))
-                    {
-                        writer.Write(typeMetadata.KeySize);
-                        writer.Write(typeMetadata.ItemSize);
-                    }
-                    else if (genericTypeDef == typeof(List<>) ||
-                             genericTypeDef == typeof(HashSet<>))
-                    {
-                        writer.Write(typeMetadata.ItemSize);
-                    }
-                    else
-                    {
-                        writer.Write(typeMetadata.Size);
-                    }
-                }
-                else
-                {
-                    writer.Write(typeMetadata.Size);
-                }
-
-                writer.Write(typeMetadata.Fields.Count);
-                for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
-                {
-                    FieldMetadata fieldMetadata = typeMetadata.Fields.Values[fieldIdx];
-                    writer.Write(fieldMetadata.FieldInfo.Name);
-                    writer.Write(fieldMetadata.Size);
-                }
-            }
-
-            // Write object data
-
-            writer.Write(context.Objects.Count);
-            writer.Write(rootObjectIsReferenceType);
-
-            for (int objectIdx = 0; objectIdx < context.ObjectsInOrder.Count; objectIdx++)
-            {
-                ObjectMetadata objectMetadata = context.ObjectsInOrder[objectIdx];
-                writer.Write(objectMetadata.Type.Id);
-                if (objectMetadata.Type.Type == typeof(string))
-                {
-                    writer.Write((string)objectMetadata.Value);
-                }
-                else if (objectMetadata.Type.Type.IsArray ||
-                    objectMetadata.Type.Type.IsGenericType && (
-                        objectMetadata.Type.Type.GetGenericTypeDefinition() == typeof(List<>) ||
-                        objectMetadata.Type.Type.GetGenericTypeDefinition() == typeof(HashSet<>) ||
-                        objectMetadata.Type.Type.GetGenericTypeDefinition() == typeof(Dictionary<,>)
-                    ))
-                {
-                    writer.Write(objectMetadata.Length);
-                }
-            }
+            writer.Write(rootObjectIsValueType);
 
             objectStream.Position = 0;
             objectStream.CopyTo(outputStream);
@@ -142,6 +79,80 @@ namespace Icepack
             context.Dispose();
             objectStream.Close();
             writer.Close();
+        }
+
+        private void SerializeObjectMetadata(BinaryWriter writer, SerializationContext context)
+        {
+            writer.Write(context.Objects.Count);
+
+            for (int objectIdx = 0; objectIdx < context.ObjectsInOrder.Count; objectIdx++)
+            {
+                ObjectMetadata objectMetadata = context.ObjectsInOrder[objectIdx];
+                writer.Write(objectMetadata.Type.Id);
+
+                switch (objectMetadata.Type.CategoryId)
+                {
+                    case 0: // String
+                        writer.Write((string)objectMetadata.Value);
+                        break;
+                    case 1: // Array
+                    case 2: // List
+                    case 3: // HashSet
+                    case 4: // Dictionary
+                        writer.Write(objectMetadata.Length);
+                        break;
+                }
+            }
+        }
+
+        private void SerializeTypeMetadata(BinaryWriter writer, SerializationContext context)
+        {
+            writer.Write(context.Types.Count);
+            for (int typeIdx = 0; typeIdx < context.TypesInOrder.Count; typeIdx++)
+            {
+                TypeMetadata typeMetadata = context.TypesInOrder[typeIdx];
+                writer.Write(typeMetadata.Type.AssemblyQualifiedName);
+                writer.Write(typeMetadata.CategoryId);
+                switch (typeMetadata.CategoryId)
+                {
+                    case 0: // String
+                        break;
+                    case 1: // Array
+                    case 2: // List
+                        writer.Write(typeMetadata.ItemSize);
+                        break;
+                    case 3: // HashSet
+                        writer.Write(typeMetadata.ItemSize);
+                        break;
+                    case 4: // Dictionary
+                        writer.Write(typeMetadata.KeySize);
+                        writer.Write(typeMetadata.ItemSize);
+                        break;
+                    case 5: // Struct
+                        writer.Write(typeMetadata.InstanceSize);
+                        writer.Write(typeMetadata.Fields.Count);
+                        for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
+                        {
+                            FieldMetadata fieldMetadata = typeMetadata.Fields.Values[fieldIdx];
+                            writer.Write(fieldMetadata.FieldInfo.Name);
+                            writer.Write(fieldMetadata.Size);
+                        }
+                        break;
+                    case 6: // Class
+                        writer.Write(typeMetadata.InstanceSize);
+                        writer.Write(typeMetadata.HasParent);
+                        writer.Write(typeMetadata.Fields.Count);
+                        for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
+                        {
+                            FieldMetadata fieldMetadata = typeMetadata.Fields.Values[fieldIdx];
+                            writer.Write(fieldMetadata.FieldInfo.Name);
+                            writer.Write(fieldMetadata.Size);
+                        }
+                        break;
+                    default:
+                        throw new IcepackException($"Invalid category ID: {typeMetadata.CategoryId}");
+                }
+            }
         }
 
         public T Deserialize<T>(Stream inputStream)
@@ -156,8 +167,95 @@ namespace Icepack
             if (compatibilityVersion != CompatibilityVersion)
                 throw new IcepackException($"Expected compatibility version {CompatibilityVersion}, received {compatibilityVersion}");
 
-            // Deserialize types
+            DeserializeTypeMetadata(context);
+            DeserializeObjectMetadata(context);
 
+            // Deserialize objects
+
+            bool rootObjectIsValueType = context.Reader.ReadBoolean();
+
+            T rootObject;
+            if (rootObjectIsValueType)
+            {
+                var deserializationOperation = DeserializationOperationFactory.GetOperation(typeof(T));
+                rootObject = (T)deserializationOperation(context);
+            }
+            else
+                rootObject = (T)context.Objects[0].Value;
+
+            for (int i = 0; i < context.Objects.Length; i++)
+            {
+                ObjectMetadata classObjMetadata = context.Objects[i];
+                DeserializationOperationFactory.DeserializeClass(classObjMetadata, context);
+            }
+
+            // Clean up
+
+            context.Dispose();
+
+            return rootObject;
+        }
+
+        private void DeserializeObjectMetadata(DeserializationContext context)
+        {
+            int numberOfObjects = context.Reader.ReadInt32();
+
+            context.Objects = new ObjectMetadata[numberOfObjects];
+
+            for (int i = 0; i < numberOfObjects; i++)
+            {
+                uint typeId = context.Reader.ReadUInt32();
+                TypeMetadata objectTypeMetadata = context.Types[typeId - 1];
+                Type objectType = objectTypeMetadata.Type;
+                int length = 0;
+
+                object obj;
+                switch (objectTypeMetadata.CategoryId)
+                {
+                    case 0: // String
+                        obj = context.Reader.ReadString();
+                        break;
+                    case 1: // Array
+                        {
+                            length = context.Reader.ReadInt32();
+                            if (objectType == null)
+                                obj = null;
+                            else
+                            {
+                                Type elementType = objectType.GetElementType();
+                                obj = Array.CreateInstance(elementType, length);
+                            }
+                            break;
+                        }
+                    case 2: // List
+                    case 3: // HashSet
+                    case 4: // Dictionary
+                        {
+                            length = context.Reader.ReadInt32();
+                            if (objectType == null)
+                                obj = null;
+                            else
+                                obj = Activator.CreateInstance(objectType, length);
+                            break;
+                        }
+                    case 5: // Struct
+                        throw new IcepackException($"Unexpected category ID: {objectTypeMetadata.CategoryId}");
+                    case 6: // Class
+                        if (objectType == null)
+                            obj = null;
+                        else
+                            obj = Activator.CreateInstance(objectType);
+                        break;
+                    default:
+                        throw new IcepackException($"Invalid category ID: {objectTypeMetadata.CategoryId}");
+                }
+
+                context.Objects[i] = new ObjectMetadata((uint)i + 1, objectTypeMetadata, length, obj);
+            }
+        }
+
+        private void DeserializeTypeMetadata(DeserializationContext context)
+        {
             int numberOfTypes = context.Reader.ReadInt32();
             context.Types = new TypeMetadata[numberOfTypes];
 
@@ -166,111 +264,64 @@ namespace Icepack
                 string typeName = context.Reader.ReadString();
                 TypeMetadata registeredTypeMetadata = typeRegistry.GetTypeMetadata(typeName);
 
-                bool hasParent = context.Reader.ReadBoolean();
-
-                int size = 0;
-                int keySize = 0;
                 int itemSize = 0;
-                Type type = registeredTypeMetadata.Type;
-                if (type == typeof(string)) { }
-                else if (type.IsArray)
-                    itemSize = context.Reader.ReadInt32();
-                else if (type.IsGenericType)
+                int keySize = 0;
+                int instanceSize = 0;
+                bool hasParent = false;
+                List<string> fieldNames = null;
+                List<int> fieldSizes = null;
+
+                byte categoryId = context.Reader.ReadByte();
+                switch (categoryId)
                 {
-                    Type genericTypeDef = type.GetGenericTypeDefinition();
-                    if (genericTypeDef == typeof(Dictionary<,>))
-                    {
+                    case 0: // String
+                        break;
+                    case 1: // Array
+                    case 2: // List
+                    case 3: // HashSet
+                        itemSize = context.Reader.ReadInt32();
+                        break;
+                    case 4: // Dictionary
                         keySize = context.Reader.ReadInt32();
                         itemSize = context.Reader.ReadInt32();
-                    }
-                    else if (genericTypeDef == typeof(List<>) ||
-                             genericTypeDef == typeof(HashSet<>))
-                    {
-                        itemSize = context.Reader.ReadInt32();
-                    }
-                    else
-                    {
-                        size = context.Reader.ReadInt32();
-                    }
-                }
-                else
-                {
-                    size = context.Reader.ReadInt32();
-                }
+                        break;
+                    case 5: // Struct
+                        {
+                            instanceSize = context.Reader.ReadInt32();
 
-                int numberOfFields = context.Reader.ReadInt32();
-                List<string> fieldNames = new List<string>(numberOfFields);
-                List<int> fieldSizes = new List<int>(numberOfFields);
-                for (int f = 0; f < numberOfFields; f++)
-                {
-                    fieldNames.Add(context.Reader.ReadString());
-                    fieldSizes.Add(context.Reader.ReadInt32());
+                            int numberOfFields = context.Reader.ReadInt32();
+                            fieldNames = new List<string>(numberOfFields);
+                            fieldSizes = new List<int>(numberOfFields);
+                            for (int f = 0; f < numberOfFields; f++)
+                            {
+                                fieldNames.Add(context.Reader.ReadString());
+                                fieldSizes.Add(context.Reader.ReadInt32());
+                            }
+                            break;
+                        }
+                    case 6: // Class
+                        {
+                            instanceSize = context.Reader.ReadInt32();
+                            hasParent = context.Reader.ReadBoolean();
+
+                            int numberOfFields = context.Reader.ReadInt32();
+                            fieldNames = new List<string>(numberOfFields);
+                            fieldSizes = new List<int>(numberOfFields);
+                            for (int f = 0; f < numberOfFields; f++)
+                            {
+                                fieldNames.Add(context.Reader.ReadString());
+                                fieldSizes.Add(context.Reader.ReadInt32());
+                            }
+                            break;
+                        }
+                    default:
+                        throw new IcepackException($"Invalid category ID: {categoryId}");
                 }
 
                 TypeMetadata typeMetadata = new TypeMetadata(registeredTypeMetadata, fieldNames, fieldSizes, (uint)(t + 1),
-                    hasParent, size, keySize, itemSize);
+                    hasParent, categoryId, itemSize, keySize, instanceSize);
                 context.Types[t] = typeMetadata;
             }
-
-            // Create empty objects
-
-            int numberOfObjects = context.Reader.ReadInt32();
-            bool rootObjectIsReferenceType = context.Reader.ReadBoolean();
-
-            context.Objects = new object[numberOfObjects];
-            context.ObjectTypes = new TypeMetadata[numberOfObjects];
-
-            for (int i = 0; i < numberOfObjects; i++)
-            {
-                uint typeId = context.Reader.ReadUInt32();
-                TypeMetadata objectTypeMetadata = context.Types[typeId - 1];
-                Type objectType = objectTypeMetadata.Type;
-                context.ObjectTypes[i] = objectTypeMetadata;
-
-                object obj;
-                if (objectType == typeof(string))
-                    obj = context.Reader.ReadString();
-                else if (objectType.IsArray)
-                {
-                    Type elementType = objectType.GetElementType();
-                    int arrayLength = context.Reader.ReadInt32();
-                    obj = Array.CreateInstance(elementType, arrayLength);
-                }
-                else if (objectType.IsGenericType && (
-                    objectType.GetGenericTypeDefinition() == typeof(List<>) ||
-                    objectType.GetGenericTypeDefinition() == typeof(HashSet<>) ||
-                    objectType.GetGenericTypeDefinition() == typeof(Dictionary<,>)))
-                {
-                    int length = context.Reader.ReadInt32();
-                    obj = Activator.CreateInstance(objectType, length);
-                }
-                else
-                    obj = Activator.CreateInstance(objectType);
-                context.Objects[i] = obj;
-            }
-
-            // Deserialize objects
-
-            T rootObject;
-            if (rootObjectIsReferenceType)
-                rootObject = (T)context.Objects[0];
-            else
-            {
-                var deserializationOperation = DeserializationOperationFactory.GetOperation(typeof(T));
-                rootObject = (T)deserializationOperation(context);
-            }
-
-            for (int i = 0; i < numberOfObjects; i++)
-            {
-                object classObj = context.Objects[i];
-                DeserializationOperationFactory.DeserializeClass(classObj, context.ObjectTypes[i], context);
-            }
-
-            // Clean up
-
-            context.Dispose();
-
-            return rootObject;
         }
     }
 }

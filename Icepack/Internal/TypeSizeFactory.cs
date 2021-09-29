@@ -49,7 +49,8 @@ namespace Icepack
         private static int GetStructFieldSize(Type type, TypeRegistry typeRegistry)
         {
             TypeMetadata structTypeMetadata = typeRegistry.GetTypeMetadata(type);
-            return structTypeMetadata.Size;
+            // Add 4 bytes for type ID
+            return structTypeMetadata.InstanceSize + 4;
         }
 
         private static int GetEnumFieldSize(Type type)
