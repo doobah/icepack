@@ -81,7 +81,6 @@ Arrays have the format:
 Lists (based on `List<>`), and HashSets (based on `HashSet<>`) have the format:
 
 ```
-- Length [int]
 - For each element:
   - The serialized form of that element [?]
 ```
@@ -89,7 +88,6 @@ Lists (based on `List<>`), and HashSets (based on `HashSet<>`) have the format:
 Dictionaries (based on `Dictionary<,>`) have the format:
 
 ```
-- Length [int]
 - For each key/value pair:
   - The serialized form of the key [?]
   - The serialized form of the value [?]

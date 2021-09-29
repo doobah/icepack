@@ -121,8 +121,6 @@ namespace Icepack
         {
             IList list = (IList)obj;
 
-            context.Writer.Write(list.Count);
-
             for (int itemIdx = 0; itemIdx < list.Count; itemIdx++)
             {
                 object item = list[itemIdx];
@@ -134,12 +132,6 @@ namespace Icepack
         {
             IEnumerable set = (IEnumerable)obj;
 
-            int count = 0;
-            foreach (object item in set)
-                count++;
-
-            context.Writer.Write(count);
-
             foreach (object item in set)
                 typeMetadata.SerializeItem(item, context);
         }
@@ -147,8 +139,6 @@ namespace Icepack
         public static void SerializeDictionary(object obj, TypeMetadata typeMetadata, SerializationContext context)
         {
             IDictionary dict = (IDictionary)obj;
-
-            context.Writer.Write(dict.Count);
 
             foreach (DictionaryEntry entry in dict)
             {

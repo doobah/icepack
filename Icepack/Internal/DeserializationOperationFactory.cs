@@ -110,60 +110,59 @@ namespace Icepack
             return structObj;
         }
 
-        public static void DeserializeArray(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
+        public static void DeserializeArray(ObjectMetadata objectMetadata, DeserializationContext context)
         {
-            Array arrayObj = (Array)classObj;
-            Type elementType = classTypeMetadata.Type.GetElementType();
+            Array arrayObj = (Array)objectMetadata.Value;
+            TypeMetadata typeMetadata = objectMetadata.Type;
 
             for (int i = 0; i < arrayObj.Length; i++)
             {
-                object value = classTypeMetadata.DeserializeItem(context);
+                object value = typeMetadata.DeserializeItem(context);
                 arrayObj.SetValue(value, i);
             }
         }
 
-        public static void DeserializeList(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
+        public static void DeserializeList(ObjectMetadata objectMetadata, DeserializationContext context)
         {
-            IList listObj = (IList)classObj;
-            Type elementType = classTypeMetadata.Type.GenericTypeArguments[0];
+            IList listObj = (IList)objectMetadata.Value;
+            TypeMetadata typeMetadata = objectMetadata.Type;
 
-            int length = context.Reader.ReadInt32();
-            for (int i = 0; i < length; i++)
+            for (int i = 0; i < objectMetadata.Length; i++)
             {
-                object value = classTypeMetadata.DeserializeItem(context);
+                object value = typeMetadata.DeserializeItem(context);
                 listObj.Add(value);
             }
         }
 
-        public static void DeserializeHashSet(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
+        public static void DeserializeHashSet(ObjectMetadata objectMetadata, DeserializationContext context)
         {
-            Type elementType = classTypeMetadata.Type.GenericTypeArguments[0];
+            object hashSetObj = objectMetadata.Value;
+            TypeMetadata typeMetadata = objectMetadata.Type;
 
-            int length = context.Reader.ReadInt32();
-            for (int i = 0; i < length; i++)
+            for (int i = 0; i < objectMetadata.Length; i++)
             {
-                object value = classTypeMetadata.DeserializeItem(context);
-                classTypeMetadata.HashSetAdder(classObj, value);
+                object value = typeMetadata.DeserializeItem(context);
+                typeMetadata.HashSetAdder(hashSetObj, value);
             }
         }
 
-        public static void DeserializeDictionary(object classObj, TypeMetadata classTypeMetadata, DeserializationContext context)
+        public static void DeserializeDictionary(ObjectMetadata objectMetadata, DeserializationContext context)
         {
-            IDictionary dictObj = (IDictionary)classObj;
-            Type keyType = classTypeMetadata.Type.GenericTypeArguments[0];
-            Type valueType = classTypeMetadata.Type.GenericTypeArguments[1];
-            int length = context.Reader.ReadInt32();
+            IDictionary dictObj = (IDictionary)objectMetadata.Value;
+            TypeMetadata typeMetadata = objectMetadata.Type;
 
-            for (int i = 0; i < length; i++)
+            for (int i = 0; i < objectMetadata.Length; i++)
             {
-                object key = classTypeMetadata.DeserializeKey(context);
-                object value = classTypeMetadata.DeserializeItem(context);
+                object key = typeMetadata.DeserializeKey(context);
+                object value = typeMetadata.DeserializeItem(context);
                 dictObj.Add(key, value);
             }
         }
 
-        public static void DeserializeNormalClass(object classObj, DeserializationContext context)
+        public static void DeserializeNormalClass(ObjectMetadata objectMetadata, DeserializationContext context)
         {
+            object obj = objectMetadata.Value;
+
             while (true)
             {
                 uint partialClassTypeId = context.Reader.ReadUInt32();
@@ -177,7 +176,7 @@ namespace Icepack
                     {
                         Type fieldType = field.FieldInfo.FieldType;
                         object value = field.Deserialize(context);
-                        field.Setter(classObj, value);
+                        field.Setter(obj, value);
                     }
                 }
 
@@ -185,14 +184,13 @@ namespace Icepack
                     break;
             }
 
-            if (classObj is ISerializerListener)
-                ((ISerializerListener)classObj).OnAfterDeserialize();
+            if (obj is ISerializerListener)
+                ((ISerializerListener)obj).OnAfterDeserialize();
         }
 
         public static void DeserializeClass(ObjectMetadata objectMetadata, DeserializationContext context)
         {
             TypeMetadata classTypeMetadata = objectMetadata.Type;
-            object classObj = objectMetadata.Value;
 
             if (classTypeMetadata.Type == null)
             {
@@ -204,13 +202,13 @@ namespace Icepack
                         context.Reader.BaseStream.Position += objectMetadata.Length * classTypeMetadata.ItemSize;
                         break;
                     case 2: // List
-                        context.Reader.BaseStream.Position += 4 + objectMetadata.Length * classTypeMetadata.ItemSize;
+                        context.Reader.BaseStream.Position += objectMetadata.Length * classTypeMetadata.ItemSize;
                         break;
                     case 3: // HashSet
-                        context.Reader.BaseStream.Position += 4 + objectMetadata.Length * classTypeMetadata.ItemSize;
+                        context.Reader.BaseStream.Position += objectMetadata.Length * classTypeMetadata.ItemSize;
                         break;
                     case 4: // Dictionary
-                        context.Reader.BaseStream.Position += 4 + objectMetadata.Length * (classTypeMetadata.KeySize + classTypeMetadata.ItemSize);
+                        context.Reader.BaseStream.Position += objectMetadata.Length * (classTypeMetadata.KeySize + classTypeMetadata.ItemSize);
                         break;
                     case 5: // Struct
                         throw new IcepackException($"Unexpected category ID: {classTypeMetadata.CategoryId}");
@@ -236,21 +234,21 @@ namespace Icepack
                     case 0: // String
                         return;
                     case 1: // Array
-                        DeserializeArray(classObj, classTypeMetadata, context);
+                        DeserializeArray(objectMetadata, context);
                         break;
                     case 2: // List
-                        DeserializeList(classObj, classTypeMetadata, context);
+                        DeserializeList(objectMetadata, context);
                         break;
                     case 3: // HashSet
-                        DeserializeHashSet(classObj, classTypeMetadata, context);
+                        DeserializeHashSet(objectMetadata, context);
                         break;
                     case 4: // Dictionary
-                        DeserializeDictionary(classObj, classTypeMetadata, context);
+                        DeserializeDictionary(objectMetadata, context);
                         break;
                     case 5: // Struct
                         throw new IcepackException($"Unexpected category ID: {classTypeMetadata.CategoryId}");
                     case 6: // Class
-                        DeserializeNormalClass(classObj, context);
+                        DeserializeNormalClass(objectMetadata, context);
                         break;
                     default:
                         throw new IcepackException($"Invalid category ID: {classTypeMetadata.CategoryId}");

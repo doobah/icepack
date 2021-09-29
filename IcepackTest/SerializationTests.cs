@@ -807,7 +807,6 @@ namespace IcepackTest
             writer.Write((uint)4);      // Field3
 
             writer.Write((uint)2);      // Type ID of object 2
-            writer.Write(3);            // Dictionary length
             writer.Write((byte)1);      // Key 0
             writer.Write(2);            // Value 0
             writer.Write((byte)3);      // Key 1
