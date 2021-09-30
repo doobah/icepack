@@ -51,7 +51,7 @@ namespace Icepack
             {
                 rootObjectIsValueType = false;
                 context.RegisterObject(rootObj);
-                SerializationOperationFactory.SerializeClass(rootObj, context);
+                SerializationOperationFactory.SerializeReferenceType(rootObj, context);
             }
             else
             {
@@ -63,7 +63,7 @@ namespace Icepack
             while (context.ObjectsToSerialize.Count > 0)
             {
                 object objToSerialize = context.ObjectsToSerialize.Dequeue();
-                SerializationOperationFactory.SerializeClass(objToSerialize, context);
+                SerializationOperationFactory.SerializeReferenceType(objToSerialize, context);
             }
 
             SerializeTypeMetadata(writer, context);
@@ -186,7 +186,7 @@ namespace Icepack
             for (int i = 0; i < context.Objects.Length; i++)
             {
                 ObjectMetadata classObjMetadata = context.Objects[i];
-                DeserializationOperationFactory.DeserializeClass(classObjMetadata, context);
+                DeserializationOperationFactory.DeserializeReferenceType(classObjMetadata, context);
             }
 
             // Clean up

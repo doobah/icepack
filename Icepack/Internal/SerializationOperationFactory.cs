@@ -167,7 +167,7 @@ namespace Icepack
             }
         }
 
-        public static void SerializeClass(object obj, SerializationContext context)
+        public static void SerializeReferenceType(object obj, SerializationContext context)
         {
             if (obj is ISerializerListener)
                 ((ISerializerListener)obj).OnBeforeSerialize();
@@ -175,18 +175,30 @@ namespace Icepack
             Type type = obj.GetType();
             TypeMetadata typeMetadata = context.GetTypeMetadata(type);
 
-            if (type == typeof(string))
-                return;                 // String is already deserialized as metadata
-            else if (type.IsArray)
-                SerializeArray(obj, typeMetadata, context);
-            else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
-                SerializeList(obj, typeMetadata, context);
-            else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(HashSet<>))
-                SerializeHashSet(obj, typeMetadata, context);
-            else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-                SerializeDictionary(obj, typeMetadata, context);
-            else
-                SerializeNormalClass(obj, typeMetadata, context);
+            switch (typeMetadata.CategoryId)
+            {
+                case 0: // String
+                    break;
+                case 1: // Array
+                    SerializeArray(obj, typeMetadata, context);
+                    break;
+                case 2: // List
+                    SerializeList(obj, typeMetadata, context);
+                    break;
+                case 3: // HashSet
+                    SerializeHashSet(obj, typeMetadata, context);
+                    break;
+                case 4: // Dictionary
+                    SerializeDictionary(obj, typeMetadata, context);
+                    break;
+                case 5: // Struct
+                    throw new IcepackException($"Unexpected category ID: {typeMetadata.CategoryId}");
+                case 6: // Class
+                    SerializeNormalClass(obj, typeMetadata, context);
+                    break;
+                default:
+                    throw new IcepackException($"Invalid category ID: {typeMetadata.CategoryId}");
+            }
         }
 
         public static Action<object, SerializationContext> GetEnumOperation(Type type)

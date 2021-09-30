@@ -195,7 +195,7 @@ namespace Icepack
                 ((ISerializerListener)obj).OnAfterDeserialize();
         }
 
-        public static void DeserializeClass(ObjectMetadata objectMetadata, DeserializationContext context)
+        public static void DeserializeReferenceType(ObjectMetadata objectMetadata, DeserializationContext context)
         {
             TypeMetadata classTypeMetadata = objectMetadata.Type;
 
