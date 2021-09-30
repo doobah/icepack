@@ -122,6 +122,32 @@ namespace IcepackTest
         }
 
         [SerializableObject]
+        private class ClassThatImplementsInterface : IInterface
+        {
+            private int field;
+
+            public int Value
+            {
+                get { return field; }
+                set { field = value; }
+
+            }
+        }
+
+        [SerializableObject]
+        private class ClassWithInterfaceField
+        {
+            public int Field1;
+            public IInterface Field2;
+            public int Field3;
+        }
+
+        private interface IInterface
+        {
+            public int Value { get; set; }
+        }
+
+        [SerializableObject]
         private class ClassWithSerializationHooks : ISerializerListener
         {
             public int Field;
@@ -980,6 +1006,74 @@ namespace IcepackTest
             Assert.AreEqual(123, ((ClassWithIntField)deserializedObj.Field2).Field1);
             Assert.NotNull(deserializedObj.Field3);
             Assert.IsTrue(deserializedObj.Field3.GetType() == typeof(RegisteredClass));
+        }
+
+        [Test]
+        public void SerializeInterface()
+        {
+            Serializer serializer = new Serializer();
+
+            IInterface obj = new ClassThatImplementsInterface();
+            obj.Value = 123;
+
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            IInterface deserializedObj = serializer.Deserialize<IInterface>(stream);
+            stream.Close();
+
+            Assert.AreEqual(123, deserializedObj.Value);
+        }
+
+        [Test]
+        public void SerializeInterfaceArray()
+        {
+            Serializer serializer = new Serializer();
+            serializer.RegisterType(typeof(IInterface[]));
+
+            IInterface obj1 = new ClassThatImplementsInterface();
+            obj1.Value = 123;
+            IInterface obj2 = new ClassThatImplementsInterface();
+            obj2.Value = 456;
+            IInterface obj3 = new ClassThatImplementsInterface();
+            obj3.Value = 789;
+
+            IInterface[] obj = new IInterface[3] { obj1, obj2, obj3 };
+
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            IInterface[] deserializedObj = serializer.Deserialize<IInterface[]>(stream);
+            stream.Close();
+
+            Assert.AreEqual(3, deserializedObj.Length);
+            Assert.AreEqual(123, deserializedObj[0].Value);
+            Assert.AreEqual(456, deserializedObj[1].Value);
+            Assert.AreEqual(789, deserializedObj[2].Value);
+        }
+
+        [Test]
+        public void SerializeClassWithInterfaceField()
+        {
+            Serializer serializer = new Serializer();
+            serializer.RegisterType(typeof(IInterface[]));
+
+            IInterface intf = new ClassThatImplementsInterface();
+            intf.Value = 456;
+            ClassWithInterfaceField obj = new ClassWithInterfaceField() {
+                Field1 = 123,
+                Field2 = intf,
+                Field3 = 789
+            };
+
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ClassWithInterfaceField deserializedObj = serializer.Deserialize<ClassWithInterfaceField>(stream);
+            stream.Close();
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.NotNull(deserializedObj.Field2);
+            Assert.AreEqual(456, deserializedObj.Field2.Value);
+            Assert.AreEqual(789, deserializedObj.Field3);
         }
 
         [Test]

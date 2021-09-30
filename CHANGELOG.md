@@ -5,6 +5,7 @@
 * Removed the type ID from the start of each reference type. This improves deserialization performance.
 * Ignore instances of missing classes, and skip over missing parent classes in a hierarchy.
 * Removed the length from the serialized format of lists, hashsets, and dictionaries.
+* Added support for serializing reference types as interfaces.
 
 # v0.0.8
 

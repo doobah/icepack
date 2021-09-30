@@ -40,7 +40,7 @@ namespace Icepack
                 return GetEnumFieldSize(type);
             else if (type.IsValueType)
                 return GetStructFieldSize(type, typeRegistry);
-            else if (type.IsClass)
+            else if (type.IsClass || type.IsInterface)
                 return 4;
             else
                 throw new IcepackException($"Unable to determine size of type: {type}");

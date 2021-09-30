@@ -244,7 +244,7 @@ namespace Icepack
                 return GetEnumOperation(type);
             else if (type.IsValueType)
                 return SerializeStruct;
-            else if (type.IsClass)
+            else if (type.IsClass || type.IsInterface)
                 return SerializeObjectReference;
             else
                 throw new IcepackException($"Unable to serialize object of type: {type}");

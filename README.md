@@ -109,6 +109,7 @@ Other rules:
 * Primitives are serialized as-is.
 * The `string` type is automatically registered for serialization.
 * Enums are serialized as their underlying integral type.
+* Interfaces are serialized as object references.
 * The compatibility version indicates which other versions of the Icepack serializer are able to deserialize the output.
 
 # Other Features
@@ -128,7 +129,6 @@ Other rules:
 * Fields of type `object` or `ValueType` are not supported.
 * `span` and other exotic types are not supported.
 * Boxed value types are not supported.
-* Serializing interfaces is not supported.
 * Serializing delegates is not supported.
 * Deserializing after changing the type of a serialized field results in undefined behaviour.
 

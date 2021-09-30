@@ -325,7 +325,7 @@ namespace Icepack
                 return GetEnumOperation(type);
             else if (type.IsValueType)
                 return DeserializeStruct;
-            else if (type.IsClass)
+            else if (type.IsClass || type.IsInterface)
                 return DeserializeObjectReference;
             else
                 throw new IcepackException($"Unable to deserialize object of type: {type}");
