@@ -162,21 +162,28 @@ namespace Icepack
         public static void DeserializeNormalClass(ObjectMetadata objectMetadata, DeserializationContext context)
         {
             object obj = objectMetadata.Value;
+            TypeMetadata typeMetadata = objectMetadata.Type;
 
             while (true)
             {
                 uint partialClassTypeId = context.Reader.ReadUInt32();
                 TypeMetadata partialClassTypeMetadata = context.Types[partialClassTypeId - 1];
-                for (int fieldIdx = 0; fieldIdx < partialClassTypeMetadata.Fields.Count; fieldIdx++)
+
+                if (partialClassTypeMetadata.Type == null || !typeMetadata.Type.IsAssignableTo(partialClassTypeMetadata.Type))
+                    context.Reader.BaseStream.Position += typeMetadata.InstanceSize;
+                else
                 {
-                    FieldMetadata field = partialClassTypeMetadata.Fields.Values[fieldIdx];
-                    if (field.FieldInfo == null)
-                        context.Reader.BaseStream.Position += field.Size;
-                    else
+                    for (int fieldIdx = 0; fieldIdx < partialClassTypeMetadata.Fields.Count; fieldIdx++)
                     {
-                        Type fieldType = field.FieldInfo.FieldType;
-                        object value = field.Deserialize(context);
-                        field.Setter(obj, value);
+                        FieldMetadata field = partialClassTypeMetadata.Fields.Values[fieldIdx];
+                        if (field.FieldInfo == null)
+                            context.Reader.BaseStream.Position += field.Size;
+                        else
+                        {
+                            Type fieldType = field.FieldInfo.FieldType;
+                            object value = field.Deserialize(context);
+                            field.Setter(obj, value);
+                        }
                     }
                 }
 

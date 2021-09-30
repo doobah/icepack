@@ -109,21 +109,28 @@ Other rules:
 * Primitives are serialized as-is.
 * The `string` type is automatically registered for serialization.
 * Enums are serialized as their underlying integral type.
-* `nuint` and `nint` are not supported.
-* Fields of type `object` or `ValueType` are not supported.
-* `span` and other exotic types are not supported.
-* Boxed value types are not supported.
-* Serializing interfaces is not supported.
-* Serializing delegates is not supported.
 * The compatibility version indicates which other versions of the Icepack serializer are able to deserialize the output.
-* Currently only fields (both private and public) are serialized, not properties.
 
 # Other Features
 
 * Types can be included for serialization by calling the serializer's `RegisterType` method, or annotating the type with the `SerializableObject` attribute.
 * Fields can be ignored by annotating them with the `IgnoreField` attribute.
 * The `ISerializer` interface is provided to allow classes to execute additional logic before serialization and after deserialization.
-* On deserialization, fields that have been added or removed since serialization will be ignored. Deserializing after changing the type of a serialized field results in undefined behaviour. A field that was serialized as an instance of a missing class is also ignored.
+* Deserialization is somewhat resilient to changes to the data types since serialization.
+  * Fields that have been added or removed to a class since serialization will be ignored.
+  * A field that was serialized as a reference to an instance of a missing class is ignored.
+  * If a class was derived from another class that is now missing or is no longer a base class, the missing or former base class is ignored, and the serializer resumes deserializing fields from further ancestors.
+
+# Limitations
+
+* Currently only fields (both private and public) are serialized, not properties.
+* `nuint` and `nint` are not supported.
+* Fields of type `object` or `ValueType` are not supported.
+* `span` and other exotic types are not supported.
+* Boxed value types are not supported.
+* Serializing interfaces is not supported.
+* Serializing delegates is not supported.
+* Deserializing after changing the type of a serialized field results in undefined behaviour.
 
 # Usage Example
 

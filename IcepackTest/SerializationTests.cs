@@ -147,6 +147,24 @@ namespace IcepackTest
             public int Field;
         }
 
+        [SerializableObject]
+        private class BaseClass
+        {
+            public int FieldBase;
+        }
+
+        [SerializableObject]
+        private class FormerBaseClass : BaseClass
+        {
+            public int FieldFormerBase;
+        }
+
+        [SerializableObject]
+        private class DerivedClass : BaseClass
+        {
+            public int FieldDerived;
+        }
+
         [Test]
         public void SerializeFlatObject()
         {
@@ -825,6 +843,116 @@ namespace IcepackTest
             Assert.Null(deserializedObj.Field2);
             Assert.NotNull(deserializedObj.Field3);
             Assert.IsTrue(deserializedObj.Field3.GetType() == typeof(RegisteredClass));
+        }
+
+        [Test]
+        public void DeserializeClassWithMissingParentType()
+        {
+            Serializer serializer = new Serializer();
+
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            writer.Write(Serializer.CompatibilityVersion);
+            writer.Write(3);            // Number of types
+
+            writer.Write(typeof(BaseClass).AssemblyQualifiedName);
+            writer.Write((byte)6);      // Category: class
+            writer.Write(4);            // Type size
+            writer.Write(false);        // Has a parent
+            writer.Write(1);            // Number of fields
+            writer.Write("FieldBase");
+            writer.Write(4);            // Field size
+
+            writer.Write("MissingParentClass");
+            writer.Write((byte)6);      // Category: class
+            writer.Write(4);            // Type size
+            writer.Write(true);         // Has a parent
+            writer.Write(1);            // Number of fields
+            writer.Write("FieldMissing");
+            writer.Write(4);            // Field size
+
+            writer.Write(typeof(DerivedClass).AssemblyQualifiedName);
+            writer.Write((byte)6);      // Category: class
+            writer.Write(4);            // Type size
+            writer.Write(true);         // Has a parent
+            writer.Write(1);            // Number of fields
+            writer.Write("FieldDerived");
+            writer.Write(4);            // Field size
+
+            writer.Write(1);            // Number of objects
+            writer.Write((uint)3);      // Type ID of root object
+
+            writer.Write(false);        // Root object is reference-type
+
+            writer.Write((uint)3);      // Type ID of root object
+            writer.Write(123);          // Field1
+            writer.Write((uint)2);      // Type ID of parent class
+            writer.Write(456);          // Field1
+            writer.Write((uint)1);      // Type ID of grandparent class
+            writer.Write(789);          // Field1
+
+            writer.Close();
+
+            DerivedClass deserializedObj = serializer.Deserialize<DerivedClass>(stream);
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.FieldDerived);
+            Assert.AreEqual(789, deserializedObj.FieldBase);
+        }
+
+        [Test]
+        public void DeserializeClassNoLongerDerivedFromOtherType()
+        {
+            Serializer serializer = new Serializer();
+
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            writer.Write(Serializer.CompatibilityVersion);
+            writer.Write(3);            // Number of types
+
+            writer.Write(typeof(BaseClass).AssemblyQualifiedName);
+            writer.Write((byte)6);      // Category: class
+            writer.Write(4);            // Type size
+            writer.Write(false);        // Has a parent
+            writer.Write(1);            // Number of fields
+            writer.Write("FieldBase");
+            writer.Write(4);            // Field size
+
+            writer.Write(typeof(FormerBaseClass).AssemblyQualifiedName);
+            writer.Write((byte)6);      // Category: class
+            writer.Write(4);            // Type size
+            writer.Write(true);         // Has a parent
+            writer.Write(1);            // Number of fields
+            writer.Write("FieldFormerBase");
+            writer.Write(4);            // Field size
+
+            writer.Write(typeof(DerivedClass).AssemblyQualifiedName);
+            writer.Write((byte)6);      // Category: class
+            writer.Write(4);            // Type size
+            writer.Write(true);         // Has a parent
+            writer.Write(1);            // Number of fields
+            writer.Write("FieldDerived");
+            writer.Write(4);            // Field size
+
+            writer.Write(1);            // Number of objects
+            writer.Write((uint)3);      // Type ID of root object
+
+            writer.Write(false);        // Root object is reference-type
+
+            writer.Write((uint)3);      // Type ID of root object
+            writer.Write(123);          // Field1
+            writer.Write((uint)2);      // Type ID of parent class
+            writer.Write(456);          // Field1
+            writer.Write((uint)1);      // Type ID of grandparent class
+            writer.Write(789);          // Field1
+
+            writer.Close();
+
+            DerivedClass deserializedObj = serializer.Deserialize<DerivedClass>(stream);
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.FieldDerived);
+            Assert.AreEqual(789, deserializedObj.FieldBase);
         }
 
         [Test]

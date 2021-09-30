@@ -2,8 +2,9 @@
 
 * Include size information in the type and field metadata.
 * Ignore added/removed fields.
-* Remove the type ID from the start of each reference type. This improves deserialization performance.
-* Ignore removed classes.
+* Removed the type ID from the start of each reference type. This improves deserialization performance.
+* Ignore instances of missing classes, and skip over missing parent classes in a hierarchy.
+* Removed the length from the serialized format of lists, hashsets, and dictionaries.
 
 # v0.0.8
 
@@ -22,7 +23,7 @@
 
 # v0.0.5
 
-* Switched the order of types and objecs in the output format.
+* Switched the order of types and objects in the output format.
 
 # v0.0.4
 
