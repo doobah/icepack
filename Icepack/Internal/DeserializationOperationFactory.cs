@@ -115,10 +115,15 @@ namespace Icepack
             Array arrayObj = (Array)objectMetadata.Value;
             TypeMetadata typeMetadata = objectMetadata.Type;
 
-            for (int i = 0; i < arrayObj.Length; i++)
+            if (typeMetadata.Type == null)
+                context.Reader.BaseStream.Position += objectMetadata.Length * typeMetadata.ItemSize;
+            else
             {
-                object value = typeMetadata.DeserializeItem(context);
-                arrayObj.SetValue(value, i);
+                for (int i = 0; i < arrayObj.Length; i++)
+                {
+                    object value = typeMetadata.DeserializeItem(context);
+                    arrayObj.SetValue(value, i);
+                }
             }
         }
 
@@ -127,10 +132,15 @@ namespace Icepack
             IList listObj = (IList)objectMetadata.Value;
             TypeMetadata typeMetadata = objectMetadata.Type;
 
-            for (int i = 0; i < objectMetadata.Length; i++)
+            if (typeMetadata.Type == null)
+                context.Reader.BaseStream.Position += objectMetadata.Length * typeMetadata.ItemSize;
+            else
             {
-                object value = typeMetadata.DeserializeItem(context);
-                listObj.Add(value);
+                for (int i = 0; i < objectMetadata.Length; i++)
+                {
+                    object value = typeMetadata.DeserializeItem(context);
+                    listObj.Add(value);
+                }
             }
         }
 
@@ -139,10 +149,15 @@ namespace Icepack
             object hashSetObj = objectMetadata.Value;
             TypeMetadata typeMetadata = objectMetadata.Type;
 
-            for (int i = 0; i < objectMetadata.Length; i++)
+            if (typeMetadata.Type == null)
+                context.Reader.BaseStream.Position += objectMetadata.Length * typeMetadata.ItemSize;
+            else
             {
-                object value = typeMetadata.DeserializeItem(context);
-                typeMetadata.HashSetAdder(hashSetObj, value);
+                for (int i = 0; i < objectMetadata.Length; i++)
+                {
+                    object value = typeMetadata.DeserializeItem(context);
+                    typeMetadata.HashSetAdder(hashSetObj, value);
+                }
             }
         }
 
@@ -151,11 +166,16 @@ namespace Icepack
             IDictionary dictObj = (IDictionary)objectMetadata.Value;
             TypeMetadata typeMetadata = objectMetadata.Type;
 
-            for (int i = 0; i < objectMetadata.Length; i++)
+            if (typeMetadata.Type == null)
+                context.Reader.BaseStream.Position += objectMetadata.Length * (typeMetadata.KeySize + typeMetadata.ItemSize);
+            else
             {
-                object key = typeMetadata.DeserializeKey(context);
-                object value = typeMetadata.DeserializeItem(context);
-                dictObj.Add(key, value);
+                for (int i = 0; i < objectMetadata.Length; i++)
+                {
+                    object key = typeMetadata.DeserializeKey(context);
+                    object value = typeMetadata.DeserializeItem(context);
+                    dictObj.Add(key, value);
+                }
             }
         }
 
@@ -164,102 +184,79 @@ namespace Icepack
             object obj = objectMetadata.Value;
             TypeMetadata typeMetadata = objectMetadata.Type;
 
-            while (true)
+            if (typeMetadata.Type == null)
             {
-                uint partialClassTypeId = context.Reader.ReadUInt32();
-                TypeMetadata partialClassTypeMetadata = context.Types[partialClassTypeId - 1];
-
-                if (partialClassTypeMetadata.Type == null || !typeMetadata.Type.IsAssignableTo(partialClassTypeMetadata.Type))
-                    context.Reader.BaseStream.Position += typeMetadata.InstanceSize;
-                else
+                while (true)
                 {
-                    for (int fieldIdx = 0; fieldIdx < partialClassTypeMetadata.Fields.Count; fieldIdx++)
+                    uint partialClassTypeId = context.Reader.ReadUInt32();
+                    TypeMetadata partialClassTypeMetadata = context.Types[partialClassTypeId - 1];
+                    context.Reader.BaseStream.Position += partialClassTypeMetadata.InstanceSize;
+
+                    if (!partialClassTypeMetadata.HasParent)
+                        break;
+                }
+            }
+            else
+            {
+                while (true)
+                {
+                    uint partialClassTypeId = context.Reader.ReadUInt32();
+                    TypeMetadata partialClassTypeMetadata = context.Types[partialClassTypeId - 1];
+
+                    if (partialClassTypeMetadata.Type == null || !typeMetadata.Type.IsAssignableTo(partialClassTypeMetadata.Type))
+                        context.Reader.BaseStream.Position += typeMetadata.InstanceSize;
+                    else
                     {
-                        FieldMetadata field = partialClassTypeMetadata.Fields.Values[fieldIdx];
-                        if (field.FieldInfo == null)
-                            context.Reader.BaseStream.Position += field.Size;
-                        else
+                        for (int fieldIdx = 0; fieldIdx < partialClassTypeMetadata.Fields.Count; fieldIdx++)
                         {
-                            Type fieldType = field.FieldInfo.FieldType;
-                            object value = field.Deserialize(context);
-                            field.Setter(obj, value);
+                            FieldMetadata field = partialClassTypeMetadata.Fields.Values[fieldIdx];
+                            if (field.FieldInfo == null)
+                                context.Reader.BaseStream.Position += field.Size;
+                            else
+                            {
+                                Type fieldType = field.FieldInfo.FieldType;
+                                object value = field.Deserialize(context);
+                                field.Setter(obj, value);
+                            }
                         }
                     }
+
+                    if (!partialClassTypeMetadata.HasParent)
+                        break;
                 }
 
-                if (!partialClassTypeMetadata.HasParent)
-                    break;
+                if (obj is ISerializerListener)
+                    ((ISerializerListener)obj).OnAfterDeserialize();
             }
-
-            if (obj is ISerializerListener)
-                ((ISerializerListener)obj).OnAfterDeserialize();
         }
 
         public static void DeserializeReferenceType(ObjectMetadata objectMetadata, DeserializationContext context)
         {
             TypeMetadata classTypeMetadata = objectMetadata.Type;
 
-            if (classTypeMetadata.Type == null)
+            switch (classTypeMetadata.CategoryId)
             {
-                switch (classTypeMetadata.CategoryId)
-                {
-                    case 0: // String
-                        throw new IcepackException($"Unexpected category ID: {classTypeMetadata.CategoryId}");
-                    case 1: // Array
-                        context.Reader.BaseStream.Position += objectMetadata.Length * classTypeMetadata.ItemSize;
-                        break;
-                    case 2: // List
-                        context.Reader.BaseStream.Position += objectMetadata.Length * classTypeMetadata.ItemSize;
-                        break;
-                    case 3: // HashSet
-                        context.Reader.BaseStream.Position += objectMetadata.Length * classTypeMetadata.ItemSize;
-                        break;
-                    case 4: // Dictionary
-                        context.Reader.BaseStream.Position += objectMetadata.Length * (classTypeMetadata.KeySize + classTypeMetadata.ItemSize);
-                        break;
-                    case 5: // Struct
-                        throw new IcepackException($"Unexpected category ID: {classTypeMetadata.CategoryId}");
-                    case 6: // Class
-                        while (true)
-                        {
-                            uint partialClassTypeId = context.Reader.ReadUInt32();
-                            TypeMetadata partialClassTypeMetadata = context.Types[partialClassTypeId - 1];
-                            context.Reader.BaseStream.Position += partialClassTypeMetadata.InstanceSize;
-
-                            if (!partialClassTypeMetadata.HasParent)
-                                break;
-                        }
-                        break;
-                    default:
-                        throw new IcepackException($"Unexpected category ID: {classTypeMetadata.CategoryId}");
-                }
-            }
-            else
-            {
-                switch (classTypeMetadata.CategoryId)
-                {
-                    case 0: // String
-                        return;
-                    case 1: // Array
-                        DeserializeArray(objectMetadata, context);
-                        break;
-                    case 2: // List
-                        DeserializeList(objectMetadata, context);
-                        break;
-                    case 3: // HashSet
-                        DeserializeHashSet(objectMetadata, context);
-                        break;
-                    case 4: // Dictionary
-                        DeserializeDictionary(objectMetadata, context);
-                        break;
-                    case 5: // Struct
-                        throw new IcepackException($"Unexpected category ID: {classTypeMetadata.CategoryId}");
-                    case 6: // Class
-                        DeserializeNormalClass(objectMetadata, context);
-                        break;
-                    default:
-                        throw new IcepackException($"Invalid category ID: {classTypeMetadata.CategoryId}");
-                }
+                case 0: // String
+                    return;
+                case 1: // Array
+                    DeserializeArray(objectMetadata, context);
+                    break;
+                case 2: // List
+                    DeserializeList(objectMetadata, context);
+                    break;
+                case 3: // HashSet
+                    DeserializeHashSet(objectMetadata, context);
+                    break;
+                case 4: // Dictionary
+                    DeserializeDictionary(objectMetadata, context);
+                    break;
+                case 5: // Struct
+                    throw new IcepackException($"Unexpected category ID: {classTypeMetadata.CategoryId}");
+                case 6: // Class
+                    DeserializeNormalClass(objectMetadata, context);
+                    break;
+                default:
+                    throw new IcepackException($"Invalid category ID: {classTypeMetadata.CategoryId}");
             }
         }
 
