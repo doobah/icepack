@@ -46,26 +46,32 @@ namespace Icepack
             Type type = obj.GetType();
             TypeMetadata typeMetadata = GetTypeMetadata(type);
 
-            int length;
-            if (type.IsArray)
-                length = ((Array)obj).Length;
-            else if (type.IsGenericType)
+            int length = 0;
+            switch (typeMetadata.CategoryId)
             {
-                if (type.GetGenericTypeDefinition() == typeof(List<>))
+                case 0: // String
+                    break;
+                case 1: // Array
+                    length = ((Array)obj).Length;
+                    break;
+                case 2: // List
                     length = ((IList)obj).Count;
-                else if (type.GetGenericTypeDefinition() == typeof(HashSet<>))
-                {
+                    break;
+                case 3: // HashSet
                     length = 0;
                     foreach (object item in (IEnumerable)obj)
                         length++;
-                }
-                else if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+                    break;
+                case 4: // Dictionary
                     length = ((IDictionary)obj).Count;
-                else
-                    length = 0;
+                    break;
+                case 5:
+                    break;
+                case 6:
+                    break;
+                default:
+                    throw new IcepackException($"Invalid category ID: {typeMetadata.CategoryId}");
             }
-            else
-                length = 0;
 
             ObjectMetadata objMetadata = new ObjectMetadata(newId, typeMetadata, length, obj);
             Objects.Add(obj, objMetadata);
