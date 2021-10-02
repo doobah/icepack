@@ -88,6 +88,18 @@ namespace Icepack
             }
         }
 
+        public static void SerializeStructReference(object obj, TypeMetadata typeMetadata, SerializationContext context)
+        {
+            context.Writer.Write(typeMetadata.Id);
+
+            for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
+            {
+                FieldMetadata field = typeMetadata.Fields.Values[fieldIdx];
+                object value = field.Getter(obj);
+                field.Serialize(value, context);
+            }
+        }
+
         public static void SerializeStruct(object obj, SerializationContext context)
         {
             if (obj is ISerializerListener)
@@ -104,6 +116,12 @@ namespace Icepack
                 object value = field.Getter(obj);
                 field.Serialize(value, context);
             }
+        }
+
+        public static void SerializeType(object obj, SerializationContext context)
+        {
+            TypeMetadata typeMetadata = context.GetTypeMetadata((Type)obj);
+            context.Writer.Write(typeMetadata.Id);
         }
 
         public static void SerializeArray(object obj, TypeMetadata typeMetadata, SerializationContext context)
@@ -173,28 +191,39 @@ namespace Icepack
                 ((ISerializerListener)obj).OnBeforeSerialize();
 
             Type type = obj.GetType();
+            if (type.IsSubclassOf(typeof(Type)))
+                type = typeof(Type);
             TypeMetadata typeMetadata = context.GetTypeMetadata(type);
 
             switch (typeMetadata.CategoryId)
             {
-                case 0: // String
+                case Category.Basic:
+                    // Value is serialized as metadata
                     break;
-                case 1: // Array
+                case Category.Array:
                     SerializeArray(obj, typeMetadata, context);
                     break;
-                case 2: // List
+                case Category.List:
                     SerializeList(obj, typeMetadata, context);
                     break;
-                case 3: // HashSet
+                case Category.HashSet:
                     SerializeHashSet(obj, typeMetadata, context);
                     break;
-                case 4: // Dictionary
+                case Category.Dictionary:
                     SerializeDictionary(obj, typeMetadata, context);
                     break;
-                case 5: // Struct
-                    throw new IcepackException($"Unexpected category ID: {typeMetadata.CategoryId}");
-                case 6: // Class
+                case Category.Struct:
+                    SerializeStructReference(obj, typeMetadata, context);
+                    break;
+                case Category.Class:
                     SerializeNormalClass(obj, typeMetadata, context);
+                    break;
+                case Category.Enum:
+                    // Value is serialized as metadata
+                    break;
+                case Category.Type:
+                    // Value is serialized as metadata but we should make sure the type is added to the context first
+                    context.GetTypeMetadata((Type)obj);
                     break;
                 default:
                     throw new IcepackException($"Invalid category ID: {typeMetadata.CategoryId}");
@@ -224,7 +253,7 @@ namespace Icepack
                 throw new IcepackException($"Invalid enum type: {type}");
         }
 
-        public static Action<object, SerializationContext> GetOperation(Type type)
+        public static Action<object, SerializationContext> GetFieldOperation(Type type)
         {
             if (type == typeof(byte))
                 return SerializeByte;

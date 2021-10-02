@@ -79,7 +79,18 @@ namespace Icepack
             return context.Reader.ReadString();
         }
 
+        public static object DeserializeType(DeserializationContext context)
+        {
+            uint typeId = context.Reader.ReadUInt32();
+            return context.Types[typeId - 1].Type;
+        }
+
         public static object DeserializeStruct(DeserializationContext context)
+        {
+            return DeserializeStruct(null, context);
+        }
+
+        public static object DeserializeStruct(ObjectMetadata objectMetadata, DeserializationContext context)
         {
             uint typeId = context.Reader.ReadUInt32();
             TypeMetadata typeMetadata = context.Types[typeId - 1];
@@ -87,7 +98,11 @@ namespace Icepack
             if (typeMetadata.Type == null)
                 context.Reader.BaseStream.Position += typeMetadata.InstanceSize;
 
-            object structObj = Activator.CreateInstance(typeMetadata.Type);
+            object structObj;
+            if (objectMetadata == null)
+                structObj = Activator.CreateInstance(typeMetadata.Type);
+            else
+                structObj = objectMetadata.Value;
 
             for (int i = 0; i < typeMetadata.Fields.Count; i++)
             {
@@ -221,7 +236,7 @@ namespace Icepack
                         }
                     }
 
-                    if (!partialClassTypeMetadata.HasParent)
+                    if (!partialClassTypeMetadata.HasParent)    
                         break;
                 }
 
@@ -236,24 +251,32 @@ namespace Icepack
 
             switch (classTypeMetadata.CategoryId)
             {
-                case 0: // String
+                case Category.Basic:
+                    // Value is serialized as metadata
                     return;
-                case 1: // Array
+                case Category.Array:
                     DeserializeArray(objectMetadata, context);
                     break;
-                case 2: // List
+                case Category.List:
                     DeserializeList(objectMetadata, context);
                     break;
-                case 3: // HashSet
+                case Category.HashSet:
                     DeserializeHashSet(objectMetadata, context);
                     break;
-                case 4: // Dictionary
+                case Category.Dictionary:
                     DeserializeDictionary(objectMetadata, context);
                     break;
-                case 5: // Struct
-                    throw new IcepackException($"Unexpected category ID: {classTypeMetadata.CategoryId}");
-                case 6: // Class
+                case Category.Struct:
+                    DeserializeStruct(objectMetadata, context);
+                    break;
+                case Category.Class:
                     DeserializeNormalClass(objectMetadata, context);
+                    break;
+                case Category.Enum:
+                    // Value is serialized as metadata
+                    break;
+                case Category.Type:
+                    // Value is serialized as metadata
                     break;
                 default:
                     throw new IcepackException($"Invalid category ID: {classTypeMetadata.CategoryId}");
@@ -290,7 +313,7 @@ namespace Icepack
                 throw new IcepackException($"Invalid enum type: {type}");
         }
 
-        public static Func<DeserializationContext, object> GetOperation(Type type)
+        public static Func<DeserializationContext, object> GetFieldOperation(Type type)
         {
             if (type == typeof(byte))
                 return DeserializeByte;

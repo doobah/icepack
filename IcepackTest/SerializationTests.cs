@@ -96,6 +96,7 @@ namespace IcepackTest
             public int Field2;
         }
 
+        [SerializableObject]
         private enum SerializableEnum
         {
             Option1,
@@ -114,7 +115,7 @@ namespace IcepackTest
         }
 
         [SerializableObject]
-        private class ClassWithObjectField
+        private class ClassWithMultipleObjectFields
         {
             public object Field1;
             public object Field2;
@@ -148,7 +149,43 @@ namespace IcepackTest
         }
 
         [SerializableObject]
+        private struct StructThatImplementsInterface : IInterface
+        {
+            private int field;
+
+            public int Value
+            {
+                get { return field; }
+                set { field = value; }
+            }
+        }
+
+        [SerializableObject]
         private class ClassWithSerializationHooks : ISerializerListener
+        {
+            public int Field;
+
+            public void OnBeforeSerialize()
+            {
+                Field = Field * 2;
+            }
+
+            public void OnAfterDeserialize()
+            {
+                Field = Field + 1;
+            }
+        }
+
+        [SerializableObject]
+        private class ClassWithStructWithSerializationHooksField
+        {
+            public int Field1;
+            public StructWithSerializationHooks Field2;
+            public int Field3;
+        }
+
+        [SerializableObject]
+        private struct StructWithSerializationHooks : ISerializerListener
         {
             public int Field;
 
@@ -189,6 +226,30 @@ namespace IcepackTest
         private class DerivedClass : BaseClass
         {
             public int FieldDerived;
+        }
+
+        [SerializableObject]
+        private class ClassWithEnumField
+        {
+            public int Field1;
+            public SerializableEnum Field2;
+            public int Field3;
+        }
+
+        [SerializableObject]
+        private class ClassWithObjectField
+        {
+            public int Field1;
+            public object Field2;
+            public int Field3;
+        }
+
+        [SerializableObject]
+        private class ClassWithTypeField
+        {
+            public int Field1;
+            public Type Field2;
+            public int Field3;
         }
 
         [Test]
@@ -392,6 +453,214 @@ namespace IcepackTest
         }
 
         [Test]
+        public void SerializeClassWithEnumField()
+        {
+            Serializer serializer = new Serializer();
+
+            ClassWithEnumField obj = new ClassWithEnumField() { Field1 = 123, Field2 = SerializableEnum.Option2, Field3 = 789 };
+
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ClassWithEnumField deserializedObj = serializer.Deserialize<ClassWithEnumField>(stream);
+            stream.Close();
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual(SerializableEnum.Option2, deserializedObj.Field2);
+            Assert.AreEqual(789, deserializedObj.Field3);
+        }
+
+        [Test]
+        public void SerializeBoxedEnum()
+        {
+            Serializer serializer = new Serializer();
+
+            ClassWithObjectField obj = new ClassWithObjectField() { Field1 = 123, Field2 = SerializableEnum.Option2, Field3 = 789 };
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
+            stream.Close();
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual(SerializableEnum.Option2, deserializedObj.Field2);
+            Assert.AreEqual(789, deserializedObj.Field3);
+        }
+
+        [Test]
+        public void SerializeBoxedInt()
+        {
+            Serializer serializer = new Serializer();
+
+            ClassWithObjectField obj = new ClassWithObjectField() { Field1 = 123, Field2 = 456, Field3 = 789 };
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
+            stream.Close();
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual(456, deserializedObj.Field2);
+            Assert.AreEqual(789, deserializedObj.Field3);
+        }
+
+        [Test]
+        public void SerializeTypeInObjectField()
+        {
+            Serializer serializer = new Serializer();
+
+            ClassWithObjectField obj = new ClassWithObjectField() { Field1 = 123, Field2 = typeof(int), Field3 = 789 };
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
+            stream.Close();
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual(typeof(int), deserializedObj.Field2);
+            Assert.AreEqual(789, deserializedObj.Field3);
+        }
+
+        [Test]
+        public void SerializeTypeInTypeField()
+        {
+            Serializer serializer = new Serializer();
+
+            ClassWithTypeField obj = new ClassWithTypeField() { Field1 = 123, Field2 = typeof(int), Field3 = 789 };
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ClassWithTypeField deserializedObj = serializer.Deserialize<ClassWithTypeField>(stream);
+            stream.Close();
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual(typeof(int), deserializedObj.Field2);
+            Assert.AreEqual(789, deserializedObj.Field3);
+        }
+
+        [Test]
+        public void SerializeType()
+        {
+            Serializer serializer = new Serializer();
+
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(typeof(int), stream);
+            Type deserializedObj = serializer.Deserialize<Type>(stream);
+            stream.Close();
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(typeof(int), deserializedObj);
+        }
+
+        [Test]
+        public void SerializeUnregisteredType()
+        {
+            Serializer serializer = new Serializer();
+
+            MemoryStream stream = new MemoryStream();
+
+            Assert.Throws<IcepackException>(() => {
+                serializer.Serialize(typeof(UnregisteredClass), stream);
+            });
+            
+            stream.Close();
+        }
+
+        [Test]
+        public void SerializeUnregisteredTypeInTypeField()
+        {
+            Serializer serializer = new Serializer();
+
+            ClassWithTypeField obj = new ClassWithTypeField() { Field1 = 123, Field2 = typeof(UnregisteredClass), Field3 = 789 };
+            MemoryStream stream = new MemoryStream();
+
+            Assert.Throws<IcepackException>(() => {
+                serializer.Serialize(obj, stream);
+            });
+
+            stream.Close();
+        }
+
+        [Test]
+        public void SerializeUnregisteredTypeInObjectField()
+        {
+            Serializer serializer = new Serializer();
+
+            ClassWithObjectField obj = new ClassWithObjectField() { Field1 = 123, Field2 = typeof(UnregisteredClass), Field3 = 789 };
+            MemoryStream stream = new MemoryStream();
+
+            Assert.Throws<IcepackException>(() => {
+                serializer.Serialize(obj, stream);
+            });
+
+            stream.Close();
+        }
+
+        [Test]
+        public void SerializeBoxedStruct()
+        {
+            Serializer serializer = new Serializer();
+
+            SerializableStruct s = new SerializableStruct() { Field1 = 222, Field2 = 444 };
+            ClassWithObjectField obj = new ClassWithObjectField() { Field1 = 123, Field2 = s, Field3 = 789 };
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
+            stream.Close();
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual(s, deserializedObj.Field2);
+            Assert.AreEqual(789, deserializedObj.Field3);
+        }
+
+        [Test]
+        public void SerializeStructAssignedToInterfaceField()
+        {
+            Serializer serializer = new Serializer();
+
+            StructThatImplementsInterface s = new StructThatImplementsInterface();
+            s.Value = 99999;
+
+            ClassWithInterfaceField obj = new ClassWithInterfaceField() { Field1 = 123, Field2 = s, Field3 = 789 };
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ClassWithInterfaceField deserializedObj = serializer.Deserialize<ClassWithInterfaceField>(stream);
+            stream.Close();
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual(s, deserializedObj.Field2);
+            Assert.AreEqual(789, deserializedObj.Field3);
+        }
+
+        [Test]
+        public void SerializeStructsInInterfaceArray()
+        {
+            Serializer serializer = new Serializer();
+            serializer.RegisterType(typeof(IInterface[]));
+
+            StructThatImplementsInterface s1 = new StructThatImplementsInterface();
+            s1.Value = 123;
+            StructThatImplementsInterface s2 = new StructThatImplementsInterface();
+            s1.Value = 456;
+            StructThatImplementsInterface s3 = new StructThatImplementsInterface();
+            s1.Value = 789;
+
+            IInterface[] array = new IInterface[] { s1, s2, s3 };
+
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(array, stream);
+            IInterface[] deserializedObj = serializer.Deserialize<IInterface[]>(stream);
+            stream.Close();
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(s1, deserializedObj[0]);
+            Assert.AreEqual(s2, deserializedObj[1]);
+            Assert.AreEqual(s3, deserializedObj[2]);
+        }
+
+        [Test]
         public void SerializeStruct()
         {
             Serializer serializer = new Serializer();
@@ -448,9 +717,11 @@ namespace IcepackTest
             MemoryStream stream = new MemoryStream();
             BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
-            writer.Write(0);            // Number of types
-            writer.Write(0);            // Number of objects
-            writer.Write(true);         // Root object is value-type
+            writer.Write(1);            // Number of types
+            writer.Write(typeof(int).AssemblyQualifiedName);
+            writer.Write((byte)0);      // Basic
+            writer.Write(1);            // Number of objects
+            writer.Write((uint)1);      // Type
             writer.Write(123);          // Root object
             writer.Close();
 
@@ -525,7 +796,7 @@ namespace IcepackTest
             writer.Write(0);            // Number of fields
             writer.Write(1);            // Number of objects
             writer.Write((uint)1);      // Type ID
-            writer.Write(false);        // Root object is reference-type
+
             writer.Write((uint)1);      // Type ID
             writer.Close();
 
@@ -554,7 +825,7 @@ namespace IcepackTest
             writer.Write(4);            // Size of float
             writer.Write(1);            // Number of objects
             writer.Write((uint)1);      // Type ID of root object
-            writer.Write(false);        // Root object is reference-type
+
             writer.Write((uint)1);      // Type ID of root object
             writer.Write(123);          // Field1
             writer.Write(2.34f);        // Field3
@@ -598,7 +869,7 @@ namespace IcepackTest
             writer.Write("asdf");       // String value
             writer.Write((uint)1);      // Type ID of object 3
             writer.Write("some stuff"); // String value
-            writer.Write(false);        // Root object is reference-type
+
             writer.Write((uint)2);      // Type ID of root object
             writer.Write(123);          // Field1
             writer.Write((uint)2);      // Field2
@@ -650,7 +921,7 @@ namespace IcepackTest
             writer.Write((uint)3);      // Type ID of root object
             writer.Write((uint)1);      // Type ID of object 2
             writer.Write("asdf");       // String value
-            writer.Write(false);        // Root object is reference-type
+
             writer.Write((uint)3);      // Type ID of root object
             writer.Write(123);          // Field1
             writer.Write((uint)2);      // Field2
@@ -690,7 +961,7 @@ namespace IcepackTest
             writer.Write(false);        // Has no parent
             writer.Write(0);            // Number of fields
             
-            writer.Write(typeof(ClassWithObjectField).AssemblyQualifiedName);
+            writer.Write(typeof(ClassWithMultipleObjectFields).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(12);           // Type size
             writer.Write(false);        // Has no parent
@@ -708,8 +979,6 @@ namespace IcepackTest
             writer.Write((uint)1);      // Type ID of object 3
             writer.Write((uint)2);      // Type ID of object 4
 
-            writer.Write(false);        // Root object is reference-type
-
             writer.Write((uint)3);      // Type ID of root object
             writer.Write((uint)2);      // Field1
             writer.Write((uint)3);      // Field2
@@ -722,7 +991,7 @@ namespace IcepackTest
             writer.Write((uint)2);      // Type ID of object 4
             writer.Close();
 
-            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
+            ClassWithMultipleObjectFields deserializedObj = serializer.Deserialize<ClassWithMultipleObjectFields>(stream);
 
             Assert.NotNull(deserializedObj);
             Assert.NotNull(deserializedObj.Field1);
@@ -754,7 +1023,7 @@ namespace IcepackTest
             writer.Write("Field1");     // Field1
             writer.Write(4);            // Field1 size
 
-            writer.Write(typeof(ClassWithObjectField).AssemblyQualifiedName);
+            writer.Write(typeof(ClassWithMultipleObjectFields).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(12);           // Type size
             writer.Write(false);        // Has no parent
@@ -773,8 +1042,6 @@ namespace IcepackTest
             writer.Write(3);            // Array length
             writer.Write((uint)2);      // Type ID of object 4
 
-            writer.Write(false);        // Root object is reference-type
-
             writer.Write((uint)3);      // Type ID of root object
             writer.Write((uint)2);      // Field1
             writer.Write((uint)3);      // Field2
@@ -791,7 +1058,7 @@ namespace IcepackTest
             writer.Write(456);          // Field1
             writer.Close();
 
-            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
+            ClassWithMultipleObjectFields deserializedObj = serializer.Deserialize<ClassWithMultipleObjectFields>(stream);
 
             Assert.NotNull(deserializedObj);
             Assert.NotNull(deserializedObj.Field1);
@@ -824,7 +1091,7 @@ namespace IcepackTest
             writer.Write(false);        // Has no parent
             writer.Write(0);            // Number of fields
 
-            writer.Write(typeof(ClassWithObjectField).AssemblyQualifiedName);
+            writer.Write(typeof(ClassWithMultipleObjectFields).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(12);           // Type size
             writer.Write(false);        // Has no parent
@@ -843,8 +1110,6 @@ namespace IcepackTest
             writer.Write(3);            // Dictionary length
             writer.Write((uint)2);      // Type ID of object 4
 
-            writer.Write(false);        // Root object is reference-type
-
             writer.Write((uint)3);      // Type ID of root object
             writer.Write((uint)2);      // Field1
             writer.Write((uint)3);      // Field2
@@ -861,7 +1126,7 @@ namespace IcepackTest
             writer.Write((uint)2);      // Type ID of object 4
             writer.Close();
 
-            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
+            ClassWithMultipleObjectFields deserializedObj = serializer.Deserialize<ClassWithMultipleObjectFields>(stream);
 
             Assert.NotNull(deserializedObj);
             Assert.NotNull(deserializedObj.Field1);
@@ -907,8 +1172,6 @@ namespace IcepackTest
 
             writer.Write(1);            // Number of objects
             writer.Write((uint)3);      // Type ID of root object
-
-            writer.Write(false);        // Root object is reference-type
 
             writer.Write((uint)3);      // Type ID of root object
             writer.Write(123);          // Field1
@@ -963,8 +1226,6 @@ namespace IcepackTest
             writer.Write(1);            // Number of objects
             writer.Write((uint)3);      // Type ID of root object
 
-            writer.Write(false);        // Root object is reference-type
-
             writer.Write((uint)3);      // Type ID of root object
             writer.Write(123);          // Field1
             writer.Write((uint)2);      // Type ID of parent class
@@ -982,11 +1243,108 @@ namespace IcepackTest
         }
 
         [Test]
+        public void DeserializeClassWithDeletedEnumType()
+        {
+            Serializer serializer = new Serializer();
+            
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            writer.Write(Serializer.CompatibilityVersion);
+            writer.Write(3);            // Number of types
+
+            writer.Write(typeof(ClassWithObjectField).AssemblyQualifiedName);
+            writer.Write((byte)6);      // Category: class
+            writer.Write(12);           // Type size
+            writer.Write(false);        // Has no parent
+            writer.Write(3);            // Number of fields            
+            writer.Write("Field1");
+            writer.Write(4);            // Size of int
+            writer.Write("Field2");
+            writer.Write(4);            // Size of object reference
+            writer.Write("Field3");
+            writer.Write(4);            // Size of int
+
+            writer.Write(typeof(short).AssemblyQualifiedName);
+            writer.Write((byte)0);      // Category: basic
+
+            writer.Write("MissingEnumName");
+            writer.Write((byte)7);      // Category: enum
+            writer.Write((uint)2);      // Underlying type ID
+
+            writer.Write(2);            // Number of objects
+            writer.Write((uint)1);      // Type ID of root object
+            writer.Write((uint)3);      // Type ID: enum
+            writer.Write((short)456);   // Enum value
+
+            writer.Write((uint)1);      // Type ID of root object
+            writer.Write(123);          // Field1
+            writer.Write((uint)2);      // Field2
+            writer.Write(789);          // Field3
+
+            writer.Close();
+
+            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.Null(deserializedObj.Field2);
+            Assert.AreEqual(789, deserializedObj.Field3);
+        }
+
+        [Test]
+        public void DeserializeClassWithDeletedType()
+        {
+            Serializer serializer = new Serializer();
+
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            writer.Write(Serializer.CompatibilityVersion);
+            writer.Write(3);            // Number of types
+
+            writer.Write(typeof(ClassWithTypeField).AssemblyQualifiedName);
+            writer.Write((byte)6);      // Category: class
+            writer.Write(12);           // Type size
+            writer.Write(false);        // Has no parent
+            writer.Write(3);            // Number of fields            
+            writer.Write("Field1");
+            writer.Write(4);            // Size of int
+            writer.Write("Field2");
+            writer.Write(4);            // Size of object reference
+            writer.Write("Field3");
+            writer.Write(4);            // Size of int
+
+            writer.Write(typeof(Type).AssemblyQualifiedName);
+            writer.Write((byte)8);      // Category: type
+
+            writer.Write("MissingTypeName");
+            writer.Write((byte)8);      // Category: type
+
+            writer.Write(2);            // Number of objects
+            writer.Write((uint)1);      // Type ID of root object
+            writer.Write((uint)2);      // Type ID of Type object
+            writer.Write((uint)3);      // Value of Type object
+
+            writer.Write((uint)1);      // Type ID of root object
+            writer.Write(123);          // Field1
+            writer.Write((uint)2);      // Field2
+            writer.Write(789);          // Field3
+
+            writer.Close();
+
+            ClassWithTypeField deserializedObj = serializer.Deserialize<ClassWithTypeField>(stream);
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.Null(deserializedObj.Field2);
+            Assert.AreEqual(789, deserializedObj.Field3);
+        }
+
+        [Test]
         public void SerializeReferenceTypeInObjectField()
         {
             Serializer serializer = new Serializer();
 
-            ClassWithObjectField obj = new ClassWithObjectField()
+            ClassWithMultipleObjectFields obj = new ClassWithMultipleObjectFields()
             {
                 Field1 = new RegisteredClass(),
                 Field2 = new ClassWithIntField() { Field1 = 123 },
@@ -995,7 +1353,7 @@ namespace IcepackTest
 
             MemoryStream stream = new MemoryStream();
             serializer.Serialize(obj, stream);
-            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
+            ClassWithMultipleObjectFields deserializedObj = serializer.Deserialize<ClassWithMultipleObjectFields>(stream);
             stream.Close();
 
             Assert.NotNull(deserializedObj);
@@ -1089,6 +1447,42 @@ namespace IcepackTest
             stream.Close();
 
             Assert.AreEqual(247, deserializedObj.Field);
+        }
+
+        [Test]
+        public void SerializeStructWithSerializationHooks()
+        {
+            Serializer serializer = new Serializer();
+
+            StructWithSerializationHooks obj = new StructWithSerializationHooks() { Field = 123 };
+
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            StructWithSerializationHooks deserializedObj = serializer.Deserialize<StructWithSerializationHooks>(stream);
+            stream.Close();
+
+            Assert.AreEqual(247, deserializedObj.Field);
+        }
+
+        [Test]
+        public void SerializeFieldWithStructWithSerializationHooks()
+        {
+            Serializer serializer = new Serializer();
+
+            StructWithSerializationHooks s = new StructWithSerializationHooks() { Field = 123 };
+            ClassWithStructWithSerializationHooksField obj = new ClassWithStructWithSerializationHooksField() { Field1 = 111, Field2 = s, Field3 = 333 };
+
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ClassWithStructWithSerializationHooksField deserializedObj = serializer.Deserialize<ClassWithStructWithSerializationHooksField>(stream);
+            stream.Close();
+
+            StructWithSerializationHooks expectedStruct = new StructWithSerializationHooks() { Field = 247 };
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(111, deserializedObj.Field1);
+            Assert.AreEqual(expectedStruct, deserializedObj.Field2);
+            Assert.AreEqual(333, deserializedObj.Field3);
         }
 
         [Test]

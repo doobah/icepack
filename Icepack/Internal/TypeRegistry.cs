@@ -24,9 +24,6 @@ namespace Icepack
             if (types.ContainsKey(type))
                 return types[type];
 
-            if (!type.IsClass && !Toolbox.IsStruct(type) || type == typeof(object) || type == typeof(ValueType))
-                throw new IcepackException($"Type {type} cannot be registered for serialization!");
-
             TypeMetadata newTypeMetadata = new TypeMetadata(type, this);
             types.Add(type, newTypeMetadata);
 
@@ -39,6 +36,9 @@ namespace Icepack
         /// <remarks> This method lazy-registers types that have the <see cref="SerializableObjectAttribute"/> attribute. </remarks>
         public TypeMetadata GetTypeMetadata(Type type)
         {
+            if (type.IsSubclassOf(typeof(Type)))
+                type = typeof(Type);
+
             if (!IsTypeRegistered(type))
             {
                 object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);

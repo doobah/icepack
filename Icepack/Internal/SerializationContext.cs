@@ -44,30 +44,33 @@ namespace Icepack
         {
             uint newId = ++largestInstanceId;
             Type type = obj.GetType();
+            if (type.IsSubclassOf(typeof(Type)))
+                type = typeof(Type);
             TypeMetadata typeMetadata = GetTypeMetadata(type);
 
             int length = 0;
             switch (typeMetadata.CategoryId)
             {
-                case 0: // String
+                case Category.Basic:
                     break;
-                case 1: // Array
+                case Category.Array:
                     length = ((Array)obj).Length;
                     break;
-                case 2: // List
+                case Category.List:
                     length = ((IList)obj).Count;
                     break;
-                case 3: // HashSet
+                case Category.HashSet:
                     length = 0;
                     foreach (object item in (IEnumerable)obj)
                         length++;
                     break;
-                case 4: // Dictionary
+                case Category.Dictionary:
                     length = ((IDictionary)obj).Count;
                     break;
-                case 5:
-                    break;
-                case 6:
+                case Category.Struct:
+                case Category.Class:
+                case Category.Enum:
+                case Category.Type:
                     break;
                 default:
                     throw new IcepackException($"Invalid category ID: {typeMetadata.CategoryId}");
@@ -88,11 +91,16 @@ namespace Icepack
         {
             if (!Types.ContainsKey(type))
             {
+                // If this is an enum, we want the underlying type to exist ahead of the enum type
+                TypeMetadata enumUnderlyingTypeMetadata = null;
+                if (type.IsEnum)
+                    enumUnderlyingTypeMetadata = GetTypeMetadata(type.GetEnumUnderlyingType());
+
                 TypeMetadata registeredTypeMetadata = typeRegistry.GetTypeMetadata(type);
                 if (registeredTypeMetadata == null)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
-                TypeMetadata newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId);
+                TypeMetadata newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata);
                 Types.Add(type, newTypeMetadata);
                 TypesInOrder.Add(newTypeMetadata);
                 return newTypeMetadata;

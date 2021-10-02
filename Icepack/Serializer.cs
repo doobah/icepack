@@ -20,8 +20,22 @@ namespace Icepack
         {
             typeRegistry = new TypeRegistry();
 
-            // string type is automatically registered
+            // Pre-register all 'basic' types
             RegisterType(typeof(string));
+            RegisterType(typeof(byte));
+            RegisterType(typeof(sbyte));
+            RegisterType(typeof(char));
+            RegisterType(typeof(bool));
+            RegisterType(typeof(int));
+            RegisterType(typeof(uint));
+            RegisterType(typeof(short));
+            RegisterType(typeof(ushort));
+            RegisterType(typeof(long));
+            RegisterType(typeof(ulong));
+            RegisterType(typeof(decimal));
+            RegisterType(typeof(float));
+            RegisterType(typeof(double));
+            RegisterType(typeof(Type));
         }
 
         /// <summary> Registers a type as serializable. </summary>
@@ -46,20 +60,8 @@ namespace Icepack
 
             // Serialize objects
 
-            bool rootObjectIsValueType;
-            if (rootObj.GetType().IsClass)
-            {
-                rootObjectIsValueType = false;
-                context.RegisterObject(rootObj);
-                SerializationOperationFactory.SerializeReferenceType(rootObj, context);
-            }
-            else
-            {
-                rootObjectIsValueType = true;
-                var serializationOperation = SerializationOperationFactory.GetOperation(rootObj.GetType());
-                serializationOperation(rootObj, context);
-            }
-
+            context.RegisterObject(rootObj);
+            SerializationOperationFactory.SerializeReferenceType(rootObj, context);
             while (context.ObjectsToSerialize.Count > 0)
             {
                 object objToSerialize = context.ObjectsToSerialize.Dequeue();
@@ -68,8 +70,6 @@ namespace Icepack
 
             SerializeTypeMetadata(writer, context);
             SerializeObjectMetadata(writer, context);
-
-            writer.Write(rootObjectIsValueType);
 
             objectStream.Position = 0;
             objectStream.CopyTo(outputStream);
@@ -92,15 +92,26 @@ namespace Icepack
 
                 switch (objectMetadata.Type.CategoryId)
                 {
-                    case 0: // String
-                        writer.Write((string)objectMetadata.Value);
+                    case Category.Basic:
+                        objectMetadata.Type.SerializeBasic(objectMetadata.Value, writer, context);
                         break;
-                    case 1: // Array
-                    case 2: // List
-                    case 3: // HashSet
-                    case 4: // Dictionary
+                    case Category.Array:
+                    case Category.List:
+                    case Category.HashSet:
+                    case Category.Dictionary:
                         writer.Write(objectMetadata.Length);
                         break;
+                    case Category.Struct:
+                    case Category.Class:
+                        break;
+                    case Category.Enum:
+                        objectMetadata.Type.EnumUnderlyingTypeMetadata.SerializeBasic(objectMetadata.Value, writer, context);
+                        break;
+                    case Category.Type:
+                        writer.Write(context.GetTypeMetadata((Type)objectMetadata.Value).Id);
+                        break;
+                    default:
+                        throw new IcepackException($"Invalid category ID: {objectMetadata.Type.CategoryId}");
                 }
             }
         }
@@ -112,23 +123,23 @@ namespace Icepack
             {
                 TypeMetadata typeMetadata = context.TypesInOrder[typeIdx];
                 writer.Write(typeMetadata.Type.AssemblyQualifiedName);
-                writer.Write(typeMetadata.CategoryId);
+                writer.Write((byte)typeMetadata.CategoryId);
                 switch (typeMetadata.CategoryId)
                 {
-                    case 0: // String
+                    case Category.Basic:
                         break;
-                    case 1: // Array
-                    case 2: // List
+                    case Category.Array:
+                    case Category.List:
                         writer.Write(typeMetadata.ItemSize);
                         break;
-                    case 3: // HashSet
+                    case Category.HashSet:
                         writer.Write(typeMetadata.ItemSize);
                         break;
-                    case 4: // Dictionary
+                    case Category.Dictionary:
                         writer.Write(typeMetadata.KeySize);
                         writer.Write(typeMetadata.ItemSize);
                         break;
-                    case 5: // Struct
+                    case Category.Struct:
                         writer.Write(typeMetadata.InstanceSize);
                         writer.Write(typeMetadata.Fields.Count);
                         for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
@@ -138,7 +149,7 @@ namespace Icepack
                             writer.Write(fieldMetadata.Size);
                         }
                         break;
-                    case 6: // Class
+                    case Category.Class:
                         writer.Write(typeMetadata.InstanceSize);
                         writer.Write(typeMetadata.HasParent);
                         writer.Write(typeMetadata.Fields.Count);
@@ -148,6 +159,11 @@ namespace Icepack
                             writer.Write(fieldMetadata.FieldInfo.Name);
                             writer.Write(fieldMetadata.Size);
                         }
+                        break;
+                    case Category.Enum:
+                        writer.Write(typeMetadata.EnumUnderlyingTypeMetadata.Id);
+                        break;
+                    case Category.Type:
                         break;
                     default:
                         throw new IcepackException($"Invalid category ID: {typeMetadata.CategoryId}");
@@ -172,22 +188,13 @@ namespace Icepack
 
             // Deserialize objects
 
-            bool rootObjectIsValueType = context.Reader.ReadBoolean();
-
-            T rootObject;
-            if (rootObjectIsValueType)
-            {
-                var deserializationOperation = DeserializationOperationFactory.GetOperation(typeof(T));
-                rootObject = (T)deserializationOperation(context);
-            }
-            else
-                rootObject = (T)context.Objects[0].Value;
-
             for (int i = 0; i < context.Objects.Length; i++)
             {
                 ObjectMetadata classObjMetadata = context.Objects[i];
                 DeserializationOperationFactory.DeserializeReferenceType(classObjMetadata, context);
             }
+
+            T rootObject = (T)context.Objects[0].Value;
 
             // Clean up
 
@@ -212,10 +219,10 @@ namespace Icepack
                 object obj;
                 switch (objectTypeMetadata.CategoryId)
                 {
-                    case 0: // String
-                        obj = context.Reader.ReadString();
+                    case Category.Basic:
+                        obj = objectTypeMetadata.DeserializeBasic(context);
                         break;
-                    case 1: // Array
+                    case Category.Array:
                         {
                             length = context.Reader.ReadInt32();
                             if (objectType == null)
@@ -227,9 +234,9 @@ namespace Icepack
                             }
                             break;
                         }
-                    case 2: // List
-                    case 3: // HashSet
-                    case 4: // Dictionary
+                    case Category.List:
+                    case Category.HashSet:
+                    case Category.Dictionary:
                         {
                             length = context.Reader.ReadInt32();
                             if (objectType == null)
@@ -238,13 +245,28 @@ namespace Icepack
                                 obj = Activator.CreateInstance(objectType, length);
                             break;
                         }
-                    case 5: // Struct
-                        throw new IcepackException($"Unexpected category ID: {objectTypeMetadata.CategoryId}");
-                    case 6: // Class
+                    case Category.Struct:
                         if (objectType == null)
                             obj = null;
                         else
                             obj = Activator.CreateInstance(objectType);
+                        break;
+                    case Category.Class:
+                        if (objectType == null)
+                            obj = null;
+                        else
+                            obj = Activator.CreateInstance(objectType);
+                        break;
+                    case Category.Enum:
+                        object underlyingValue = objectTypeMetadata.EnumUnderlyingTypeMetadata.DeserializeBasic(context);
+                        if (objectType == null)
+                            obj = null;
+                        else
+                            obj = Enum.ToObject(objectType, underlyingValue);
+                        break;
+                    case Category.Type:
+                        uint value = context.Reader.ReadUInt32();
+                        obj = context.Types[value - 1].Type;
                         break;
                     default:
                         throw new IcepackException($"Invalid category ID: {objectTypeMetadata.CategoryId}");
@@ -270,22 +292,23 @@ namespace Icepack
                 bool hasParent = false;
                 List<string> fieldNames = null;
                 List<int> fieldSizes = null;
+                TypeMetadata enumUnderlyingTypeMetadata = null;
 
-                byte categoryId = context.Reader.ReadByte();
+                Category categoryId = (Category)context.Reader.ReadByte();
                 switch (categoryId)
                 {
-                    case 0: // String
+                    case Category.Basic:
                         break;
-                    case 1: // Array
-                    case 2: // List
-                    case 3: // HashSet
+                    case Category.Array:
+                    case Category.List:
+                    case Category.HashSet:
                         itemSize = context.Reader.ReadInt32();
                         break;
-                    case 4: // Dictionary
+                    case Category.Dictionary:
                         keySize = context.Reader.ReadInt32();
                         itemSize = context.Reader.ReadInt32();
                         break;
-                    case 5: // Struct
+                    case Category.Struct:
                         {
                             instanceSize = context.Reader.ReadInt32();
 
@@ -299,7 +322,7 @@ namespace Icepack
                             }
                             break;
                         }
-                    case 6: // Class
+                    case Category.Class:
                         {
                             instanceSize = context.Reader.ReadInt32();
                             hasParent = context.Reader.ReadBoolean();
@@ -314,12 +337,18 @@ namespace Icepack
                             }
                             break;
                         }
+                    case Category.Enum:
+                        uint underlyingTypeId = context.Reader.ReadUInt32();
+                        enumUnderlyingTypeMetadata = context.Types[underlyingTypeId - 1];
+                        break;
+                    case Category.Type:
+                        break;
                     default:
                         throw new IcepackException($"Invalid category ID: {categoryId}");
                 }
 
                 TypeMetadata typeMetadata = new TypeMetadata(registeredTypeMetadata, fieldNames, fieldSizes, (uint)(t + 1),
-                    hasParent, categoryId, itemSize, keySize, instanceSize);
+                    hasParent, categoryId, itemSize, keySize, instanceSize, enumUnderlyingTypeMetadata);
                 context.Types[t] = typeMetadata;
             }
         }

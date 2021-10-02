@@ -50,8 +50,8 @@ namespace Icepack
             FieldInfo = fieldInfo;
             Getter = BuildGetter(fieldInfo);
             Setter = BuildSetter(fieldInfo);
-            Deserialize = DeserializationOperationFactory.GetOperation(fieldInfo.FieldType);
-            Serialize = SerializationOperationFactory.GetOperation(fieldInfo.FieldType);
+            Deserialize = DeserializationOperationFactory.GetFieldOperation(fieldInfo.FieldType);
+            Serialize = SerializationOperationFactory.GetFieldOperation(fieldInfo.FieldType);
             Size = TypeSizeFactory.GetFieldSize(fieldInfo.FieldType, typeRegistry);
         }
 
