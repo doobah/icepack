@@ -27,7 +27,9 @@ namespace Icepack
         public uint Id { get; }
         public Type Type { get; }
         public TypeMetadata EnumUnderlyingTypeMetadata { get; }
-        public SortedList<string, FieldMetadata> Fields { get; }
+        public List<FieldMetadata> Fields { get; }
+        public Dictionary<string, FieldMetadata> FieldsByName { get; }
+        public Dictionary<string, FieldMetadata> FieldsByPreviousName { get; }
         public bool HasParent { get; }
         public Action<object, object> HashSetAdder { get; }
         public Action<object, SerializationContext> SerializeKey { get; }
@@ -52,6 +54,8 @@ namespace Icepack
             HasParent = registeredTypeMetadata.HasParent;
             Type = registeredTypeMetadata.Type;
             Fields = registeredTypeMetadata.Fields;
+            FieldsByName = registeredTypeMetadata.FieldsByName;
+            FieldsByPreviousName = registeredTypeMetadata.FieldsByPreviousName;
             CategoryId = registeredTypeMetadata.CategoryId;
             ItemSize = registeredTypeMetadata.ItemSize;
             KeySize = registeredTypeMetadata.KeySize;
@@ -82,6 +86,8 @@ namespace Icepack
             KeySize = keySize;
             InstanceSize = instanceSize;
             EnumUnderlyingTypeMetadata = enumUnderlyingTypeMetadata;
+            FieldsByName = null;
+            FieldsByPreviousName = null;
 
             if (registeredTypeMetadata == null)
             {
@@ -103,14 +109,16 @@ namespace Icepack
                     Fields = null;
                 else
                 {
-                    Fields = new SortedList<string, FieldMetadata>(fieldNames.Count);
+                    Fields = new List<FieldMetadata>(fieldNames.Count);
                     for (int i = 0; i < fieldNames.Count; i++)
                     {
                         string fieldName = fieldNames[i];
                         int fieldSize = fieldSizes[i];
-                        FieldMetadata registeredFieldMetadata = registeredTypeMetadata.Fields.GetValueOrDefault(fieldName, null);
+                        FieldMetadata registeredFieldMetadata = registeredTypeMetadata.FieldsByName.GetValueOrDefault(fieldName, null);
+                        if (registeredFieldMetadata == null)
+                            registeredFieldMetadata = registeredTypeMetadata.FieldsByPreviousName.GetValueOrDefault(fieldName, null);
                         FieldMetadata fieldMetadata = new FieldMetadata(fieldSize, registeredFieldMetadata);
-                        Fields.Add(fieldName, fieldMetadata);
+                        Fields.Add(fieldMetadata);
                     }
                 }
 
@@ -129,7 +137,9 @@ namespace Icepack
         public TypeMetadata(Type type, TypeRegistry typeRegistry)
         {
             HasParent = false;
-            Fields = new SortedList<string, FieldMetadata>();
+            Fields = new List<FieldMetadata>();
+            FieldsByName = new Dictionary<string, FieldMetadata>();
+            FieldsByPreviousName = new Dictionary<string, FieldMetadata>();
             HashSetAdder = null;
             SerializeKey = null;
             SerializeBasic = null;
@@ -399,14 +409,23 @@ namespace Icepack
             {
                 IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
                 if (ignoreAttr == null)
-                    Fields.Add(fieldInfo.Name, new FieldMetadata(fieldInfo, typeRegistry));
+                {
+                    FieldMetadata fieldMetadata = new FieldMetadata(fieldInfo, typeRegistry);
+                    FieldsByName.Add(fieldInfo.Name, fieldMetadata);
+
+                    PreviousNameAttribute previousNameAttr = fieldInfo.GetCustomAttribute<PreviousNameAttribute>();
+                    if (previousNameAttr != null)
+                        FieldsByPreviousName.Add(previousNameAttr.Name, fieldMetadata);
+
+                    Fields.Add(fieldMetadata);
+                }
             }
         }
 
         private int CalculateSize()
         {
             int size = 0;
-            foreach (FieldMetadata field in Fields.Values)
+            foreach (FieldMetadata field in Fields)
                 size += field.Size;
 
             return size;

@@ -124,21 +124,21 @@ Other rules:
 
 * Types can be included for serialization by calling the serializer's `RegisterType` method, or annotating the type with the `SerializableObject` attribute.
 * Fields can be ignored by annotating them with the `IgnoreField` attribute.
-* The `ISerializer` interface is provided to allow classes to execute additional logic before serialization and after deserialization.
+* The `ISerializer` interface is provided to allow classes and structs to execute additional logic before serialization and after deserialization.
 * Deserialization is somewhat resilient to changes to the data types since serialization.
   * Fields that have been added or removed to a class since serialization will be ignored.
   * A field that was serialized as a reference to an instance of a missing class is ignored.
   * If a class was derived from another class that is now missing or is no longer a base class, the missing or former base class is ignored, and the serializer resumes deserializing fields from further ancestors.
+  * The `PreviousName` attribute can be assigned to a field to indicate that the name of the field has changed, so that the correct field will be matched with what is in the serialized data.
 
 # Limitations
 
 * Currently only fields (both private and public) are serialized, not properties.
 * `nuint` and `nint` are not supported.
-* Fields of type `object` or `ValueType` are not supported.
 * `span` and other exotic types are not supported.
-* Boxed value types are not supported.
 * Serializing delegates is not supported.
 * Deserializing after changing the type of a serialized field results in undefined behaviour.
+* Changing the name of a type will result in the serializer not knowing how to deserialize objects of that type.
 
 # Usage Example
 
@@ -147,6 +147,7 @@ The following example demonstrates some capabilities of Icepack:
 ```
 using System;
 using Icepack;
+using System.IO;
 
 namespace Example
 {
@@ -197,12 +198,14 @@ namespace Example
             ClassA nestedObj = new ClassA(123, null, "asdf");
             ClassA rootObj = new ClassA(456, nestedObj, "qwer");
 
-            string str = serializer.Serialize(rootObj);
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(rootObj, stream);
+
             Console.WriteLine("___Serialized Output___");
-            Console.WriteLine(str);
+            Console.WriteLine(Convert.ToHexString(stream.ToArray()));
             Console.WriteLine("");
 
-            ClassA deserializedObj = serializer.Deserialize<ClassA>(str);
+            ClassA deserializedObj = serializer.Deserialize<ClassA>(stream);
             Console.WriteLine("___Deserialized Object___");
             Console.WriteLine(deserializedObj);
         }
@@ -214,7 +217,7 @@ which gives the output:
 
 ```
 ___Serialized Output___
-[[[Example.ClassA\, TestProject\, Version=1.0.0.0\, Culture=neutral\, PublicKeyToken=null,field1,field2],[Example.ClassZ\, TestProject\, Version=1.0.0.0\, Culture=neutral\, PublicKeyToken=null,field1]],[[0,[0,456,2],[1,qwer]],[0,[0,123,0],[1,asdf]]]]
+010003000000A4014500780061006D0070006C0065002E0043006C0061007300730041002C0020005400650073007400500072006F006A006500630074002C002000560065007200730069006F006E003D0031002E0030002E0030002E0030002C002000430075006C0074007500720065003D006E00650075007400720061006C002C0020005000750062006C00690063004B006500790054006F006B0065006E003D006E0075006C006C00060800000001020000000C6600690065006C0064003100040000000C6600690065006C006400320004000000A4014500780061006D0070006C0065002E0043006C006100730073005A002C0020005400650073007400500072006F006A006500630074002C002000560065007200730069006F006E003D0031002E0030002E0030002E0030002C002000430075006C0074007500720065003D006E00650075007400720061006C002C0020005000750062006C00690063004B006500790054006F006B0065006E003D006E0075006C006C00060400000000010000000C6600690065006C006400310004000000D001530079007300740065006D002E0053007400720069006E0067002C002000530079007300740065006D002E0050007200690076006100740065002E0043006F00720065004C00690062002C002000560065007200730069006F006E003D0035002E0030002E0030002E0030002C002000430075006C0074007500720065003D006E00650075007400720061006C002C0020005000750062006C00690063004B006500790054006F006B0065006E003D00370063006500630038003500640037006200650061003700370039003800650000040000000100000001000000030000000871007700650072000300000008610073006400660001000000C8010000020000000200000003000000010000007B000000000000000200000004000000
 
 ___Deserialized Object___
 [ClassA.field1=456, ClassA.field2=[ClassA.field1=123, ClassA.field2=, ClassZ.field1=asdf], ClassZ.field1=qwer]

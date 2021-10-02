@@ -94,7 +94,7 @@ namespace Icepack
 
             for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
             {
-                FieldMetadata field = typeMetadata.Fields.Values[fieldIdx];
+                FieldMetadata field = typeMetadata.Fields[fieldIdx];
                 object value = field.Getter(obj);
                 field.Serialize(value, context);
             }
@@ -112,7 +112,7 @@ namespace Icepack
 
             for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
             {
-                FieldMetadata field = typeMetadata.Fields.Values[fieldIdx];
+                FieldMetadata field = typeMetadata.Fields[fieldIdx];
                 object value = field.Getter(obj);
                 field.Serialize(value, context);
             }
@@ -171,7 +171,7 @@ namespace Icepack
 
             for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
             {
-                FieldMetadata field = typeMetadata.Fields.Values[fieldIdx];
+                FieldMetadata field = typeMetadata.Fields[fieldIdx];
                 object value = field.Getter(obj);
                 field.Serialize(value, context);
             }

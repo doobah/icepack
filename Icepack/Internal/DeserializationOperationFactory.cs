@@ -85,9 +85,35 @@ namespace Icepack
             return context.Types[typeId - 1].Type;
         }
 
-        public static object DeserializeStruct(DeserializationContext context)
+        public static object DeserializeStructField(DeserializationContext context)
         {
-            return DeserializeStruct(null, context);
+            uint typeId = context.Reader.ReadUInt32();
+            TypeMetadata typeMetadata = context.Types[typeId - 1];
+
+            if (typeMetadata.Type == null)
+                context.Reader.BaseStream.Position += typeMetadata.InstanceSize;
+
+            object structObj = Activator.CreateInstance(typeMetadata.Type);
+
+            for (int i = 0; i < typeMetadata.Fields.Count; i++)
+            {
+                FieldMetadata field = typeMetadata.Fields[i];
+                if (field.FieldInfo == null)
+                {
+                    context.Reader.BaseStream.Position += field.Size;
+                }
+                else
+                {
+                    Type fieldType = field.FieldInfo.FieldType;
+                    object value = field.Deserialize(context);
+                    field.Setter(structObj, value);
+                }
+            }
+
+            if (structObj is ISerializerListener)
+                ((ISerializerListener)structObj).OnAfterDeserialize();
+
+            return structObj;
         }
 
         public static object DeserializeStruct(ObjectMetadata objectMetadata, DeserializationContext context)
@@ -98,15 +124,11 @@ namespace Icepack
             if (typeMetadata.Type == null)
                 context.Reader.BaseStream.Position += typeMetadata.InstanceSize;
 
-            object structObj;
-            if (objectMetadata == null)
-                structObj = Activator.CreateInstance(typeMetadata.Type);
-            else
-                structObj = objectMetadata.Value;
+            object structObj = objectMetadata.Value;
 
             for (int i = 0; i < typeMetadata.Fields.Count; i++)
             {
-                FieldMetadata field = typeMetadata.Fields.Values[i];
+                FieldMetadata field = typeMetadata.Fields[i];
                 if (field.FieldInfo == null)
                 {
                     context.Reader.BaseStream.Position += field.Size;
@@ -224,7 +246,7 @@ namespace Icepack
                     {
                         for (int fieldIdx = 0; fieldIdx < partialClassTypeMetadata.Fields.Count; fieldIdx++)
                         {
-                            FieldMetadata field = partialClassTypeMetadata.Fields.Values[fieldIdx];
+                            FieldMetadata field = partialClassTypeMetadata.Fields[fieldIdx];
                             if (field.FieldInfo == null)
                                 context.Reader.BaseStream.Position += field.Size;
                             else
@@ -344,7 +366,7 @@ namespace Icepack
             else if (type.IsEnum)
                 return GetEnumOperation(type);
             else if (type.IsValueType)
-                return DeserializeStruct;
+                return DeserializeStructField;
             else if (type.IsClass || type.IsInterface)
                 return DeserializeObjectReference;
             else

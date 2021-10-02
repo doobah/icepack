@@ -167,12 +167,12 @@ namespace IcepackTest
 
             public void OnBeforeSerialize()
             {
-                Field = Field * 2;
+                Field *= 2;
             }
 
             public void OnAfterDeserialize()
             {
-                Field = Field + 1;
+                Field++;
             }
         }
 
@@ -191,12 +191,12 @@ namespace IcepackTest
 
             public void OnBeforeSerialize()
             {
-                Field = Field * 2;
+                Field *= 2;
             }
 
             public void OnAfterDeserialize()
             {
-                Field = Field + 1;
+                Field++;
             }
         }
 
@@ -249,6 +249,15 @@ namespace IcepackTest
         {
             public int Field1;
             public Type Field2;
+            public int Field3;
+        }
+
+        [SerializableObject]
+        private class ClassWithRenamedField
+        {
+            public int Field1;
+            [PreviousName("Field9000")]
+            public int Field2;
             public int Field3;
         }
 
@@ -1336,6 +1345,46 @@ namespace IcepackTest
             Assert.NotNull(deserializedObj);
             Assert.AreEqual(123, deserializedObj.Field1);
             Assert.Null(deserializedObj.Field2);
+            Assert.AreEqual(789, deserializedObj.Field3);
+        }
+
+        [Test]
+        public void DeserializeClassWithRenamedField()
+        {
+            Serializer serializer = new Serializer();
+
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            writer.Write(Serializer.CompatibilityVersion);
+            writer.Write(1);            // Number of types
+
+            writer.Write(typeof(ClassWithRenamedField).AssemblyQualifiedName);
+            writer.Write((byte)6);      // Category: class
+            writer.Write(12);           // Type size
+            writer.Write(false);        // Has no parent
+            writer.Write(3);            // Number of fields            
+            writer.Write("Field1");
+            writer.Write(4);            // Size of int
+            writer.Write("Field9000");
+            writer.Write(4);            // Size of int
+            writer.Write("Field3");
+            writer.Write(4);            // Size of int
+
+            writer.Write(1);            // Number of objects
+            writer.Write((uint)1);      // Type ID of root object
+
+            writer.Write((uint)1);      // Type ID of root object
+            writer.Write(123);          // Field1
+            writer.Write(456);          // Field9000
+            writer.Write(789);          // Field3
+
+            writer.Close();
+
+            ClassWithRenamedField deserializedObj = serializer.Deserialize<ClassWithRenamedField>(stream);
+
+            Assert.NotNull(deserializedObj);
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual(456, deserializedObj.Field2);
             Assert.AreEqual(789, deserializedObj.Field3);
         }
 

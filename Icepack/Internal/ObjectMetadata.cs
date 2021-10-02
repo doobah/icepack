@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Icepack
 {
-    internal class ObjectMetadata
+    internal struct ObjectMetadata
     {
         public uint Id { get; }
         public TypeMetadata Type { get; }

@@ -144,7 +144,7 @@ namespace Icepack
                         writer.Write(typeMetadata.Fields.Count);
                         for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
                         {
-                            FieldMetadata fieldMetadata = typeMetadata.Fields.Values[fieldIdx];
+                            FieldMetadata fieldMetadata = typeMetadata.Fields[fieldIdx];
                             writer.Write(fieldMetadata.FieldInfo.Name);
                             writer.Write(fieldMetadata.Size);
                         }
@@ -155,7 +155,7 @@ namespace Icepack
                         writer.Write(typeMetadata.Fields.Count);
                         for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
                         {
-                            FieldMetadata fieldMetadata = typeMetadata.Fields.Values[fieldIdx];
+                            FieldMetadata fieldMetadata = typeMetadata.Fields[fieldIdx];
                             writer.Write(fieldMetadata.FieldInfo.Name);
                             writer.Write(fieldMetadata.Size);
                         }

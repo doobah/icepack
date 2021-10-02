@@ -1,3 +1,10 @@
+# v0.1.0
+
+* Added support for serializing boxed values.
+* Added support for serializing Enums.
+* Added support for serializing Type objects.
+* Added `PreviousName` attribute which allows the name of a field to be changed while allowing the serializer to match the field with a serialized field using the previous name.
+
 # v0.0.9
 
 * Include size information in the type and field metadata.
