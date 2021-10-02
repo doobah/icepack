@@ -102,8 +102,8 @@ namespace Icepack
 
         public static void SerializeStruct(object obj, SerializationContext context)
         {
-            if (obj is ISerializerListener)
-                ((ISerializerListener)obj).OnBeforeSerialize();
+            if (obj is ISerializerListener listener)
+                listener.OnBeforeSerialize();
 
             Type type = obj.GetType();
             TypeMetadata typeMetadata = context.GetTypeMetadata(type);
@@ -187,8 +187,8 @@ namespace Icepack
 
         public static void SerializeReferenceType(object obj, SerializationContext context)
         {
-            if (obj is ISerializerListener)
-                ((ISerializerListener)obj).OnBeforeSerialize();
+            if (obj is ISerializerListener listener)
+                listener.OnBeforeSerialize();
 
             Type type = obj.GetType();
             if (type.IsSubclassOf(typeof(Type)))

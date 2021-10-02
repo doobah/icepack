@@ -35,7 +35,7 @@ namespace IcepackTest
         [SerializableObject]
         private class ParentClass
         {
-            private int field;
+            private readonly int field;
 
             public ParentClass(int field)
             {
@@ -53,7 +53,7 @@ namespace IcepackTest
         [SerializableObject]
         private class ChildClass : ParentClass
         {
-            private int field;
+            private readonly int field;
 
             public ChildClass(int field, int parentField) : base(parentField)
             {
@@ -264,11 +264,11 @@ namespace IcepackTest
         [Test]
         public void SerializeFlatObject()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            FlatClass obj = new FlatClass() { Field1 = 123, Field2 = "asdf", Field3 = 6.78f };
+            var obj = new FlatClass() { Field1 = 123, Field2 = "asdf", Field3 = 6.78f };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
             stream.Close();
@@ -281,11 +281,11 @@ namespace IcepackTest
         [Test]
         public void SerializeFlatObjectWithNullString()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            FlatClass obj = new FlatClass() { Field1 = 123, Field2 = null, Field3 = 6.78f };
+            var obj = new FlatClass() { Field1 = 123, Field2 = null, Field3 = 6.78f };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
             stream.Close();
@@ -298,12 +298,12 @@ namespace IcepackTest
         [Test]
         public void SerializeHierarchicalObject()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            HierarchicalObject nestedObj = new HierarchicalObject() { Field1 = 123, Nested = null };
-            HierarchicalObject rootObj = new HierarchicalObject() { Field1 = 456, Nested = nestedObj };
+            var nestedObj = new HierarchicalObject() { Field1 = 123, Nested = null };
+            var rootObj = new HierarchicalObject() { Field1 = 456, Nested = nestedObj };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(rootObj, stream);
             HierarchicalObject deserializedObj = serializer.Deserialize<HierarchicalObject>(stream);
             stream.Close();
@@ -320,11 +320,11 @@ namespace IcepackTest
         [Test]
         public void SerializeDerivedObjectWithSameFieldNameAsParent()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            ChildClass obj = new ChildClass(123, 456);
+            var obj = new ChildClass(123, 456);
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ChildClass deserializedObj = serializer.Deserialize<ChildClass>(stream);
             stream.Close();
@@ -336,11 +336,11 @@ namespace IcepackTest
         [Test]
         public void SerializeObjectWithIgnoredField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            ObjectWithIgnoredField obj = new ObjectWithIgnoredField() { Field1 = 123, Field2 = 456 };
+            var obj = new ObjectWithIgnoredField() { Field1 = 123, Field2 = 456 };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ObjectWithIgnoredField deserializedObj = serializer.Deserialize<ObjectWithIgnoredField>(stream);
             stream.Close();
@@ -352,12 +352,12 @@ namespace IcepackTest
         [Test]
         public void SerializeObjectReferences()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            RegisteredClass nestedObj = new RegisteredClass();
-            ObjectWithObjectReferences obj = new ObjectWithObjectReferences() { Field1 = nestedObj, Field2 = nestedObj };
+            var nestedObj = new RegisteredClass();
+            var obj = new ObjectWithObjectReferences() { Field1 = nestedObj, Field2 = nestedObj };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ObjectWithObjectReferences deserializedObj = serializer.Deserialize<ObjectWithObjectReferences>(stream);
             stream.Close();
@@ -370,12 +370,12 @@ namespace IcepackTest
         [Test]
         public void SerializeArray()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
             serializer.RegisterType(typeof(int[]));
 
             int[] array = new int[] { 1, 2, 3 };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(array, stream);
             int[] deserializedArray = serializer.Deserialize<int[]>(stream);
             stream.Close();
@@ -390,12 +390,12 @@ namespace IcepackTest
         [Test]
         public void SerializeList()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
             serializer.RegisterType(typeof(List<string>));
 
-            List<string> list = new List<string>() { "qwer", "asdf", "zxcv" };
+            var list = new List<string>() { "qwer", "asdf", "zxcv" };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(list, stream);
             List<string> deserializedList = serializer.Deserialize<List<string>>(stream);
             stream.Close();
@@ -410,12 +410,12 @@ namespace IcepackTest
         [Test]
         public void SerializeHashSet()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
             serializer.RegisterType(typeof(HashSet<string>));
 
-            HashSet<string> set = new HashSet<string>() { "qwer", "asdf", "zxcv" };
+            var set = new HashSet<string>() { "qwer", "asdf", "zxcv" };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(set, stream);
             HashSet<string> deserializedSet = serializer.Deserialize<HashSet<string>>(stream);
             stream.Close();
@@ -430,12 +430,12 @@ namespace IcepackTest
         [Test]
         public void SerializeDictionary()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
             serializer.RegisterType(typeof(Dictionary<int, string>));
 
-            Dictionary<int, string> dictionary = new Dictionary<int, string>() { { 1, "asdf" }, { 2, "zxcv" } };
+            var dictionary = new Dictionary<int, string>() { { 1, "asdf" }, { 2, "zxcv" } };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(dictionary, stream);
             Dictionary<int, string> deserializedDictionary = serializer.Deserialize<Dictionary<int, string>>(stream);
             stream.Close();
@@ -451,9 +451,9 @@ namespace IcepackTest
         [Test]
         public void SerializeEnum()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(SerializableEnum.Option2, stream);
             SerializableEnum deserializedEnum = serializer.Deserialize<SerializableEnum>(stream);
             stream.Close();
@@ -464,11 +464,11 @@ namespace IcepackTest
         [Test]
         public void SerializeClassWithEnumField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            ClassWithEnumField obj = new ClassWithEnumField() { Field1 = 123, Field2 = SerializableEnum.Option2, Field3 = 789 };
+            var obj = new ClassWithEnumField() { Field1 = 123, Field2 = SerializableEnum.Option2, Field3 = 789 };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ClassWithEnumField deserializedObj = serializer.Deserialize<ClassWithEnumField>(stream);
             stream.Close();
@@ -482,10 +482,11 @@ namespace IcepackTest
         [Test]
         public void SerializeBoxedEnum()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            ClassWithObjectField obj = new ClassWithObjectField() { Field1 = 123, Field2 = SerializableEnum.Option2, Field3 = 789 };
-            MemoryStream stream = new MemoryStream();
+            var obj = new ClassWithObjectField() { Field1 = 123, Field2 = SerializableEnum.Option2, Field3 = 789 };
+
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
             stream.Close();
@@ -499,10 +500,11 @@ namespace IcepackTest
         [Test]
         public void SerializeBoxedInt()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            ClassWithObjectField obj = new ClassWithObjectField() { Field1 = 123, Field2 = 456, Field3 = 789 };
-            MemoryStream stream = new MemoryStream();
+            var obj = new ClassWithObjectField() { Field1 = 123, Field2 = 456, Field3 = 789 };
+
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
             stream.Close();
@@ -516,10 +518,11 @@ namespace IcepackTest
         [Test]
         public void SerializeTypeInObjectField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            ClassWithObjectField obj = new ClassWithObjectField() { Field1 = 123, Field2 = typeof(int), Field3 = 789 };
-            MemoryStream stream = new MemoryStream();
+            var obj = new ClassWithObjectField() { Field1 = 123, Field2 = typeof(int), Field3 = 789 };
+
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
             stream.Close();
@@ -533,12 +536,15 @@ namespace IcepackTest
         [Test]
         public void SerializeTypeInTypeField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            ClassWithTypeField obj = new ClassWithTypeField() { Field1 = 123, Field2 = typeof(int), Field3 = 789 };
-            MemoryStream stream = new MemoryStream();
+            var obj = new ClassWithTypeField() { Field1 = 123, Field2 = typeof(int), Field3 = 789 };
+
+            var stream = new MemoryStream();
+
             serializer.Serialize(obj, stream);
             ClassWithTypeField deserializedObj = serializer.Deserialize<ClassWithTypeField>(stream);
+
             stream.Close();
 
             Assert.NotNull(deserializedObj);
@@ -550,9 +556,9 @@ namespace IcepackTest
         [Test]
         public void SerializeType()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(typeof(int), stream);
             Type deserializedObj = serializer.Deserialize<Type>(stream);
             stream.Close();
@@ -564,9 +570,9 @@ namespace IcepackTest
         [Test]
         public void SerializeUnregisteredType()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
 
             Assert.Throws<IcepackException>(() => {
                 serializer.Serialize(typeof(UnregisteredClass), stream);
@@ -578,10 +584,11 @@ namespace IcepackTest
         [Test]
         public void SerializeUnregisteredTypeInTypeField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            ClassWithTypeField obj = new ClassWithTypeField() { Field1 = 123, Field2 = typeof(UnregisteredClass), Field3 = 789 };
-            MemoryStream stream = new MemoryStream();
+            var obj = new ClassWithTypeField() { Field1 = 123, Field2 = typeof(UnregisteredClass), Field3 = 789 };
+
+            var stream = new MemoryStream();
 
             Assert.Throws<IcepackException>(() => {
                 serializer.Serialize(obj, stream);
@@ -593,10 +600,11 @@ namespace IcepackTest
         [Test]
         public void SerializeUnregisteredTypeInObjectField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            ClassWithObjectField obj = new ClassWithObjectField() { Field1 = 123, Field2 = typeof(UnregisteredClass), Field3 = 789 };
-            MemoryStream stream = new MemoryStream();
+            var obj = new ClassWithObjectField() { Field1 = 123, Field2 = typeof(UnregisteredClass), Field3 = 789 };
+
+            var stream = new MemoryStream();
 
             Assert.Throws<IcepackException>(() => {
                 serializer.Serialize(obj, stream);
@@ -608,11 +616,12 @@ namespace IcepackTest
         [Test]
         public void SerializeBoxedStruct()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            SerializableStruct s = new SerializableStruct() { Field1 = 222, Field2 = 444 };
-            ClassWithObjectField obj = new ClassWithObjectField() { Field1 = 123, Field2 = s, Field3 = 789 };
-            MemoryStream stream = new MemoryStream();
+            var s = new SerializableStruct() { Field1 = 222, Field2 = 444 };
+            var obj = new ClassWithObjectField() { Field1 = 123, Field2 = s, Field3 = 789 };
+
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
             stream.Close();
@@ -626,13 +635,12 @@ namespace IcepackTest
         [Test]
         public void SerializeStructAssignedToInterfaceField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            StructThatImplementsInterface s = new StructThatImplementsInterface();
-            s.Value = 99999;
+            var s = new StructThatImplementsInterface() { Value = 99999 };
+            var obj = new ClassWithInterfaceField() { Field1 = 123, Field2 = s, Field3 = 789 };
 
-            ClassWithInterfaceField obj = new ClassWithInterfaceField() { Field1 = 123, Field2 = s, Field3 = 789 };
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ClassWithInterfaceField deserializedObj = serializer.Deserialize<ClassWithInterfaceField>(stream);
             stream.Close();
@@ -646,19 +654,16 @@ namespace IcepackTest
         [Test]
         public void SerializeStructsInInterfaceArray()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
             serializer.RegisterType(typeof(IInterface[]));
 
-            StructThatImplementsInterface s1 = new StructThatImplementsInterface();
-            s1.Value = 123;
-            StructThatImplementsInterface s2 = new StructThatImplementsInterface();
-            s1.Value = 456;
-            StructThatImplementsInterface s3 = new StructThatImplementsInterface();
-            s1.Value = 789;
+            var s1 = new StructThatImplementsInterface() { Value = 123 };
+            var s2 = new StructThatImplementsInterface() { Value = 456 };
+            var s3 = new StructThatImplementsInterface() { Value = 789 };
 
-            IInterface[] array = new IInterface[] { s1, s2, s3 };
+            var array = new IInterface[] { s1, s2, s3 };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(array, stream);
             IInterface[] deserializedObj = serializer.Deserialize<IInterface[]>(stream);
             stream.Close();
@@ -672,11 +677,11 @@ namespace IcepackTest
         [Test]
         public void SerializeStruct()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            SerializableStruct s = new SerializableStruct() { Field1 = 123, Field2 = 456 };
+            var s = new SerializableStruct() { Field1 = 123, Field2 = 456 };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(s, stream);
             SerializableStruct deserializedStruct = serializer.Deserialize<SerializableStruct>(stream);
             stream.Close();
@@ -688,12 +693,12 @@ namespace IcepackTest
         [Test]
         public void SerializeStructWithObjectReferences()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            FlatClass nestedObj = new FlatClass() { Field1 = 234, Field2 = "asdf", Field3 = 1.23f };
-            StructWithObjectReferences obj = new StructWithObjectReferences() { Field1 = nestedObj, Field2 = 123 };
+            var nestedObj = new FlatClass() { Field1 = 234, Field2 = "asdf", Field3 = 1.23f };
+            var obj = new StructWithObjectReferences() { Field1 = nestedObj, Field2 = 123 };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             StructWithObjectReferences deserializedObj = serializer.Deserialize<StructWithObjectReferences>(stream);
             stream.Close();
@@ -708,10 +713,10 @@ namespace IcepackTest
         [Test]
         public void SerializeUnregisteredClass()
         {
-            Serializer serializer = new Serializer();
-            UnregisteredClass obj = new UnregisteredClass();
+            var serializer = new Serializer();
+            var obj = new UnregisteredClass();
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             Assert.Throws<IcepackException>(() => {
                 serializer.Serialize(obj, stream);
             });
@@ -721,10 +726,10 @@ namespace IcepackTest
         [Test]
         public void CompatibilityMatch()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(1);            // Number of types
             writer.Write(typeof(int).AssemblyQualifiedName);
@@ -744,10 +749,10 @@ namespace IcepackTest
         [Test]
         public void CompatibilityVersionMismatch()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write((ushort)0);    // Compatibility version
             writer.Write(0);            // Number of types
             writer.Write(0);            // Number of objects
@@ -765,10 +770,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeUnregisteredClass()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(1);            // Number of types
             writer.Write(typeof(UnregisteredClass).AssemblyQualifiedName);     // Type name
@@ -792,10 +797,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeRegisteredClassWithoutPriorSerialization()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(1);            // Number of types
             writer.Write(typeof(RegisteredClass).AssemblyQualifiedName);     // Type name
@@ -817,10 +822,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeClassWithAdditionalField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(1);            // Number of types
             writer.Write(typeof(FlatClass).AssemblyQualifiedName);
@@ -851,10 +856,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeClassWithDeletedReferenceField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(2);            // Number of types
             writer.Write(typeof(string).AssemblyQualifiedName);
@@ -897,10 +902,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeClassWithDeletedStructField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(3);            // Number of types
             writer.Write(typeof(string).AssemblyQualifiedName);
@@ -951,10 +956,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeClassWithDeletedClassType()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(3);            // Number of types
             
@@ -1013,10 +1018,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeClassWithDeletedArrayType()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(3);            // Number of types
 
@@ -1082,10 +1087,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeClassWithDeletedDictionaryType()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(3);            // Number of types
 
@@ -1148,10 +1153,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeClassWithMissingParentType()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(3);            // Number of types
 
@@ -1201,10 +1206,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeClassNoLongerDerivedFromOtherType()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(3);            // Number of types
 
@@ -1254,10 +1259,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeClassWithDeletedEnumType()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
             
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(3);            // Number of types
 
@@ -1303,10 +1308,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeClassWithDeletedType()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(3);            // Number of types
 
@@ -1351,10 +1356,10 @@ namespace IcepackTest
         [Test]
         public void DeserializeClassWithRenamedField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode, true);
+            var stream = new MemoryStream();
+            var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(1);            // Number of types
 
@@ -1391,16 +1396,16 @@ namespace IcepackTest
         [Test]
         public void SerializeReferenceTypeInObjectField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            ClassWithMultipleObjectFields obj = new ClassWithMultipleObjectFields()
+            var obj = new ClassWithMultipleObjectFields()
             {
                 Field1 = new RegisteredClass(),
                 Field2 = new ClassWithIntField() { Field1 = 123 },
                 Field3 = new RegisteredClass()
             };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ClassWithMultipleObjectFields deserializedObj = serializer.Deserialize<ClassWithMultipleObjectFields>(stream);
             stream.Close();
@@ -1418,12 +1423,11 @@ namespace IcepackTest
         [Test]
         public void SerializeInterface()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            IInterface obj = new ClassThatImplementsInterface();
-            obj.Value = 123;
+            IInterface obj = new ClassThatImplementsInterface() { Value = 123 };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             IInterface deserializedObj = serializer.Deserialize<IInterface>(stream);
             stream.Close();
@@ -1434,19 +1438,16 @@ namespace IcepackTest
         [Test]
         public void SerializeInterfaceArray()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
             serializer.RegisterType(typeof(IInterface[]));
 
-            IInterface obj1 = new ClassThatImplementsInterface();
-            obj1.Value = 123;
-            IInterface obj2 = new ClassThatImplementsInterface();
-            obj2.Value = 456;
-            IInterface obj3 = new ClassThatImplementsInterface();
-            obj3.Value = 789;
+            IInterface obj1 = new ClassThatImplementsInterface() { Value = 123 };
+            IInterface obj2 = new ClassThatImplementsInterface() { Value = 456 };
+            IInterface obj3 = new ClassThatImplementsInterface() { Value = 789 };
 
             IInterface[] obj = new IInterface[3] { obj1, obj2, obj3 };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             IInterface[] deserializedObj = serializer.Deserialize<IInterface[]>(stream);
             stream.Close();
@@ -1460,18 +1461,17 @@ namespace IcepackTest
         [Test]
         public void SerializeClassWithInterfaceField()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
             serializer.RegisterType(typeof(IInterface[]));
 
-            IInterface intf = new ClassThatImplementsInterface();
-            intf.Value = 456;
-            ClassWithInterfaceField obj = new ClassWithInterfaceField() {
+            IInterface intf = new ClassThatImplementsInterface() { Value = 456 };
+            var obj = new ClassWithInterfaceField() {
                 Field1 = 123,
                 Field2 = intf,
                 Field3 = 789
             };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ClassWithInterfaceField deserializedObj = serializer.Deserialize<ClassWithInterfaceField>(stream);
             stream.Close();
@@ -1486,11 +1486,11 @@ namespace IcepackTest
         [Test]
         public void SerializeClassWithSerializationHooks()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            ClassWithSerializationHooks obj = new ClassWithSerializationHooks() { Field = 123 };
+            var obj = new ClassWithSerializationHooks() { Field = 123 };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ClassWithSerializationHooks deserializedObj = serializer.Deserialize<ClassWithSerializationHooks>(stream);
             stream.Close();
@@ -1501,11 +1501,11 @@ namespace IcepackTest
         [Test]
         public void SerializeStructWithSerializationHooks()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            StructWithSerializationHooks obj = new StructWithSerializationHooks() { Field = 123 };
+            var obj = new StructWithSerializationHooks() { Field = 123 };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             StructWithSerializationHooks deserializedObj = serializer.Deserialize<StructWithSerializationHooks>(stream);
             stream.Close();
@@ -1516,17 +1516,17 @@ namespace IcepackTest
         [Test]
         public void SerializeFieldWithStructWithSerializationHooks()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
-            StructWithSerializationHooks s = new StructWithSerializationHooks() { Field = 123 };
-            ClassWithStructWithSerializationHooksField obj = new ClassWithStructWithSerializationHooksField() { Field1 = 111, Field2 = s, Field3 = 333 };
+            var s = new StructWithSerializationHooks() { Field = 123 };
+            var obj = new ClassWithStructWithSerializationHooksField() { Field1 = 111, Field2 = s, Field3 = 333 };
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             ClassWithStructWithSerializationHooksField deserializedObj = serializer.Deserialize<ClassWithStructWithSerializationHooksField>(stream);
             stream.Close();
 
-            StructWithSerializationHooks expectedStruct = new StructWithSerializationHooks() { Field = 247 };
+            var expectedStruct = new StructWithSerializationHooks() { Field = 247 };
 
             Assert.NotNull(deserializedObj);
             Assert.AreEqual(111, deserializedObj.Field1);
@@ -1537,7 +1537,7 @@ namespace IcepackTest
         [Test]
         public void RegisterDependantStructBeforeDependency()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
             Assert.Throws<IcepackException>(() => {
                 serializer.RegisterType(typeof(StructWithNestedStruct));
@@ -1547,7 +1547,7 @@ namespace IcepackTest
         [Test]
         public void RegisterDependencyStructBeforeDependant()
         {
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
 
             serializer.RegisterType(typeof(NestedStruct));
             serializer.RegisterType(typeof(StructWithNestedStruct));

@@ -110,8 +110,8 @@ namespace Icepack
                 }
             }
 
-            if (structObj is ISerializerListener)
-                ((ISerializerListener)structObj).OnAfterDeserialize();
+            if (structObj is ISerializerListener listener)
+                listener.OnAfterDeserialize();
 
             return structObj;
         }
@@ -141,8 +141,8 @@ namespace Icepack
                 }
             }
 
-            if (structObj is ISerializerListener)
-                ((ISerializerListener)structObj).OnAfterDeserialize();
+            if (structObj is ISerializerListener listener)
+                listener.OnAfterDeserialize();
 
             return structObj;
         }
@@ -262,8 +262,8 @@ namespace Icepack
                         break;
                 }
 
-                if (obj is ISerializerListener)
-                    ((ISerializerListener)obj).OnAfterDeserialize();
+                if (obj is ISerializerListener listener)
+                    listener.OnAfterDeserialize();
             }
         }
 

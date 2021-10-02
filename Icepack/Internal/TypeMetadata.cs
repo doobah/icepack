@@ -117,7 +117,7 @@ namespace Icepack
                         FieldMetadata registeredFieldMetadata = registeredTypeMetadata.FieldsByName.GetValueOrDefault(fieldName, null);
                         if (registeredFieldMetadata == null)
                             registeredFieldMetadata = registeredTypeMetadata.FieldsByPreviousName.GetValueOrDefault(fieldName, null);
-                        FieldMetadata fieldMetadata = new FieldMetadata(fieldSize, registeredFieldMetadata);
+                        var fieldMetadata = new FieldMetadata(fieldSize, registeredFieldMetadata);
                         Fields.Add(fieldMetadata);
                     }
                 }
@@ -330,11 +330,6 @@ namespace Icepack
             writer.Write((double)obj);
         }
 
-        private static void SerializeType(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write(context.GetTypeMetadata((Type)obj).Id);
-        }
-
         private static Action<object, BinaryWriter, SerializationContext> GetSerializeBasicOperation(Type type)
         {
             if (type == typeof(string))
@@ -410,7 +405,7 @@ namespace Icepack
                 IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
                 if (ignoreAttr == null)
                 {
-                    FieldMetadata fieldMetadata = new FieldMetadata(fieldInfo, typeRegistry);
+                    var fieldMetadata = new FieldMetadata(fieldInfo, typeRegistry);
                     FieldsByName.Add(fieldInfo.Name, fieldMetadata);
 
                     PreviousNameAttribute previousNameAttr = fieldInfo.GetCustomAttribute<PreviousNameAttribute>();

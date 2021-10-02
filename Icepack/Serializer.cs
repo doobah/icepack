@@ -14,7 +14,7 @@ namespace Icepack
     {
         public const ushort CompatibilityVersion = 1;
 
-        private TypeRegistry typeRegistry;
+        private readonly TypeRegistry typeRegistry;
 
         public Serializer()
         {
@@ -52,9 +52,9 @@ namespace Icepack
         {
             // Initialize
 
-            MemoryStream objectStream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(outputStream, Encoding.Unicode, true);
-            SerializationContext context = new SerializationContext(typeRegistry, objectStream);
+            var objectStream = new MemoryStream();
+            var writer = new BinaryWriter(outputStream, Encoding.Unicode, true);
+            var context = new SerializationContext(typeRegistry, objectStream);
 
             writer.Write(CompatibilityVersion);
 
@@ -81,7 +81,7 @@ namespace Icepack
             writer.Close();
         }
 
-        private void SerializeObjectMetadata(BinaryWriter writer, SerializationContext context)
+        private static void SerializeObjectMetadata(BinaryWriter writer, SerializationContext context)
         {
             writer.Write(context.Objects.Count);
 
@@ -116,7 +116,7 @@ namespace Icepack
             }
         }
 
-        private void SerializeTypeMetadata(BinaryWriter writer, SerializationContext context)
+        private static void SerializeTypeMetadata(BinaryWriter writer, SerializationContext context)
         {
             writer.Write(context.Types.Count);
             for (int typeIdx = 0; typeIdx < context.TypesInOrder.Count; typeIdx++)
@@ -177,7 +177,7 @@ namespace Icepack
 
             inputStream.Position = 0;
 
-            DeserializationContext context = new DeserializationContext(inputStream);
+            var context = new DeserializationContext(inputStream);
 
             ushort compatibilityVersion = context.Reader.ReadUInt16();
             if (compatibilityVersion != CompatibilityVersion)
@@ -203,7 +203,7 @@ namespace Icepack
             return rootObject;
         }
 
-        private void DeserializeObjectMetadata(DeserializationContext context)
+        private static void DeserializeObjectMetadata(DeserializationContext context)
         {
             int numberOfObjects = context.Reader.ReadInt32();
 
@@ -347,7 +347,7 @@ namespace Icepack
                         throw new IcepackException($"Invalid category ID: {categoryId}");
                 }
 
-                TypeMetadata typeMetadata = new TypeMetadata(registeredTypeMetadata, fieldNames, fieldSizes, (uint)(t + 1),
+                var typeMetadata = new TypeMetadata(registeredTypeMetadata, fieldNames, fieldSizes, (uint)(t + 1),
                     hasParent, categoryId, itemSize, keySize, instanceSize, enumUnderlyingTypeMetadata);
                 context.Types[t] = typeMetadata;
             }

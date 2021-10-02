@@ -60,9 +60,9 @@ namespace TestProject
             }
         }
 
-        static void Main(string[] args)
+        static void Main()
         {
-            List<ClassA> list = new List<ClassA>();
+            var list = new List<ClassA>();
             for (int i = 0; i < 1000000; i++)
                 list.Add(new ClassA());
 
@@ -70,11 +70,11 @@ namespace TestProject
 
             Console.WriteLine("__Icepack__");
 
-            Serializer serializer = new Serializer();
+            var serializer = new Serializer();
             serializer.RegisterType(typeof(List<ClassA>));
             serializer.RegisterType(typeof(bool[]));
 
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
 
             startTime = DateTime.Now;
             serializer.Serialize(list, stream);

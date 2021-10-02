@@ -9,7 +9,7 @@ namespace Icepack
     /// <summary> Contains metadata about serializable structs and classes. </summary>
     internal class TypeRegistry
     {
-        private Dictionary<Type, TypeMetadata> types;
+        private readonly Dictionary<Type, TypeMetadata> types;
 
         public TypeRegistry()
         {
@@ -24,7 +24,7 @@ namespace Icepack
             if (types.ContainsKey(type))
                 return types[type];
 
-            TypeMetadata newTypeMetadata = new TypeMetadata(type, this);
+            var newTypeMetadata = new TypeMetadata(type, this);
             types.Add(type, newTypeMetadata);
 
             return newTypeMetadata;

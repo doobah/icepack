@@ -19,7 +19,7 @@ namespace Icepack
 
         private uint largestInstanceId;
         private uint largestTypeId;
-        private TypeRegistry typeRegistry;
+        private readonly TypeRegistry typeRegistry;
 
         public SerializationContext(TypeRegistry typeRegistry, Stream objectStream)
         {
@@ -76,7 +76,7 @@ namespace Icepack
                     throw new IcepackException($"Invalid category ID: {typeMetadata.CategoryId}");
             }
 
-            ObjectMetadata objMetadata = new ObjectMetadata(newId, typeMetadata, length, obj);
+            ObjectMetadata objMetadata = new(newId, typeMetadata, length, obj);
             Objects.Add(obj, objMetadata);
             ObjectsInOrder.Add(objMetadata);
             
@@ -100,7 +100,7 @@ namespace Icepack
                 if (registeredTypeMetadata == null)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
-                TypeMetadata newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata);
+                TypeMetadata newTypeMetadata = new(registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata);
                 Types.Add(type, newTypeMetadata);
                 TypesInOrder.Add(newTypeMetadata);
                 return newTypeMetadata;
