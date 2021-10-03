@@ -136,9 +136,9 @@ Other rules:
 * Currently only fields (both private and public) are serialized, not properties.
 * `nuint` and `nint` are not supported.
 * `span` and other exotic types are not supported.
-* Serializing delegates is not supported.
 * Deserializing after changing the type of a serialized field results in undefined behaviour.
 * Changing the name of a type will result in the serializer not knowing how to deserialize objects of that type.
+* Readonly fields are not supported.
 
 # Usage Example
 

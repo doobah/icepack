@@ -8,12 +8,10 @@ using System.IO;
 
 namespace Icepack
 {
-    internal class SerializationContext : IDisposable
+    internal class SerializationContext
     {
-        public Queue<object> ObjectsToSerialize { get; }
         public Dictionary<Type, TypeMetadata> Types { get; }
         public List<TypeMetadata> TypesInOrder { get; }
-        public BinaryWriter Writer { get; }
         public Dictionary<object, ObjectMetadata> Objects { get; }
         public List<ObjectMetadata> ObjectsInOrder { get; }
 
@@ -21,23 +19,16 @@ namespace Icepack
         private uint largestTypeId;
         private readonly TypeRegistry typeRegistry;
 
-        public SerializationContext(TypeRegistry typeRegistry, Stream objectStream)
+        public SerializationContext(TypeRegistry typeRegistry)
         {
             Objects = new Dictionary<object, ObjectMetadata>();
             ObjectsInOrder = new List<ObjectMetadata>();
-            ObjectsToSerialize = new Queue<object>();
             Types = new Dictionary<Type, TypeMetadata>();
             TypesInOrder = new List<TypeMetadata>();
-            Writer = new BinaryWriter(objectStream, Encoding.Unicode, true);
 
             largestInstanceId = 0;
             largestTypeId = 0;
             this.typeRegistry = typeRegistry;
-        }
-
-        public void Dispose()
-        {
-            Writer.Dispose();
         }
 
         public uint RegisterObject(object obj)
@@ -51,26 +42,26 @@ namespace Icepack
             int length = 0;
             switch (typeMetadata.CategoryId)
             {
-                case Category.Basic:
+                case TypeCategory.Basic:
                     break;
-                case Category.Array:
+                case TypeCategory.Array:
                     length = ((Array)obj).Length;
                     break;
-                case Category.List:
+                case TypeCategory.List:
                     length = ((IList)obj).Count;
                     break;
-                case Category.HashSet:
+                case TypeCategory.HashSet:
                     length = 0;
                     foreach (object item in (IEnumerable)obj)
                         length++;
                     break;
-                case Category.Dictionary:
+                case TypeCategory.Dictionary:
                     length = ((IDictionary)obj).Count;
                     break;
-                case Category.Struct:
-                case Category.Class:
-                case Category.Enum:
-                case Category.Type:
+                case TypeCategory.Struct:
+                case TypeCategory.Class:
+                case TypeCategory.Enum:
+                case TypeCategory.Type:
                     break;
                 default:
                     throw new IcepackException($"Invalid category ID: {typeMetadata.CategoryId}");

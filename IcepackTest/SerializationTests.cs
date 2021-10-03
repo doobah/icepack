@@ -35,7 +35,9 @@ namespace IcepackTest
         [SerializableObject]
         private class ParentClass
         {
-            private readonly int field;
+#pragma warning disable IDE0044 // Add readonly modifier
+            private int field;
+#pragma warning restore IDE0044 // Add readonly modifier
 
             public ParentClass(int field)
             {
@@ -53,7 +55,9 @@ namespace IcepackTest
         [SerializableObject]
         private class ChildClass : ParentClass
         {
-            private readonly int field;
+#pragma warning disable IDE0044 // Add readonly modifier
+            private int field;
+#pragma warning restore IDE0044 // Add readonly modifier
 
             public ChildClass(int field, int parentField) : base(parentField)
             {

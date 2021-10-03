@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Reflection;
 using System.Linq.Expressions;
+using System.IO;
 
 namespace Icepack
 {
@@ -22,7 +22,7 @@ namespace Icepack
 
         public Func<DeserializationContext, object> Deserialize { get; }
 
-        public Action<object, SerializationContext> Serialize { get; }
+        public Action<object, SerializationContext, BinaryWriter> Serialize { get; }
 
         public int Size { get; }
 

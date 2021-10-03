@@ -6,11 +6,13 @@ using System.Threading.Tasks;
 
 namespace Icepack
 {
-    /// <summary> Contains metadata about serializable structs and classes. </summary>
+    /// <summary> Maintains a collection of type metadata used for serialization/deserialization operations. </summary>
     internal class TypeRegistry
     {
+        /// <summary> Maps a type to metadata about the type. </summary>
         private readonly Dictionary<Type, TypeMetadata> types;
 
+        /// <summary> Creates a new type registry. </summary>
         public TypeRegistry()
         {
             types = new Dictionary<Type, TypeMetadata>();

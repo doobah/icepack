@@ -8,20 +8,7 @@ using System.IO;
 
 namespace Icepack
 {
-    internal enum Category : byte
-    {
-        Basic = 0,
-        Array = 1,
-        List = 2,
-        HashSet = 3,
-        Dictionary = 4,
-        Struct = 5,
-        Class = 6,
-        Enum = 7,
-        Type = 8
-    }
-
-    /// <summary> Contains information necessary to serialize and deserialize a type. </summary>
+    /// <summary> Contains information necessary to serialize/deserialize a type. </summary>
     internal class TypeMetadata
     {
         public uint Id { get; }
@@ -32,13 +19,13 @@ namespace Icepack
         public Dictionary<string, FieldMetadata> FieldsByPreviousName { get; }
         public bool HasParent { get; }
         public Action<object, object> HashSetAdder { get; }
-        public Action<object, SerializationContext> SerializeKey { get; }
-        public Action<object, SerializationContext> SerializeItem { get; }
-        public Action<object, BinaryWriter, SerializationContext> SerializeBasic { get; }
+        public Action<object, SerializationContext, BinaryWriter> SerializeKey { get; }
+        public Action<object, SerializationContext, BinaryWriter> SerializeItem { get; }
+        public Action<object, SerializationContext, BinaryWriter> SerializeBasic { get; }
         public Func<DeserializationContext, object> DeserializeKey { get; }
         public Func<DeserializationContext, object> DeserializeItem { get; }
         public Func<DeserializationContext, object> DeserializeBasic { get; }
-        public Category CategoryId { get; }
+        public TypeCategory CategoryId { get; }
         public int ItemSize { get; }
         public int KeySize { get; }        
         public int InstanceSize { get; }
@@ -77,7 +64,7 @@ namespace Icepack
         /// <param name="objectTree"> The object tree for type metadata extracted from the serialized data. </param>
         /// <param name="id"> A unique ID for the type. </param>
         public TypeMetadata(TypeMetadata registeredTypeMetadata, List<string> fieldNames, List<int> fieldSizes,
-            uint id, bool hasParent, Category categoryId, int itemSize, int keySize, int instanceSize, TypeMetadata enumUnderlyingTypeMetadata)
+            uint id, bool hasParent, TypeCategory categoryId, int itemSize, int keySize, int instanceSize, TypeMetadata enumUnderlyingTypeMetadata)
         {
             Id = id;
             HasParent = hasParent;
@@ -159,13 +146,13 @@ namespace Icepack
 
             switch (CategoryId)
             {
-                case Category.Basic:
+                case TypeCategory.Basic:
                     {
-                        SerializeBasic = GetSerializeBasicOperation(type);
-                        DeserializeBasic = GetDeserializeBasicOperation(type);
+                        SerializeBasic = SerializationOperationFactory.GetBasicOperation(type);
+                        DeserializeBasic = DeserializationOperationFactory.GetBasicOperation(type);
                         break;
                     }
-                case Category.Array:
+                case TypeCategory.Array:
                     {
                         Type elementType = type.GetElementType();
                         SerializeItem = SerializationOperationFactory.GetFieldOperation(elementType);
@@ -173,7 +160,7 @@ namespace Icepack
                         ItemSize = TypeSizeFactory.GetFieldSize(elementType, typeRegistry);
                         break;
                     }
-                case Category.List:
+                case TypeCategory.List:
                     {
                         Type itemType = type.GenericTypeArguments[0];
                         SerializeItem = SerializationOperationFactory.GetFieldOperation(itemType);
@@ -181,7 +168,7 @@ namespace Icepack
                         ItemSize = TypeSizeFactory.GetFieldSize(itemType, typeRegistry);
                         break;
                     }
-                case Category.HashSet:
+                case TypeCategory.HashSet:
                     {
                         Type itemType = type.GenericTypeArguments[0];
                         SerializeItem = SerializationOperationFactory.GetFieldOperation(itemType);
@@ -190,7 +177,7 @@ namespace Icepack
                         HashSetAdder = BuildHashSetAdder();
                         break;
                     }
-                case Category.Dictionary:
+                case TypeCategory.Dictionary:
                     {
                         Type keyType = type.GenericTypeArguments[0];
                         SerializeKey = SerializationOperationFactory.GetFieldOperation(keyType);
@@ -202,25 +189,25 @@ namespace Icepack
                         ItemSize = TypeSizeFactory.GetFieldSize(valueType, typeRegistry);
                         break;
                     }
-                case Category.Struct:
+                case TypeCategory.Struct:
                     {
                         PopulateFields(typeRegistry);
                         InstanceSize = CalculateSize();
                         break;
                     }
-                case Category.Class:
+                case TypeCategory.Class:
                     {
                         HasParent = Type.BaseType != typeof(object);
                         PopulateFields(typeRegistry);
                         InstanceSize = CalculateSize();
                         break;
                     }
-                case Category.Enum:
+                case TypeCategory.Enum:
                     {
                         EnumUnderlyingTypeMetadata = typeRegistry.GetTypeMetadata(Type.GetEnumUnderlyingType());
                         break;
                     }
-                case Category.Type:
+                case TypeCategory.Type:
                     {
                         break;
                     }
@@ -229,191 +216,56 @@ namespace Icepack
             }
         }
 
-        private static Category GetCategory(Type type)
+        private static TypeCategory GetCategory(Type type)
         {
             if (type == typeof(string) || type.IsPrimitive || type == typeof(decimal))
-                return Category.Basic;
+                return TypeCategory.Basic;
             else if (type == typeof(Type))
-                return Category.Type;
+                return TypeCategory.Type;
             else if (type.IsEnum)
-                return Category.Enum;
+                return TypeCategory.Enum;
             else if (type.IsArray)
-                return Category.Array;
+                return TypeCategory.Array;
             else if (type.IsGenericType)
             {
                 Type genericTypeDef = type.GetGenericTypeDefinition();
 
                 if (genericTypeDef == typeof(List<>))
-                    return Category.List;
+                    return TypeCategory.List;
                 else if (genericTypeDef == typeof(HashSet<>))
-                    return Category.HashSet;
+                    return TypeCategory.HashSet;
                 else if (genericTypeDef == typeof(Dictionary<,>))
-                    return Category.Dictionary;
+                    return TypeCategory.Dictionary;
                 else if (type.IsValueType)
-                    return Category.Struct;
+                    return TypeCategory.Struct;
                 else
-                    return Category.Class;
+                    return TypeCategory.Class;
             }
             else if (type.IsValueType)
-                return Category.Struct;
+                return TypeCategory.Struct;
             else
-                return Category.Class;
-        }
-
-        private static void SerializeString(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((string)obj);
-        }
-
-        private static void SerializeByte(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((byte)obj);
-        }
-
-        private static void SerializeSByte(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((sbyte)obj);
-        }
-
-        private static void SerializeChar(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((char)obj);
-        }
-
-        private static void SerializeBool(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((bool)obj);
-        }
-
-        private static void SerializeInt32(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((int)obj);
-        }
-
-        private static void SerializeUInt32(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((uint)obj);
-        }
-
-        private static void SerializeInt16(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((short)obj);
-        }
-
-        private static void SerializeUInt16(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((ushort)obj);
-        }
-
-        private static void SerializeInt64(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((long)obj);
-        }
-
-        private static void SerializeUInt64(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((ulong)obj);
-        }
-
-        private static void SerializeDecimal(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((decimal)obj);
-        }
-
-        private static void SerializeSingle(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((float)obj);
-        }
-
-        private static void SerializeDouble(object obj, BinaryWriter writer, SerializationContext context)
-        {
-            writer.Write((double)obj);
-        }
-
-        private static Action<object, BinaryWriter, SerializationContext> GetSerializeBasicOperation(Type type)
-        {
-            if (type == typeof(string))
-                return SerializeString;
-            else if (type == typeof(byte))
-                return SerializeByte;
-            else if (type == typeof(sbyte))
-                return SerializeSByte;
-            else if (type == typeof(char))
-                return SerializeChar;
-            else if (type == typeof(bool))
-                return SerializeBool;
-            else if (type == typeof(int))
-                return SerializeInt32;
-            else if (type == typeof(uint))
-                return SerializeUInt32;
-            else if (type == typeof(short))
-                return SerializeInt16;
-            else if (type == typeof(ushort))
-                return SerializeUInt16;
-            else if (type == typeof(long))
-                return SerializeInt64;
-            else if (type == typeof(ulong))
-                return SerializeUInt64;
-            else if (type == typeof(decimal))
-                return SerializeDecimal;
-            else if (type == typeof(float))
-                return SerializeSingle;
-            else if (type == typeof(double))
-                return SerializeDouble;
-            else
-                throw new IcepackException($"Unexpected type: {type}");
-        }
-
-        private static Func<DeserializationContext, object> GetDeserializeBasicOperation(Type type)
-        {
-            if (type == typeof(string))
-                return DeserializationOperationFactory.DeserializeString;
-            else if (type == typeof(byte))
-                return DeserializationOperationFactory.DeserializeByte;
-            else if (type == typeof(sbyte))
-                return DeserializationOperationFactory.DeserializeSByte;
-            else if (type == typeof(char))
-                return DeserializationOperationFactory.DeserializeChar;
-            else if (type == typeof(bool))
-                return DeserializationOperationFactory.DeserializeBoolean;
-            else if (type == typeof(int))
-                return DeserializationOperationFactory.DeserializeInt32;
-            else if (type == typeof(uint))
-                return DeserializationOperationFactory.DeserializeUInt32;
-            else if (type == typeof(short))
-                return DeserializationOperationFactory.DeserializeInt16;
-            else if (type == typeof(ushort))
-                return DeserializationOperationFactory.DeserializeUInt16;
-            else if (type == typeof(long))
-                return DeserializationOperationFactory.DeserializeInt64;
-            else if (type == typeof(ulong))
-                return DeserializationOperationFactory.DeserializeUInt64;
-            else if (type == typeof(decimal))
-                return DeserializationOperationFactory.DeserializeDecimal;
-            else if (type == typeof(float))
-                return DeserializationOperationFactory.DeserializeSingle;
-            else if (type == typeof(double))
-                return DeserializationOperationFactory.DeserializeDouble;
-            else
-                throw new IcepackException($"Unexpected type: {type}");
+                return TypeCategory.Class;
         }
 
         private void PopulateFields(TypeRegistry typeRegistry)
         {
             foreach (FieldInfo fieldInfo in Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
+                if (fieldInfo.IsInitOnly)
+                    continue;
+
                 IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
-                if (ignoreAttr == null)
-                {
-                    var fieldMetadata = new FieldMetadata(fieldInfo, typeRegistry);
-                    FieldsByName.Add(fieldInfo.Name, fieldMetadata);
+                if (ignoreAttr != null)
+                    continue;
 
-                    PreviousNameAttribute previousNameAttr = fieldInfo.GetCustomAttribute<PreviousNameAttribute>();
-                    if (previousNameAttr != null)
-                        FieldsByPreviousName.Add(previousNameAttr.Name, fieldMetadata);
+                var fieldMetadata = new FieldMetadata(fieldInfo, typeRegistry);
+                FieldsByName.Add(fieldInfo.Name, fieldMetadata);
 
-                    Fields.Add(fieldMetadata);
-                }
+                PreviousNameAttribute previousNameAttr = fieldInfo.GetCustomAttribute<PreviousNameAttribute>();
+                if (previousNameAttr != null)
+                    FieldsByPreviousName.Add(previousNameAttr.Name, fieldMetadata);
+
+                Fields.Add(fieldMetadata);
             }
         }
 

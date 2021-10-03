@@ -273,31 +273,31 @@ namespace Icepack
 
             switch (classTypeMetadata.CategoryId)
             {
-                case Category.Basic:
+                case TypeCategory.Basic:
                     // Value is serialized as metadata
                     return;
-                case Category.Array:
+                case TypeCategory.Array:
                     DeserializeArray(objectMetadata, context);
                     break;
-                case Category.List:
+                case TypeCategory.List:
                     DeserializeList(objectMetadata, context);
                     break;
-                case Category.HashSet:
+                case TypeCategory.HashSet:
                     DeserializeHashSet(objectMetadata, context);
                     break;
-                case Category.Dictionary:
+                case TypeCategory.Dictionary:
                     DeserializeDictionary(objectMetadata, context);
                     break;
-                case Category.Struct:
+                case TypeCategory.Struct:
                     DeserializeStruct(objectMetadata, context);
                     break;
-                case Category.Class:
+                case TypeCategory.Class:
                     DeserializeNormalClass(objectMetadata, context);
                     break;
-                case Category.Enum:
+                case TypeCategory.Enum:
                     // Value is serialized as metadata
                     break;
-                case Category.Type:
+                case TypeCategory.Type:
                     // Value is serialized as metadata
                     break;
                 default:
@@ -371,6 +371,40 @@ namespace Icepack
                 return DeserializeObjectReference;
             else
                 throw new IcepackException($"Unable to deserialize object of type: {type}");
+        }
+
+        public static Func<DeserializationContext, object> GetBasicOperation(Type type)
+        {
+            if (type == typeof(string))
+                return DeserializeString;
+            else if (type == typeof(byte))
+                return DeserializeByte;
+            else if (type == typeof(sbyte))
+                return DeserializeSByte;
+            else if (type == typeof(char))
+                return DeserializeChar;
+            else if (type == typeof(bool))
+                return DeserializeBoolean;
+            else if (type == typeof(int))
+                return DeserializeInt32;
+            else if (type == typeof(uint))
+                return DeserializeUInt32;
+            else if (type == typeof(short))
+                return DeserializeInt16;
+            else if (type == typeof(ushort))
+                return DeserializeUInt16;
+            else if (type == typeof(long))
+                return DeserializeInt64;
+            else if (type == typeof(ulong))
+                return DeserializeUInt64;
+            else if (type == typeof(decimal))
+                return DeserializeDecimal;
+            else if (type == typeof(float))
+                return DeserializeSingle;
+            else if (type == typeof(double))
+                return DeserializeDouble;
+            else
+                throw new IcepackException($"Unexpected type: {type}");
         }
     }
 }
