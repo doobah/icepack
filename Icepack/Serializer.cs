@@ -198,8 +198,6 @@ namespace Icepack
         /// <returns> The deserialized object. </returns>
         public T Deserialize<T>(Stream inputStream)
         {
-            inputStream.Position = 0;
-
             var reader = new BinaryReader(inputStream, Encoding.Unicode, true);
             var context = new DeserializationContext();
 

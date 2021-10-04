@@ -1,6 +1,7 @@
 # v1.0.0
 
 * Added support for readonly fields.
+* Deserializing no longer sets the stream position to 0.
 
 # v0.1.0
 

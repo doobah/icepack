@@ -200,6 +200,7 @@ namespace Example
             Console.WriteLine(Convert.ToHexString(stream.ToArray()));
             Console.WriteLine("");
 
+            stream.Position = 0;
             ClassA deserializedObj = serializer.Deserialize<ClassA>(stream);
             Console.WriteLine("___Deserialized Object___");
             Console.WriteLine(deserializedObj);

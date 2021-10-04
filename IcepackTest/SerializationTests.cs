@@ -285,6 +285,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ClassWithReadonlyField deserializedObj = serializer.Deserialize<ClassWithReadonlyField>(stream);
             stream.Close();
 
@@ -300,6 +301,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
             stream.Close();
 
@@ -317,6 +319,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
             stream.Close();
 
@@ -335,6 +338,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(rootObj, stream);
+            stream.Position = 0;
             HierarchicalObject deserializedObj = serializer.Deserialize<HierarchicalObject>(stream);
             stream.Close();
 
@@ -356,6 +360,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ChildClass deserializedObj = serializer.Deserialize<ChildClass>(stream);
             stream.Close();
 
@@ -372,6 +377,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ObjectWithIgnoredField deserializedObj = serializer.Deserialize<ObjectWithIgnoredField>(stream);
             stream.Close();
 
@@ -389,6 +395,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ObjectWithObjectReferences deserializedObj = serializer.Deserialize<ObjectWithObjectReferences>(stream);
             stream.Close();
 
@@ -407,6 +414,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(array, stream);
+            stream.Position = 0;
             int[] deserializedArray = serializer.Deserialize<int[]>(stream);
             stream.Close();
 
@@ -427,6 +435,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(list, stream);
+            stream.Position = 0;
             List<string> deserializedList = serializer.Deserialize<List<string>>(stream);
             stream.Close();
 
@@ -447,6 +456,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(set, stream);
+            stream.Position = 0;
             HashSet<string> deserializedSet = serializer.Deserialize<HashSet<string>>(stream);
             stream.Close();
 
@@ -467,6 +477,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(dictionary, stream);
+            stream.Position = 0;
             Dictionary<int, string> deserializedDictionary = serializer.Deserialize<Dictionary<int, string>>(stream);
             stream.Close();
 
@@ -485,6 +496,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(SerializableEnum.Option2, stream);
+            stream.Position = 0;
             SerializableEnum deserializedEnum = serializer.Deserialize<SerializableEnum>(stream);
             stream.Close();
 
@@ -500,6 +512,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ClassWithEnumField deserializedObj = serializer.Deserialize<ClassWithEnumField>(stream);
             stream.Close();
 
@@ -518,6 +531,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
             stream.Close();
 
@@ -536,6 +550,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
             stream.Close();
 
@@ -554,6 +569,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
             stream.Close();
 
@@ -573,6 +589,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
 
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ClassWithTypeField deserializedObj = serializer.Deserialize<ClassWithTypeField>(stream);
 
             stream.Close();
@@ -590,6 +607,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(typeof(int), stream);
+            stream.Position = 0;
             Type deserializedObj = serializer.Deserialize<Type>(stream);
             stream.Close();
 
@@ -653,6 +671,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
             stream.Close();
 
@@ -672,6 +691,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ClassWithInterfaceField deserializedObj = serializer.Deserialize<ClassWithInterfaceField>(stream);
             stream.Close();
 
@@ -695,6 +715,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(array, stream);
+            stream.Position = 0;
             IInterface[] deserializedObj = serializer.Deserialize<IInterface[]>(stream);
             stream.Close();
 
@@ -713,6 +734,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(s, stream);
+            stream.Position = 0;
             SerializableStruct deserializedStruct = serializer.Deserialize<SerializableStruct>(stream);
             stream.Close();
 
@@ -730,6 +752,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             StructWithObjectReferences deserializedObj = serializer.Deserialize<StructWithObjectReferences>(stream);
             stream.Close();
 
@@ -769,6 +792,7 @@ namespace IcepackTest
             writer.Write(123);          // Root object
             writer.Close();
 
+            stream.Position = 0;
             Assert.DoesNotThrow(() => {
                 int output = serializer.Deserialize<int>(stream);
             });
@@ -790,6 +814,7 @@ namespace IcepackTest
             writer.Write(123);          // Root object
             writer.Close();
 
+            stream.Position = 0;
             Assert.Throws<IcepackException>(() => {
                 int output = serializer.Deserialize<int>(stream);
             });
@@ -817,6 +842,7 @@ namespace IcepackTest
             writer.Write((uint)1);      // Type ID
             writer.Close();
 
+            stream.Position = 0;
             Assert.Throws<IcepackException>(() => {
                 serializer.Deserialize<UnregisteredClass>(stream);
             });
@@ -844,6 +870,7 @@ namespace IcepackTest
             writer.Write((uint)1);      // Type ID
             writer.Close();
 
+            stream.Position = 0;
             RegisteredClass deserializedObj = serializer.Deserialize<RegisteredClass>(stream);
 
             Assert.NotNull(deserializedObj);
@@ -875,6 +902,7 @@ namespace IcepackTest
             writer.Write(2.34f);        // Field3
             writer.Close();
 
+            stream.Position = 0;
             FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
 
             Assert.NotNull(deserializedObj);
@@ -921,6 +949,7 @@ namespace IcepackTest
             writer.Write(2.34f);        // Field3
             writer.Close();
 
+            stream.Position = 0;
             FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
 
             Assert.NotNull(deserializedObj);
@@ -975,6 +1004,7 @@ namespace IcepackTest
             writer.Write(2.34f);        // Field3
             writer.Close();
 
+            stream.Position = 0;
             FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
 
             Assert.NotNull(deserializedObj);
@@ -1035,6 +1065,7 @@ namespace IcepackTest
             writer.Write((uint)2);      // Type ID of object 4
             writer.Close();
 
+            stream.Position = 0;
             ClassWithMultipleObjectFields deserializedObj = serializer.Deserialize<ClassWithMultipleObjectFields>(stream);
 
             Assert.NotNull(deserializedObj);
@@ -1102,6 +1133,7 @@ namespace IcepackTest
             writer.Write(456);          // Field1
             writer.Close();
 
+            stream.Position = 0;
             ClassWithMultipleObjectFields deserializedObj = serializer.Deserialize<ClassWithMultipleObjectFields>(stream);
 
             Assert.NotNull(deserializedObj);
@@ -1170,6 +1202,7 @@ namespace IcepackTest
             writer.Write((uint)2);      // Type ID of object 4
             writer.Close();
 
+            stream.Position = 0;
             ClassWithMultipleObjectFields deserializedObj = serializer.Deserialize<ClassWithMultipleObjectFields>(stream);
 
             Assert.NotNull(deserializedObj);
@@ -1226,6 +1259,7 @@ namespace IcepackTest
 
             writer.Close();
 
+            stream.Position = 0;
             DerivedClass deserializedObj = serializer.Deserialize<DerivedClass>(stream);
 
             Assert.NotNull(deserializedObj);
@@ -1279,6 +1313,7 @@ namespace IcepackTest
 
             writer.Close();
 
+            stream.Position = 0;
             DerivedClass deserializedObj = serializer.Deserialize<DerivedClass>(stream);
 
             Assert.NotNull(deserializedObj);
@@ -1327,6 +1362,7 @@ namespace IcepackTest
 
             writer.Close();
 
+            stream.Position = 0;
             ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
 
             Assert.NotNull(deserializedObj);
@@ -1375,6 +1411,7 @@ namespace IcepackTest
 
             writer.Close();
 
+            stream.Position = 0;
             ClassWithTypeField deserializedObj = serializer.Deserialize<ClassWithTypeField>(stream);
 
             Assert.NotNull(deserializedObj);
@@ -1415,6 +1452,7 @@ namespace IcepackTest
 
             writer.Close();
 
+            stream.Position = 0;
             ClassWithRenamedField deserializedObj = serializer.Deserialize<ClassWithRenamedField>(stream);
 
             Assert.NotNull(deserializedObj);
@@ -1437,6 +1475,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ClassWithMultipleObjectFields deserializedObj = serializer.Deserialize<ClassWithMultipleObjectFields>(stream);
             stream.Close();
 
@@ -1459,6 +1498,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             IInterface deserializedObj = serializer.Deserialize<IInterface>(stream);
             stream.Close();
 
@@ -1479,6 +1519,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             IInterface[] deserializedObj = serializer.Deserialize<IInterface[]>(stream);
             stream.Close();
 
@@ -1503,6 +1544,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ClassWithInterfaceField deserializedObj = serializer.Deserialize<ClassWithInterfaceField>(stream);
             stream.Close();
 
@@ -1522,6 +1564,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ClassWithSerializationHooks deserializedObj = serializer.Deserialize<ClassWithSerializationHooks>(stream);
             stream.Close();
 
@@ -1537,6 +1580,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             StructWithSerializationHooks deserializedObj = serializer.Deserialize<StructWithSerializationHooks>(stream);
             stream.Close();
 
@@ -1553,6 +1597,7 @@ namespace IcepackTest
 
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
+            stream.Position = 0;
             ClassWithStructWithSerializationHooksField deserializedObj = serializer.Deserialize<ClassWithStructWithSerializationHooksField>(stream);
             stream.Close();
 
