@@ -1,4 +1,6 @@
-# Overview
+# Icepack
+
+[![NuGet version (Icepack)](https://img.shields.io/nuget/v/icepack.svg?style=flat-square)](https://www.nuget.org/packages/Icepack/)
 
 Icepack is a lightweight serialization library for C#.
 
