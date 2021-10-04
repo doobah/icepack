@@ -239,7 +239,7 @@ namespace Icepack
                     TypeMetadata partialClassTypeMetadata = context.Types[partialClassTypeId - 1];
 
                     // Skip the partial class if it is missing or the object no longer derives from it
-                    if (partialClassTypeMetadata.Type == null || !typeMetadata.Type.IsAssignableTo(partialClassTypeMetadata.Type))
+                    if (partialClassTypeMetadata.Type == null || !partialClassTypeMetadata.Type.IsAssignableFrom(typeMetadata.Type))
                         reader.BaseStream.Position += typeMetadata.InstanceSize;
                     else
                     {
@@ -285,18 +285,28 @@ namespace Icepack
         /// <returns> The deserialization delegate. </returns>
         public static Action<ObjectMetadata, DeserializationContext, BinaryReader> GetReferenceTypeOperation(TypeCategory category)
         {
-            return category switch
+            switch(category)
             {
-                TypeCategory.Immutable => DeserializeImmutableReferenceType,
-                TypeCategory.Array => DeserializeArray,
-                TypeCategory.List => DeserializeList,
-                TypeCategory.HashSet => DeserializeHashSet,
-                TypeCategory.Dictionary => DeserializeDictionary,
-                TypeCategory.Struct => DeserializeBoxedStruct,
-                TypeCategory.Class => DeserializeNormalClass,
-                TypeCategory.Enum => DeserializeEnumReferenceType,
-                TypeCategory.Type => DeserializeTypeReferenceType,
-                _ => throw new IcepackException($"Invalid type category: {category}"),
+                case TypeCategory.Immutable:
+                    return DeserializeImmutableReferenceType;
+                case TypeCategory.Array: 
+                    return DeserializeArray;
+                case TypeCategory.List: 
+                    return DeserializeList;
+                case TypeCategory.HashSet: 
+                    return DeserializeHashSet;
+                case TypeCategory.Dictionary: 
+                    return DeserializeDictionary;
+                case TypeCategory.Struct: 
+                    return DeserializeBoxedStruct;
+                case TypeCategory.Class: 
+                    return DeserializeNormalClass;
+                case TypeCategory.Enum:
+                    return DeserializeEnumReferenceType;
+                case TypeCategory.Type:
+                    return DeserializeTypeReferenceType;
+                default:
+                    throw new IcepackException($"Invalid type category: {category}");
             };
         }
 

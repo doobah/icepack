@@ -149,7 +149,7 @@ namespace IcepackTest
 
         private interface IInterface
         {
-            public int Value { get; set; }
+            int Value { get; set; }
         }
 
         [SerializableObject]

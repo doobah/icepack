@@ -224,19 +224,29 @@ namespace Icepack
         /// <returns> The serialization delegate. </returns>
         public static Action<ObjectMetadata, SerializationContext, BinaryWriter> GetReferenceTypeOperation(TypeCategory category)
         {
-            return category switch
+            switch (category)
             {
-                TypeCategory.Immutable => SerializeBoxedImmutable,
-                TypeCategory.Array => SerializeArray,
-                TypeCategory.List => SerializeList,
-                TypeCategory.HashSet => SerializeHashSet,
-                TypeCategory.Dictionary => SerializeDictionary,
-                TypeCategory.Struct => SerializeBoxedStruct,
-                TypeCategory.Class => SerializeNormalClass,
-                TypeCategory.Enum => SerializeBoxedEnum,
-                TypeCategory.Type => SerializeType,
-                _ => throw new IcepackException($"Invalid type category: {category}"),
-            };
+                case TypeCategory.Immutable:
+                    return SerializeBoxedImmutable;
+                case TypeCategory.Array:
+                    return SerializeArray;
+                case TypeCategory.List:
+                    return SerializeList;
+                case TypeCategory.HashSet:
+                    return SerializeHashSet;
+                case TypeCategory.Dictionary:
+                    return SerializeDictionary;
+                case TypeCategory.Struct:
+                    return SerializeBoxedStruct;
+                case TypeCategory.Class:
+                    return SerializeNormalClass;
+                case TypeCategory.Enum:
+                    return SerializeBoxedEnum;
+                case TypeCategory.Type:
+                    return SerializeType;
+                default:
+                    throw new IcepackException($"Invalid type category: {category}");
+            }
         }
 
         private static Action<object, SerializationContext, BinaryWriter> GetEnumFieldOperation(Type type)

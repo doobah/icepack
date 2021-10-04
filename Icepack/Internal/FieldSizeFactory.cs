@@ -41,7 +41,7 @@ namespace Icepack
                 return 8;
             else if (type == typeof(decimal))
                 return 16;
-            else if (type.IsAssignableTo(typeof(Type)))
+            else if (typeof(Type).IsAssignableFrom(type))
                 return 4;
             else if (type.IsEnum)
                 return GetEnumFieldSize(type);

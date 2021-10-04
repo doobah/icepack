@@ -87,7 +87,7 @@ namespace Icepack
                     throw new IcepackException($"Invalid type category: {typeMetadata.Category}");
             }
 
-            ObjectMetadata objMetadata = new(newId, typeMetadata, length, obj);
+            var objMetadata = new ObjectMetadata(newId, typeMetadata, length, obj);
             Objects.Add(obj, objMetadata);
             ObjectsInOrder.Add(objMetadata);
             
