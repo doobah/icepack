@@ -2,7 +2,7 @@
 
 Icepack is a lightweight serialization library for C#.
 
-It was designed as part of a game development project, specifically to address limitations that other serialization libraries have when serializing inheritance hierarchies. Libraries such as MessagePack and Protobuf provide a way for the user to inform the serializer about class hierarchies, by assigning fixed IDs to child classes. A scenario where this does not work well is a game engine's entity/component system, where in order to build functionality on top of the engine, the user needs to extend some classes exposed by the engine. If the user then wishes to import third-party libraries that extend the same classes, it is very impractical to find out which IDs have already been used, and to stay backwards compatible. Icepack solves this by including type information as part of the serialization format, while avoiding the verbosity of serializers like Json.NET by automatically assigning IDs to types and field names, and storing these in lookup tables. The additional size overhead of the type and field names is reasonable for game development projects, where the serialized objects are likely to be large and composed of hierarchies containing many instances of the same types, for example, scenes or state machines. Icepack also avoids another limitation of other libraries, by relating every field to the class that it is declared in, so that there are no field name clashes between classes in the same inheritance hierarchy.
+It was designed as part of a game development project, specifically to address limitations that other serialization libraries have when serializing inheritance hierarchies. Libraries such as MessagePack and Protobuf provide a way for the user to inform the serializer about class hierarchies, by assigning fixed IDs to child classes. A scenario where this does not work well is a game engine's entity/component system, where in order to build functionality on top of the engine, the user needs to extend some classes exposed by the engine. If the user then wishes to import third-party libraries that extend the same classes, it is very impractical to find out which IDs have already been used, and to stay backwards compatible. Icepack solves this by including type information as part of the serialization format, while avoiding the verbosity of serializers like Json.NET by automatically assigning IDs to types and field names, and storing these in lookup tables. The additional size overhead of the type and field names is reasonable for game development projects, where the serialized object graphs are likely to be large and composed of many instances of the same types, for example, scenes or state machines. Icepack also avoids clashes between identically-named fields in different classes in the same inheritance hierarchy, by relating every field to the class that it is declared in.
 
 # Serialization Format
 
@@ -28,14 +28,14 @@ The Icepack serializer uses a `BinaryWriter` internally to generate its output, 
     - Category ID = 4 [byte]
     - Size of a key [int]
     - Size of an item [int]
-  - If the type is a struct:
+  - If the type is a regular struct:
     - Category ID = 5 [byte]
     - Size of an instance [int]
     - The number of serializable fields in the type [int]
     - For each field:
       - The field name [string]
       - The size of the field in bytes [int]
-  - If the type is a normal class:
+  - If the type is a regular class:
     - Category ID = 6 [byte]
     - Size of an instance [int]
     - Whether the type has a parent [bool]
@@ -49,7 +49,7 @@ The Icepack serializer uses a `BinaryWriter` internally to generate its output, 
   - If the type is Type:
     - Category ID = 8 [byte]
 - The number of objects [int]
-- For each reference-type object, include some metadata used to pre-instantiate the object:
+- For each object, include some metadata used to pre-instantiate the object:
   - The object's type ID [uint]
   - If the object is an immutable type:
     - The value of the object [?]
@@ -71,20 +71,13 @@ Structs have the format:
   - The serialized form of the field value [?]
 ```
 
-Immutable types (primitive, string, decimal) as well as Type objects do not have any object data since since they are serialized as metadata:
+Immutable types (primitive, string, decimal) as well as Type objects do not have any object data since they are serialized as metadata:
 
 ```
 (Empty)
 ```
 
-Arrays have the format:
-
-```
-- For each element:
-  - The serialized form of that element [?]
-```
-
-Lists (based on `List<>`), and HashSets (based on `HashSet<>`) have the format:
+Arrays, Lists (based on `List<>`), and HashSets (based on `HashSet<>`) have the format:
 
 ```
 - For each element:
@@ -113,10 +106,10 @@ Other rules:
 * Object references are serialized as their object ID (`uint`).
 * The first object in the object list is the root object.
 * Primitives are serialized as-is.
-* The `string` type is automatically registered for serialization.
+* Built-in primitive types, along with `string`, `decimal`, and `Type` are automatically registered for serialization.
 * Enum literal fields are serialized as their underlying integral type.
 * Interfaces are serialized as object references.
-* The compatibility version indicates which other versions of the Icepack serializer are able to deserialize the output.
+* The compatibility version indicates which other versions of the serializer are able to deserialize the output.
 * A type object is serialized as the ID of a type in the serialized type table. This means that the type value itself must be a registered type.
 * On serializing an enum, the serializer adds the underlying type to the type table before the enum type itself.
 
@@ -124,9 +117,9 @@ Other rules:
 
 * Types can be included for serialization by calling the serializer's `RegisterType` method, or annotating the type with the `SerializableObject` attribute.
 * Fields can be ignored by annotating them with the `IgnoreField` attribute.
-* The `ISerializer` interface is provided to allow classes and structs to execute additional logic before serialization and after deserialization.
-* Deserialization is somewhat resilient to changes to the data types since serialization.
-  * Fields that have been added or removed to a class since serialization will be ignored.
+* The `ISerializerListener` interface is provided to allow classes and structs to execute additional logic before serialization and after deserialization.
+* Deserialization is somewhat resilient to changes to the data types since serialization:
+  * Fields that have been added/removed to/from a class since serialization will be ignored.
   * A field that was serialized as a reference to an instance of a missing class is ignored.
   * If a class was derived from another class that is now missing or is no longer a base class, the missing or former base class is ignored, and the serializer resumes deserializing fields from further ancestors.
   * The `PreviousName` attribute can be assigned to a field to indicate that the name of the field has changed, so that the correct field will be matched with what is in the serialized data.
@@ -137,7 +130,7 @@ Other rules:
 * `nuint` and `nint` are not supported.
 * `span` and other exotic types are not supported.
 * Deserializing after changing the type of a serialized field results in undefined behaviour.
-* Changing the name of a type will result in the serializer not knowing how to deserialize objects of that type.
+* Changing the name of a type will result in the serializer ignoring objects of that type.
 * Readonly fields are not supported.
 
 # Usage Example

@@ -14,28 +14,37 @@ namespace Icepack
         /// <summary> Reflection data for the field. </summary>
         public FieldInfo FieldInfo { get; }
 
-        /// <summary> Gets the value of this field for a given object. </summary>
+        /// <summary> Delegate that gets the value of this field for a given object. </summary>
         public Func<object, object> Getter { get; }
 
-        /// <summary> Sets the value of this field for a given object. The parameters are (object, value). </summary>
+        /// <summary> Delegate that sets the value of this field for a given object. The parameters are (object, value). </summary>
         public Action<object, object> Setter { get; }
 
+        /// <summary> Delegate that deserializes the field for a given object. </summary>
         public Func<DeserializationContext, BinaryReader, object> Deserialize { get; }
 
+        /// <summary> Delegate that serializes the field for a given object. </summary>
         public Action<object, SerializationContext, BinaryWriter> Serialize { get; }
 
+        /// <summary> The size of the field in bytes. </summary>
         public int Size { get; }
 
-        public FieldMetadata(int fieldSize, FieldMetadata registeredFieldMetadata)
+        /// <summary> Called during deserialization. Creates new field metadata. </summary>
+        /// <param name="size"> The size of the field in bytes. </param>
+        /// <param name="registeredFieldMetadata"> The corresponding registered metadata for the field. </param>
+        public FieldMetadata(int size, FieldMetadata registeredFieldMetadata)
         {
-            Size = fieldSize;
+            Size = size;
 
-            FieldInfo = null;
-            Getter = null;
-            Setter = null;
-            Deserialize = null;
-            Serialize = null;
-            if (registeredFieldMetadata != null)
+            if (registeredFieldMetadata == null)
+            {
+                FieldInfo = null;
+                Getter = null;
+                Setter = null;
+                Deserialize = null;
+                Serialize = null;
+            }
+            else
             {
                 FieldInfo = registeredFieldMetadata.FieldInfo;
                 Getter = registeredFieldMetadata.Getter;
@@ -45,16 +54,22 @@ namespace Icepack
             }
         }
 
+        /// <summary> Called during type registration. Creates new field metadata. </summary>
+        /// <param name="fieldInfo"> The <see cref="FieldInfo"/> for the field. </param>
+        /// <param name="typeRegistry"> The serializer's type registry. </param>
         public FieldMetadata(FieldInfo fieldInfo, TypeRegistry typeRegistry)
         {
             FieldInfo = fieldInfo;
             Getter = BuildGetter(fieldInfo);
             Setter = BuildSetter(fieldInfo);
-            Deserialize = DeserializationOperationFactory.GetFieldOperation(fieldInfo.FieldType);
-            Serialize = SerializationOperationFactory.GetFieldOperation(fieldInfo.FieldType);
-            Size = TypeSizeFactory.GetFieldSize(fieldInfo.FieldType, typeRegistry);
+            Deserialize = DeserializationDelegateFactory.GetFieldOperation(fieldInfo.FieldType);
+            Serialize = SerializationDelegateFactory.GetFieldOperation(fieldInfo.FieldType);
+            Size = FieldSizeFactory.GetFieldSize(fieldInfo.FieldType, typeRegistry);
         }
 
+        /// <summary> Builds the delegate used to get the value of the field. </summary>
+        /// <param name="fieldInfo"> The <see cref="FieldInfo"/> for the field. </param>
+        /// <returns> The delegate. </returns>
         private static Func<object, object> BuildGetter(FieldInfo fieldInfo)
         {
             ParameterExpression exInstance = Expression.Parameter(typeof(object));
@@ -67,6 +82,9 @@ namespace Icepack
             return action;
         }
 
+        /// <summary> Builds the delegate used to set the value of the field. </summary>
+        /// <param name="fieldInfo"> The <see cref="FieldInfo"/> for the field. </param>
+        /// <returns> The delegate. </returns>
         private static Action<object, object> BuildSetter(FieldInfo fieldInfo)
         {
             ParameterExpression exInstance = Expression.Parameter(typeof(object));

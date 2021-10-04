@@ -20,7 +20,7 @@ namespace Icepack
 
         /// <summary> Registers a type as serializable. </summary>
         /// <param name="type"> The type to register. </param>
-        /// <remarks> This is generally used to allow types in other assemblies to be serialized. </remarks>
+        /// <remarks> This is used to allow types in other assemblies to be serialized, or for arrays and concrete generic classes. </remarks>
         public TypeMetadata RegisterType(Type type)
         {
             if (types.ContainsKey(type))
@@ -32,28 +32,36 @@ namespace Icepack
             return newTypeMetadata;
         }
 
-        /// <summary> Retrieves the metadata for a type. </summary>
+        /// <summary>
+        /// Called during type registration and serialization. Retrieves the metadata for a type and
+        /// lazy-registers types that have the <see cref="SerializableObjectAttribute"/> attribute.
+        /// </summary>
         /// <param name="type"> The type to retrieve metadata for. </param>
         /// <returns> The metadata for the type. </returns>
-        /// <remarks> This method lazy-registers types that have the <see cref="SerializableObjectAttribute"/> attribute. </remarks>
         public TypeMetadata GetTypeMetadata(Type type)
         {
+            // Treat all type values as instances of Type, for simplicity.
             if (type.IsSubclassOf(typeof(Type)))
-                type = typeof(Type);
+                return types[typeof(Type)];
 
-            if (!IsTypeRegistered(type))
+            if (!types.ContainsKey(type))
             {
                 object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
                 if (attributes.Length == 0)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
-                return RegisterType(type);
+                var newTypeMetadata = new TypeMetadata(type, this);
+                types.Add(type, newTypeMetadata);
+                return newTypeMetadata;
             }
 
             return types[type];
         }
 
-        /// <summary> Called during deserialization to match a type name to a registered type. </summary>
+        /// <summary>
+        /// Called during deserialization to match a type name to a registered type. It lazy-registers types that
+        /// have the <see cref="SerializableObjectAttribute"/> attribute.
+        /// </summary>
         /// <param name="name"> The assembly qualified name of the type. </param>
         /// <returns> Metadata for the specified type. </returns>
         public TypeMetadata GetTypeMetadata(string name)
@@ -62,21 +70,18 @@ namespace Icepack
             if (type == null)
                 return null;
 
-            if (!IsTypeRegistered(type))
+            if (!types.ContainsKey(type))
             {
                 object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
                 if (attributes.Length == 0)
                     throw new IcepackException($"Type {type.AssemblyQualifiedName} is not registered for serialization!");
 
-                RegisterType(type);
+                var newTypeMetadata = new TypeMetadata(type, this);
+                types.Add(type, newTypeMetadata);
+                return newTypeMetadata;
             }
 
             return types[type];
-        }
-
-        private bool IsTypeRegistered(Type type)
-        {
-            return types.ContainsKey(type);
         }
     }
 }

@@ -4,6 +4,7 @@
 * Added support for serializing Enums.
 * Added support for serializing Type objects.
 * Added `PreviousName` attribute which allows the name of a field to be changed while allowing the serializer to match the field with a serialized field using the previous name.
+* Minor improvements and optimizations.
 
 # v0.0.9
 

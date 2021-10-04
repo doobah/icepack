@@ -10,15 +10,13 @@ namespace Icepack
     /// <summary> Stores state for the current deserialization operation. </summary>
     internal class DeserializationContext
     {
-        /// <summary>
-        /// Maps a type ID to information about the type. The type information is different from what is stored in the serializer's
-        /// type registry since the document's type table is used when deserializing.
-        /// </summary>
+        /// <summary> Metadata for types declared in the serialized data, indexed by type ID. </summary>
         public TypeMetadata[] Types { get; set; }
 
-        /// <summary> Maps an object ID to the object itself. </summary>
+        /// <summary> Metadata for objects declared in the serialized data, indexed by object ID. </summary>
         public ObjectMetadata[] Objects { get; set; }
 
+        /// <summary> Creates a new deserialization context. </summary>
         public DeserializationContext()
         {
             Types = null;

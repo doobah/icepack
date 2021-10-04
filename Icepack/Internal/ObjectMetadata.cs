@@ -6,13 +6,26 @@ using System.Threading.Tasks;
 
 namespace Icepack
 {
+    /// <summary> Contains metadata for an object. </summary>
     internal struct ObjectMetadata
     {
+        /// <summary> A unique ID corresponding to an object. </summary>
         public uint Id { get; }
+
+        /// <summary> Metadata about the type of the object. </summary>
         public TypeMetadata Type { get; }
+
+        /// <summary> If the object is an array, list, hashset, or dictionary, this is the number of items. </summary>
         public int Length { get; }
+
+        /// <summary> The value of the object. </summary>
         public object Value { get; }
 
+        /// <summary> Creates new object metadata. </summary>
+        /// <param name="id"> A unique ID corresponding to an object. </param>
+        /// <param name="type"> Metadata about the type of the object. </param>
+        /// <param name="length"> If the object is an array, list, hashset, or dictionary, this is the length of the object. </param>
+        /// <param name="value"> The value of the object. </param>
         public ObjectMetadata(uint id, TypeMetadata type, int length, object value)
         {
             Id = id;

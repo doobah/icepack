@@ -7,7 +7,8 @@ using System.IO;
 
 namespace Icepack
 {
-    internal static class SerializationOperationFactory
+    /// <summary> Returns delegates for serializing types and fields. </summary>
+    internal static class SerializationDelegateFactory
     {
         private static void SerializeString(object obj, SerializationContext context, BinaryWriter writer)
         {
@@ -92,7 +93,7 @@ namespace Icepack
             }
         }
 
-        private static void SerializeStructReference(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
+        private static void SerializeBoxedStruct(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
             TypeMetadata typeMetadata = objectMetadata.Type;
             object obj = objectMetadata.Value;
@@ -110,6 +111,7 @@ namespace Icepack
             }
         }
 
+        /// <summary> Serializes a struct field. </summary>
         private static void SerializeStruct(object obj, SerializationContext context, BinaryWriter writer)
         {
             if (obj is ISerializerListener listener)
@@ -196,41 +198,43 @@ namespace Icepack
                 if (parentType == typeof(object))
                     break;
 
+                // This will throw an exception if the parent type does not exist
                 typeMetadata = context.GetTypeMetadata(parentType);
-                if (typeMetadata == null)
-                    break;
             }
         }
 
-        private static void SerializeImmutableReferenceType(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
+        private static void SerializeBoxedImmutable(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
             // Value is serialized as metadata
         }
 
-        private static void SerializeEnumReferenceType(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
+        private static void SerializeBoxedEnum(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
             // Value is serialized as metadata
         }
 
-        private static void SerializeTypeReferenceType(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
+        private static void SerializeType(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
             // Value is serialized as metadata but we should make sure the type is added to the context first
             context.GetTypeMetadata((Type)objectMetadata.Value);
         }
 
+        /// <summary> Returns a delegate which is used to serialize instances of the given type category. </summary>
+        /// <param name="category"> The type category. </param>
+        /// <returns> The serialization delegate. </returns>
         public static Action<ObjectMetadata, SerializationContext, BinaryWriter> GetReferenceTypeOperation(TypeCategory category)
         {
             return category switch
             {
-                TypeCategory.Immutable => SerializeImmutableReferenceType,
+                TypeCategory.Immutable => SerializeBoxedImmutable,
                 TypeCategory.Array => SerializeArray,
                 TypeCategory.List => SerializeList,
                 TypeCategory.HashSet => SerializeHashSet,
                 TypeCategory.Dictionary => SerializeDictionary,
-                TypeCategory.Struct => SerializeStructReference,
+                TypeCategory.Struct => SerializeBoxedStruct,
                 TypeCategory.Class => SerializeNormalClass,
-                TypeCategory.Enum => SerializeEnumReferenceType,
-                TypeCategory.Type => SerializeTypeReferenceType,
+                TypeCategory.Enum => SerializeBoxedEnum,
+                TypeCategory.Type => SerializeType,
                 _ => throw new IcepackException($"Invalid type category: {category}"),
             };
         }
@@ -258,6 +262,9 @@ namespace Icepack
                 throw new IcepackException($"Invalid enum type: {type}");
         }
 
+        /// <summary> Returns the delegate used to serialize fields of the given type. </summary>
+        /// <param name="type"> The field's declaring type. </param>
+        /// <returns> The serialization delegate. </returns>
         public static Action<object, SerializationContext, BinaryWriter> GetFieldOperation(Type type)
         {
             if (type == typeof(byte))
@@ -296,6 +303,9 @@ namespace Icepack
                 throw new IcepackException($"Unable to serialize object of type: {type}");
         }
 
+        /// <summary> Returns the delegate used to serialize immutable types. </summary>
+        /// <param name="type"> The type. </param>
+        /// <returns> The serialization delegate. </returns>
         public static Action<object, SerializationContext, BinaryWriter> GetImmutableOperation(Type type)
         {
             if (type == typeof(string))

@@ -6,8 +6,13 @@ using System.Threading.Tasks;
 
 namespace Icepack
 {
-    internal static class TypeSizeFactory
+    /// <summary> Provides the size of a field of a given type. </summary>
+    internal static class FieldSizeFactory
     {
+        /// <summary> Gets the size of a field of a given type. </summary>
+        /// <param name="type"> The field's declaring type. </param>
+        /// <param name="typeRegistry"> The serializer's type registry. </param>
+        /// <returns> The size of the field in bytes. </returns>
         public static int GetFieldSize(Type type, TypeRegistry typeRegistry)
         {
             if (type == typeof(byte))
@@ -45,9 +50,13 @@ namespace Icepack
             else if (type.IsClass || type.IsInterface)
                 return 4;
             else
-                throw new IcepackException($"Unable to determine size of type: {type}");
+                throw new IcepackException($"Unable to determine size of field type: {type}");
         }
 
+        /// <summary> Gets the size of a struct field. </summary>
+        /// <param name="type"> The field's declaring type. </param>
+        /// <param name="typeRegistry"> The serializer's type registry. </param>
+        /// <returns> The size of the field in bytes. </returns>
         private static int GetStructFieldSize(Type type, TypeRegistry typeRegistry)
         {
             TypeMetadata structTypeMetadata = typeRegistry.GetTypeMetadata(type);
@@ -55,6 +64,9 @@ namespace Icepack
             return structTypeMetadata.InstanceSize + 4;
         }
 
+        /// <summary> Gets the size of an enum field. </summary>
+        /// <param name="type"> The field's declaring type. </param>
+        /// <returns> The size of the field in bytes. </returns>
         private static int GetEnumFieldSize(Type type)
         {
             Type underlyingType = Enum.GetUnderlyingType(type);
@@ -75,7 +87,7 @@ namespace Icepack
             else if (underlyingType == typeof(ulong))
                 return 8;
             else
-                throw new IcepackException($"Invalid enum type: {type}");
+                throw new IcepackException($"Invalid enum underlying type: {type}");
         }
     }
 }
