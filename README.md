@@ -118,6 +118,7 @@ Other rules:
 * Types can be included for serialization by calling the serializer's `RegisterType` method, or annotating the type with the `SerializableObject` attribute.
 * Fields can be ignored by annotating them with the `IgnoreField` attribute.
 * The `ISerializerListener` interface is provided to allow classes and structs to execute additional logic before serialization and after deserialization.
+* Readonly fields are supported.
 * Deserialization is somewhat resilient to changes to the data types since serialization:
   * Fields that have been added/removed to/from a class since serialization will be ignored.
   * A field that was serialized as a reference to an instance of a missing class is ignored.
@@ -131,7 +132,6 @@ Other rules:
 * `span` and other exotic types are not supported.
 * Deserializing after changing the type of a serialized field results in undefined behaviour.
 * Changing the name of a type will result in the serializer ignoring objects of that type.
-* Readonly fields are not supported.
 
 # Usage Example
 

@@ -1,3 +1,7 @@
+# v1.0.0
+
+* Added support for readonly fields.
+
 # v0.1.0
 
 * Added support for serializing boxed values.

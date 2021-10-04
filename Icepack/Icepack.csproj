@@ -6,13 +6,13 @@
     <Authors>arcraith</Authors>
     <Company>Icedece</Company>
     <Description>A lightweight serialization library for C#.</Description>
-    <Version>0.1.0</Version>
+    <Version>1.0.0</Version>
     <RepositoryUrl>https://gitlab.com/arcraith/icepack</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageIcon>Logo.png</PackageIcon>
     <PackageIconUrl />
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>

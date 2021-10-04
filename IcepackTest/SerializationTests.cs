@@ -265,6 +265,32 @@ namespace IcepackTest
             public int Field3;
         }
 
+        [SerializableObject]
+        private class ClassWithReadonlyField
+        {
+            public readonly int Field;
+
+            public ClassWithReadonlyField()
+            {
+                Field = 123;
+            }
+        }
+
+        [Test]
+        public void SerializeClassWithReadonlyField()
+        {
+            var serializer = new Serializer();
+
+            var obj = new ClassWithReadonlyField();
+
+            var stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            ClassWithReadonlyField deserializedObj = serializer.Deserialize<ClassWithReadonlyField>(stream);
+            stream.Close();
+
+            Assert.AreEqual(123, deserializedObj.Field);
+        }
+
         [Test]
         public void SerializeFlatObject()
         {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Linq.Expressions;
 using System.IO;
 
@@ -87,20 +88,25 @@ namespace Icepack
         /// <returns> The delegate. </returns>
         private static Action<object, object> BuildSetter(FieldInfo fieldInfo)
         {
-            ParameterExpression exInstance = Expression.Parameter(typeof(object));
-            UnaryExpression exConvertInstanceToDeclaringType;
-            if (fieldInfo.DeclaringType.IsValueType)
-                exConvertInstanceToDeclaringType = Expression.Unbox(exInstance, fieldInfo.DeclaringType);
-            else
-                exConvertInstanceToDeclaringType = Expression.Convert(exInstance, fieldInfo.DeclaringType);
-            ParameterExpression exValue = Expression.Parameter(typeof(object));
-            UnaryExpression exConvertValueToFieldType = Expression.Convert(exValue, fieldInfo.FieldType);
-            MemberExpression exMemberAccess = Expression.MakeMemberAccess(exConvertInstanceToDeclaringType, fieldInfo);
-            BinaryExpression exAssign = Expression.Assign(exMemberAccess, exConvertValueToFieldType);
-            Expression<Action<object, object>> lambda = Expression.Lambda<Action<object, object>>(exAssign, exInstance, exValue);
-            Action<object, object> action = lambda.Compile();
+            var method = new DynamicMethod(
+                name: $"Set_{fieldInfo.FieldType}_{fieldInfo.Name}",
+                returnType: null,
+                parameterTypes: new Type[] { typeof(object), typeof(object) },
+                restrictedSkipVisibility: true
+            );
 
-            return action;
+            ILGenerator gen = method.GetILGenerator();
+            gen.Emit(OpCodes.Ldarg_0);
+            if (fieldInfo.DeclaringType.IsValueType)
+                gen.Emit(OpCodes.Unbox, fieldInfo.DeclaringType);
+            else
+                gen.Emit(OpCodes.Castclass, fieldInfo.DeclaringType);
+            gen.Emit(OpCodes.Ldarg_1);
+            gen.Emit(OpCodes.Unbox_Any, fieldInfo.FieldType);
+            gen.Emit(OpCodes.Stfld, fieldInfo);
+            gen.Emit(OpCodes.Ret);
+
+            return (Action<object, object>)method.CreateDelegate(typeof(Action<object, object>));
         }
     }
 }

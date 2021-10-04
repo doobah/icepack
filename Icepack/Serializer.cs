@@ -11,10 +11,8 @@ namespace Icepack
     /// <summary> Serializes/deserializes objects. </summary>
     public class Serializer
     {
-        /// <summary>
-        /// Serializers with the same compatibility version are guaranteed to be interoperable.
-        /// </summary>
-        public const ushort CompatibilityVersion = 2;
+        /// <summary> Serializers with the same compatibility version are guaranteed to be interoperable. </summary>
+        public const ushort CompatibilityVersion = 3;
 
         private readonly TypeRegistry typeRegistry;
 

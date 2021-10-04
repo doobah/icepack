@@ -323,10 +323,6 @@ namespace Icepack
         {
             foreach (FieldInfo fieldInfo in Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
-                // TODO: support deserializing readonly fields
-                if (fieldInfo.IsInitOnly)
-                    continue;
-
                 IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
                 if (ignoreAttr != null)
                     continue;
