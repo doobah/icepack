@@ -96,6 +96,10 @@ namespace Icepack
         {
             TypeMetadata typeMetadata = objectMetadata.Type;
             object obj = objectMetadata.Value;
+
+            if (obj is ISerializerListener listener)
+                listener.OnBeforeSerialize();
+
             writer.Write(typeMetadata.Id);
 
             for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
@@ -174,6 +178,9 @@ namespace Icepack
             object obj = objectMetadata.Value;
             TypeMetadata typeMetadata = objectMetadata.Type;
 
+            if (obj is ISerializerListener listener)
+                listener.OnBeforeSerialize();
+
             while (true)
             {
                 writer.Write(typeMetadata.Id);
@@ -195,47 +202,37 @@ namespace Icepack
             }
         }
 
-        public static void SerializeReferenceType(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
+        private static void SerializeImmutableReferenceType(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
-            object obj = objectMetadata.Value;
-            TypeMetadata typeMetadata = objectMetadata.Type;
+            // Value is serialized as metadata
+        }
 
-            if (obj is ISerializerListener listener)
-                listener.OnBeforeSerialize();
+        private static void SerializeEnumReferenceType(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
+        {
+            // Value is serialized as metadata
+        }
 
-            switch (typeMetadata.CategoryId)
+        private static void SerializeTypeReferenceType(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
+        {
+            // Value is serialized as metadata but we should make sure the type is added to the context first
+            context.GetTypeMetadata((Type)objectMetadata.Value);
+        }
+
+        public static Action<ObjectMetadata, SerializationContext, BinaryWriter> GetReferenceTypeOperation(TypeCategory category)
+        {
+            return category switch
             {
-                case TypeCategory.Basic:
-                    // Value is serialized as metadata
-                    break;
-                case TypeCategory.Array:
-                    SerializeArray(objectMetadata, context, writer);
-                    break;
-                case TypeCategory.List:
-                    SerializeList(objectMetadata, context, writer);
-                    break;
-                case TypeCategory.HashSet:
-                    SerializeHashSet(objectMetadata, context, writer);
-                    break;
-                case TypeCategory.Dictionary:
-                    SerializeDictionary(objectMetadata, context, writer);
-                    break;
-                case TypeCategory.Struct:
-                    SerializeStructReference(objectMetadata, context, writer);
-                    break;
-                case TypeCategory.Class:
-                    SerializeNormalClass(objectMetadata, context, writer);
-                    break;
-                case TypeCategory.Enum:
-                    // Value is serialized as metadata
-                    break;
-                case TypeCategory.Type:
-                    // Value is serialized as metadata but we should make sure the type is added to the context first
-                    context.GetTypeMetadata((Type)obj);
-                    break;
-                default:
-                    throw new IcepackException($"Invalid category ID: {typeMetadata.CategoryId}");
-            }
+                TypeCategory.Immutable => SerializeImmutableReferenceType,
+                TypeCategory.Array => SerializeArray,
+                TypeCategory.List => SerializeList,
+                TypeCategory.HashSet => SerializeHashSet,
+                TypeCategory.Dictionary => SerializeDictionary,
+                TypeCategory.Struct => SerializeStructReference,
+                TypeCategory.Class => SerializeNormalClass,
+                TypeCategory.Enum => SerializeEnumReferenceType,
+                TypeCategory.Type => SerializeTypeReferenceType,
+                _ => throw new IcepackException($"Invalid type category: {category}"),
+            };
         }
 
         private static Action<object, SerializationContext, BinaryWriter> GetEnumFieldOperation(Type type)
@@ -299,7 +296,7 @@ namespace Icepack
                 throw new IcepackException($"Unable to serialize object of type: {type}");
         }
 
-        public static Action<object, SerializationContext, BinaryWriter> GetBasicOperation(Type type)
+        public static Action<object, SerializationContext, BinaryWriter> GetImmutableOperation(Type type)
         {
             if (type == typeof(string))
                 return SerializeString;

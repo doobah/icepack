@@ -13,7 +13,7 @@ The Icepack serializer uses a `BinaryWriter` internally to generate its output, 
 - The number of types [int]
 - For each type:
   - The type's assembly qualified name [string]
-  - If the type is a basic type (primitive, string, decimal):
+  - If the type is an immutable type (primitive, string, decimal):
     - Category ID = 0 [byte]
   - If the type is an array:
     - Category ID = 1 [byte]
@@ -51,7 +51,7 @@ The Icepack serializer uses a `BinaryWriter` internally to generate its output, 
 - The number of objects [int]
 - For each reference-type object, include some metadata used to pre-instantiate the object:
   - The object's type ID [uint]
-  - If the object is a basic type:
+  - If the object is an immutable type:
     - The value of the object [?]
   - If the object is an array, list, hashset, or dictionary:
     - Length [uint]
@@ -71,7 +71,7 @@ Structs have the format:
   - The serialized form of the field value [?]
 ```
 
-Basic types (primitive, string, decimal) as well as Type objects do not have any object data since since they are serialized as metadata:
+Immutable types (primitive, string, decimal) as well as Type objects do not have any object data since since they are serialized as metadata:
 
 ```
 (Empty)

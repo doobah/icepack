@@ -8,8 +8,8 @@ namespace Icepack
 {
     /// <summary>
     /// Defines an interface for an object that performs logic before serialization, and after deserialization.
-    /// Typically this would be used to update a serializable field with a more space-efficient representation
-    /// of the object's state.
+    /// Typically this would be used to update a serializable field with a more efficient representation of the
+    /// object's state.
     /// </summary>
     public interface ISerializerListener
     {

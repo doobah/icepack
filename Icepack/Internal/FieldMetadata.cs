@@ -20,7 +20,7 @@ namespace Icepack
         /// <summary> Sets the value of this field for a given object. The parameters are (object, value). </summary>
         public Action<object, object> Setter { get; }
 
-        public Func<DeserializationContext, object> Deserialize { get; }
+        public Func<DeserializationContext, BinaryReader, object> Deserialize { get; }
 
         public Action<object, SerializationContext, BinaryWriter> Serialize { get; }
 

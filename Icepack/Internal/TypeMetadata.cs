@@ -21,11 +21,13 @@ namespace Icepack
         public Action<object, object> HashSetAdder { get; }
         public Action<object, SerializationContext, BinaryWriter> SerializeKey { get; }
         public Action<object, SerializationContext, BinaryWriter> SerializeItem { get; }
-        public Action<object, SerializationContext, BinaryWriter> SerializeBasic { get; }
-        public Func<DeserializationContext, object> DeserializeKey { get; }
-        public Func<DeserializationContext, object> DeserializeItem { get; }
-        public Func<DeserializationContext, object> DeserializeBasic { get; }
-        public TypeCategory CategoryId { get; }
+        public Action<object, SerializationContext, BinaryWriter> SerializeImmutable { get; }
+        public Action<ObjectMetadata, SerializationContext, BinaryWriter> SerializeReferenceType { get; }
+        public Func<DeserializationContext, BinaryReader, object> DeserializeKey { get; }
+        public Func<DeserializationContext, BinaryReader, object> DeserializeItem { get; }
+        public Func<DeserializationContext, BinaryReader, object> DeserializeImmutable { get; }
+        public Action<ObjectMetadata, DeserializationContext, BinaryReader> DeserializeReferenceType { get; }
+        public TypeCategory Category { get; }
         public int ItemSize { get; }
         public int KeySize { get; }        
         public int InstanceSize { get; }
@@ -43,38 +45,42 @@ namespace Icepack
             Fields = registeredTypeMetadata.Fields;
             FieldsByName = registeredTypeMetadata.FieldsByName;
             FieldsByPreviousName = registeredTypeMetadata.FieldsByPreviousName;
-            CategoryId = registeredTypeMetadata.CategoryId;
+            Category = registeredTypeMetadata.Category;
             ItemSize = registeredTypeMetadata.ItemSize;
             KeySize = registeredTypeMetadata.KeySize;
             InstanceSize = registeredTypeMetadata.InstanceSize;
             HashSetAdder = registeredTypeMetadata.HashSetAdder;
             SerializeKey = registeredTypeMetadata.SerializeKey;
             SerializeItem = registeredTypeMetadata.SerializeItem;
-            SerializeBasic = registeredTypeMetadata.SerializeBasic;
+            SerializeImmutable = registeredTypeMetadata.SerializeImmutable;
+            SerializeReferenceType = registeredTypeMetadata.SerializeReferenceType;
             DeserializeKey = registeredTypeMetadata.DeserializeKey;
             DeserializeItem = registeredTypeMetadata.DeserializeItem;
-            DeserializeBasic = registeredTypeMetadata.DeserializeBasic;
+            DeserializeImmutable = registeredTypeMetadata.DeserializeImmutable;
+            DeserializeReferenceType = registeredTypeMetadata.DeserializeReferenceType;
         }
 
         /// <summary>
         /// Called during deserialization. Copies relevant information from the registered type metadata and filters the fields based on
-        /// what is expected by the serialized data.
+        /// what is provided by the serialized data.
         /// </summary>
         /// <param name="registeredTypeMetadata"> The registered type metadata to copy information from. </param>
         /// <param name="objectTree"> The object tree for type metadata extracted from the serialized data. </param>
         /// <param name="id"> A unique ID for the type. </param>
         public TypeMetadata(TypeMetadata registeredTypeMetadata, List<string> fieldNames, List<int> fieldSizes,
-            uint id, bool hasParent, TypeCategory categoryId, int itemSize, int keySize, int instanceSize, TypeMetadata enumUnderlyingTypeMetadata)
+            uint id, bool hasParent, TypeCategory category, int itemSize, int keySize, int instanceSize, TypeMetadata enumUnderlyingTypeMetadata)
         {
             Id = id;
             HasParent = hasParent;
-            CategoryId = categoryId;
+            Category = category;
             ItemSize = itemSize;
             KeySize = keySize;
             InstanceSize = instanceSize;
             EnumUnderlyingTypeMetadata = enumUnderlyingTypeMetadata;
             FieldsByName = null;
             FieldsByPreviousName = null;
+            SerializeReferenceType = SerializationOperationFactory.GetReferenceTypeOperation(category);
+            DeserializeReferenceType = DeserializationOperationFactory.GetReferenceTypeOperation(category);
 
             if (registeredTypeMetadata == null)
             {
@@ -83,10 +89,10 @@ namespace Icepack
                 HashSetAdder = null;
                 SerializeKey = null;
                 SerializeItem = null;
-                SerializeBasic = null;
+                SerializeImmutable = null;
                 DeserializeKey = null;
                 DeserializeItem = null;
-                DeserializeBasic = null;
+                DeserializeImmutable = null;
             }
             else
             {
@@ -112,10 +118,10 @@ namespace Icepack
                 HashSetAdder = registeredTypeMetadata.HashSetAdder;
                 SerializeKey = registeredTypeMetadata.SerializeKey;
                 SerializeItem = registeredTypeMetadata.SerializeItem;
-                SerializeBasic = registeredTypeMetadata.SerializeBasic;
+                SerializeImmutable = registeredTypeMetadata.SerializeImmutable;
                 DeserializeKey = registeredTypeMetadata.DeserializeKey;
                 DeserializeItem = registeredTypeMetadata.DeserializeItem;
-                DeserializeBasic = registeredTypeMetadata.DeserializeBasic;
+                DeserializeImmutable = registeredTypeMetadata.DeserializeImmutable;
             }
         }
 
@@ -129,12 +135,13 @@ namespace Icepack
             FieldsByPreviousName = new Dictionary<string, FieldMetadata>();
             HashSetAdder = null;
             SerializeKey = null;
-            SerializeBasic = null;
-            DeserializeKey = null;
             SerializeItem = null;
+            SerializeImmutable = null;
+            SerializeReferenceType = null;
+            DeserializeKey = null;
             DeserializeItem = null;
-            DeserializeBasic = null;
-            CategoryId = 0;
+            DeserializeImmutable = null;
+            DeserializeReferenceType = null;
             ItemSize = 0;
             KeySize = 0;
             InstanceSize = 0;
@@ -142,14 +149,14 @@ namespace Icepack
             EnumUnderlyingTypeMetadata = null;
 
             Type = type;
-            CategoryId = GetCategory(type);
+            Category = GetCategory(type);
 
-            switch (CategoryId)
+            switch (Category)
             {
-                case TypeCategory.Basic:
+                case TypeCategory.Immutable:
                     {
-                        SerializeBasic = SerializationOperationFactory.GetBasicOperation(type);
-                        DeserializeBasic = DeserializationOperationFactory.GetBasicOperation(type);
+                        SerializeImmutable = SerializationOperationFactory.GetImmutableOperation(type);
+                        DeserializeImmutable = DeserializationOperationFactory.GetImmutableOperation(type);
                         break;
                     }
                 case TypeCategory.Array:
@@ -212,14 +219,17 @@ namespace Icepack
                         break;
                     }
                 default:
-                    throw new IcepackException($"Invalid category ID: {CategoryId}");
+                    throw new IcepackException($"Invalid category ID: {Category}");
             }
+
+            SerializeReferenceType = SerializationOperationFactory.GetReferenceTypeOperation(Category);
+            DeserializeReferenceType = DeserializationOperationFactory.GetReferenceTypeOperation(Category);
         }
 
         private static TypeCategory GetCategory(Type type)
         {
             if (type == typeof(string) || type.IsPrimitive || type == typeof(decimal))
-                return TypeCategory.Basic;
+                return TypeCategory.Immutable;
             else if (type == typeof(Type))
                 return TypeCategory.Type;
             else if (type.IsEnum)

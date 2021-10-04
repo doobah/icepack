@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Icepack
 {
-    /// <summary> Allows a class or struct to be serialized/deserialized via Icepack. </summary>
+    /// <summary> Allows a class or struct to be serialized/deserialized. </summary>
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = true)]
     public class SerializableObjectAttribute : Attribute { }
 }

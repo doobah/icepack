@@ -9,7 +9,7 @@ namespace Icepack
     /// <summary> Categories for types, which determine how the serializer handles objects of that type. </summary>
     internal enum TypeCategory : byte
     {
-        Basic = 0,
+        Immutable = 0,
         Array = 1,
         List = 2,
         HashSet = 3,

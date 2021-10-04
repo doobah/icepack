@@ -8,7 +8,7 @@ using System.IO;
 namespace Icepack
 {
     /// <summary> Stores state for the current deserialization operation. </summary>
-    internal class DeserializationContext : IDisposable
+    internal class DeserializationContext
     {
         /// <summary>
         /// Maps a type ID to information about the type. The type information is different from what is stored in the serializer's
@@ -19,18 +19,10 @@ namespace Icepack
         /// <summary> Maps an object ID to the object itself. </summary>
         public ObjectMetadata[] Objects { get; set; }
 
-        public BinaryReader Reader { get; }
-
-        public DeserializationContext(Stream inputStream)
+        public DeserializationContext()
         {
             Types = null;
             Objects = null;
-            Reader = new BinaryReader(inputStream, Encoding.Unicode, true);
-        }
-
-        public void Dispose()
-        {
-            Reader.Dispose();
         }
     }
 }

@@ -737,7 +737,7 @@ namespace IcepackTest
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(1);            // Number of types
             writer.Write(typeof(int).AssemblyQualifiedName);
-            writer.Write((byte)0);      // Basic
+            writer.Write((byte)0);      // Immutable
             writer.Write(1);            // Number of objects
             writer.Write((uint)1);      // Type
             writer.Write(123);          // Root object
@@ -1283,7 +1283,7 @@ namespace IcepackTest
             writer.Write(4);            // Size of int
 
             writer.Write(typeof(short).AssemblyQualifiedName);
-            writer.Write((byte)0);      // Category: basic
+            writer.Write((byte)0);      // Category: immutable
 
             writer.Write("MissingEnumName");
             writer.Write((byte)7);      // Category: enum

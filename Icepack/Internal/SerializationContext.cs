@@ -40,9 +40,9 @@ namespace Icepack
             TypeMetadata typeMetadata = GetTypeMetadata(type);
 
             int length = 0;
-            switch (typeMetadata.CategoryId)
+            switch (typeMetadata.Category)
             {
-                case TypeCategory.Basic:
+                case TypeCategory.Immutable:
                     break;
                 case TypeCategory.Array:
                     length = ((Array)obj).Length;
@@ -64,7 +64,7 @@ namespace Icepack
                 case TypeCategory.Type:
                     break;
                 default:
-                    throw new IcepackException($"Invalid category ID: {typeMetadata.CategoryId}");
+                    throw new IcepackException($"Invalid category ID: {typeMetadata.Category}");
             }
 
             ObjectMetadata objMetadata = new(newId, typeMetadata, length, obj);
