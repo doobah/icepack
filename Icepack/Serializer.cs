@@ -274,7 +274,7 @@ namespace Icepack
                         if (objectType == null)
                             obj = null;
                         else
-                            obj = Activator.CreateInstance(objectType);
+                            obj = Activator.CreateInstance(objectType, true);
                         break;
                     case TypeCategory.Enum:
                         object underlyingValue = objectTypeMetadata.EnumUnderlyingTypeMetadata.DeserializeImmutable(context, reader);

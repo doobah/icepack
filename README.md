@@ -121,6 +121,8 @@ Other rules:
 * Fields can be ignored by annotating them with the `IgnoreField` attribute.
 * The `ISerializerListener` interface is provided to allow classes and structs to execute additional logic before serialization and after deserialization.
 * Readonly fields are supported.
+* The serializer can call private constructors.
+* Arrays, lists, hashsets, and dictionaries are registered automatically, but their generic parameter types must be registered separately.
 * Deserialization is somewhat resilient to changes to the data types since serialization:
   * Fields that have been added/removed to/from a class since serialization will be ignored.
   * A field that was serialized as a reference to an instance of a missing class is ignored.

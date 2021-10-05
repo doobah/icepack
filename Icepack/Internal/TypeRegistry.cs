@@ -46,9 +46,36 @@ namespace Icepack
 
             if (!types.ContainsKey(type))
             {
-                object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
-                if (attributes.Length == 0)
-                    throw new IcepackException($"Type {type} is not registered for serialization!");
+                // Register arrays, lists, hashsets, and dictionaries by default
+                if (type.IsArray)
+                    GetTypeMetadata(type.GetElementType());
+                else if (type.IsGenericType)
+                {
+                    Type genericTypeDef = type.GetGenericTypeDefinition();
+                    if (genericTypeDef == typeof(List<>) || genericTypeDef == typeof(HashSet<>))
+                    {
+                        Type[] genericArgs = type.GetGenericArguments();
+                        GetTypeMetadata(genericArgs[0]);
+                    }
+                    else if (genericTypeDef == typeof(Dictionary<,>))
+                    {
+                        Type[] genericArgs = type.GetGenericArguments();
+                        GetTypeMetadata(genericArgs[0]);
+                        GetTypeMetadata(genericArgs[1]);
+                    }
+                    else
+                    {
+                        object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
+                        if (attributes.Length == 0)
+                            throw new IcepackException($"Type {type} is not registered for serialization!");
+                    }
+                }
+                else
+                {
+                    object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
+                    if (attributes.Length == 0)
+                        throw new IcepackException($"Type {type} is not registered for serialization!");
+                }
 
                 var newTypeMetadata = new TypeMetadata(type, this);
                 types.Add(type, newTypeMetadata);
@@ -70,18 +97,7 @@ namespace Icepack
             if (type == null)
                 return null;
 
-            if (!types.ContainsKey(type))
-            {
-                object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
-                if (attributes.Length == 0)
-                    throw new IcepackException($"Type {type.AssemblyQualifiedName} is not registered for serialization!");
-
-                var newTypeMetadata = new TypeMetadata(type, this);
-                types.Add(type, newTypeMetadata);
-                return newTypeMetadata;
-            }
-
-            return types[type];
+            return GetTypeMetadata(type);
         }
     }
 }

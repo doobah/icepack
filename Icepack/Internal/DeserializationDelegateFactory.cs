@@ -93,7 +93,7 @@ namespace Icepack
                 return null;
             }
 
-            object structObj = Activator.CreateInstance(typeMetadata.Type);
+            object structObj = Activator.CreateInstance(typeMetadata.Type, true);
 
             for (int i = 0; i < typeMetadata.Fields.Count; i++)
             {

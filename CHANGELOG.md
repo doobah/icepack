@@ -1,7 +1,15 @@
+# v1.0.2
+
+* Serializer can now call private constructors.
+* Arrays, lists, hashsets, and dictionaries are now registered automatically, but their generic parameter types must be registered separately.
+
+# v1.0.1
+
+* Deserializing no longer sets the stream position to 0.
+
 # v1.0.0
 
 * Added support for readonly fields.
-* Deserializing no longer sets the stream position to 0.
 
 # v0.1.0
 

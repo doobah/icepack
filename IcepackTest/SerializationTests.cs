@@ -276,6 +276,38 @@ namespace IcepackTest
             }
         }
 
+        [SerializableObject]
+        private class ClassWithPrivateConstructor
+        {
+            public readonly int Field;
+
+            private ClassWithPrivateConstructor()
+            {
+                Field = 123;
+            }
+
+            public static ClassWithPrivateConstructor Create()
+            {
+                return new ClassWithPrivateConstructor();
+            }
+        }
+
+        [Test]
+        public void SerializeClassWithPrivateConstructor()
+        {
+            var serializer = new Serializer();
+
+            ClassWithPrivateConstructor obj = ClassWithPrivateConstructor.Create();
+
+            var stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            stream.Position = 0;
+            ClassWithPrivateConstructor deserializedObj = serializer.Deserialize<ClassWithPrivateConstructor>(stream);
+            stream.Close();
+
+            Assert.AreEqual(123, deserializedObj.Field);
+        }
+
         [Test]
         public void SerializeClassWithReadonlyField()
         {
@@ -408,7 +440,6 @@ namespace IcepackTest
         public void SerializeArray()
         {
             var serializer = new Serializer();
-            serializer.RegisterType(typeof(int[]));
 
             int[] array = new int[] { 1, 2, 3 };
 
@@ -429,7 +460,6 @@ namespace IcepackTest
         public void SerializeList()
         {
             var serializer = new Serializer();
-            serializer.RegisterType(typeof(List<string>));
 
             var list = new List<string>() { "qwer", "asdf", "zxcv" };
 
@@ -450,7 +480,6 @@ namespace IcepackTest
         public void SerializeHashSet()
         {
             var serializer = new Serializer();
-            serializer.RegisterType(typeof(HashSet<string>));
 
             var set = new HashSet<string>() { "qwer", "asdf", "zxcv" };
 
@@ -471,7 +500,6 @@ namespace IcepackTest
         public void SerializeDictionary()
         {
             var serializer = new Serializer();
-            serializer.RegisterType(typeof(Dictionary<int, string>));
 
             var dictionary = new Dictionary<int, string>() { { 1, "asdf" }, { 2, "zxcv" } };
 
