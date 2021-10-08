@@ -46,7 +46,7 @@ namespace Icepack
             typeRegistry.RegisterType(type);
         }
 
-        /// <summary> Serializes an object graph as a string. </summary>
+        /// <summary> Serializes an object graph to a stream. </summary>
         /// <param name="rootObj"> The root object to be serialized. </param>
         /// <param name="outputStream"> The stream to output the serialized data to. </param>
         public void Serialize(object rootObj, Stream outputStream)
