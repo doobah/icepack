@@ -223,7 +223,8 @@ namespace IcepackTest
         [SerializableObject]
         private class FormerBaseClass : BaseClass
         {
-            public int FieldFormerBase;
+            public int FieldFormerBase1;
+            public int FieldFormerBase2;
         }
 
         [SerializableObject]
@@ -890,11 +891,9 @@ namespace IcepackTest
             writer.Write(typeof(RegisteredClass).AssemblyQualifiedName);     // Type name
             writer.Write((byte)6);      // Category: class
             writer.Write(1);            // Size of type
-            writer.Write(false);        // Type has no parent
+            writer.Write((uint)0);      // Type has no parent
             writer.Write(0);            // Number of fields
             writer.Write(1);            // Number of objects
-            writer.Write((uint)1);      // Type ID
-
             writer.Write((uint)1);      // Type ID
             writer.Close();
 
@@ -916,7 +915,7 @@ namespace IcepackTest
             writer.Write(typeof(FlatClass).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(8);            // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(2);            // Number of fields
             writer.Write("Field1");
             writer.Write(4);            // Size of int
@@ -924,8 +923,7 @@ namespace IcepackTest
             writer.Write(4);            // Size of float
             writer.Write(1);            // Number of objects
             writer.Write((uint)1);      // Type ID of root object
-
-            writer.Write((uint)1);      // Type ID of root object
+            
             writer.Write(123);          // Field1
             writer.Write(2.34f);        // Field3
             writer.Close();
@@ -948,12 +946,14 @@ namespace IcepackTest
             var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(2);            // Number of types
+
             writer.Write(typeof(string).AssemblyQualifiedName);
             writer.Write((byte)0);      // Category: string
+
             writer.Write(typeof(FlatClass).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(16);           // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(4);            // Number of fields
             writer.Write("Field1");
             writer.Write(4);            // Size of int
@@ -963,6 +963,7 @@ namespace IcepackTest
             writer.Write(4);            // Size of object reference
             writer.Write("Field3");
             writer.Write(4);            // Size of float
+
             writer.Write(3);            // Number of objects
             writer.Write((uint)2);      // Type ID of root object
             writer.Write((uint)1);      // Type ID of object 2
@@ -970,7 +971,6 @@ namespace IcepackTest
             writer.Write((uint)1);      // Type ID of object 3
             writer.Write("some stuff"); // String value
 
-            writer.Write((uint)2);      // Type ID of root object
             writer.Write(123);          // Field1
             writer.Write((uint)2);      // Field2
             writer.Write((uint)3);      // Field2andHalf
@@ -995,8 +995,10 @@ namespace IcepackTest
             var writer = new BinaryWriter(stream, Encoding.Unicode, true);
             writer.Write(Serializer.CompatibilityVersion);
             writer.Write(3);            // Number of types
+
             writer.Write(typeof(string).AssemblyQualifiedName);
             writer.Write((byte)0);      // Category: string
+            
             writer.Write(typeof(SerializableStruct).AssemblyQualifiedName);
             writer.Write((byte)5);      // Category: struct
             writer.Write(12);           // Type size (int + int + 4)
@@ -1005,10 +1007,11 @@ namespace IcepackTest
             writer.Write(4);            // int
             writer.Write("Field2");
             writer.Write(4);            // int
+            
             writer.Write(typeof(FlatClass).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(16);           // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(4);            // Number of fields
             writer.Write("Field1");
             writer.Write(4);            // Size of int
@@ -1023,7 +1026,6 @@ namespace IcepackTest
             writer.Write((uint)1);      // Type ID of object 2
             writer.Write("asdf");       // String value
 
-            writer.Write((uint)3);      // Type ID of root object
             writer.Write(123);          // Field1
             writer.Write((uint)2);      // Field2
             writer.Write((uint)2);      // Field2andHalf type ID
@@ -1054,19 +1056,19 @@ namespace IcepackTest
             writer.Write("MissingClassName");
             writer.Write((byte)6);      // Category: class
             writer.Write(0);            // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(0);            // Number of fields
 
             writer.Write(typeof(RegisteredClass).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(0);            // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(0);            // Number of fields
             
             writer.Write(typeof(ClassWithMultipleObjectFields).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(12);           // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(3);            // Number of fields            
             writer.Write("Field1");
             writer.Write(4);            // Size of object reference
@@ -1081,16 +1083,9 @@ namespace IcepackTest
             writer.Write((uint)1);      // Type ID of object 3
             writer.Write((uint)2);      // Type ID of object 4
 
-            writer.Write((uint)3);      // Type ID of root object
             writer.Write((uint)2);      // Field1
             writer.Write((uint)3);      // Field2
             writer.Write((uint)4);      // Field3
-            
-            writer.Write((uint)2);      // Type ID of object 2
-            
-            writer.Write((uint)1);      // Type ID of object 3
-            
-            writer.Write((uint)2);      // Type ID of object 4
             writer.Close();
 
             stream.Position = 0;
@@ -1121,7 +1116,7 @@ namespace IcepackTest
             writer.Write(typeof(ClassWithIntField).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(4);            // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(1);            // Number of fields
             writer.Write("Field1");     // Field1
             writer.Write(4);            // Field1 size
@@ -1129,7 +1124,7 @@ namespace IcepackTest
             writer.Write(typeof(ClassWithMultipleObjectFields).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(12);           // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(3);            // Number of fields            
             writer.Write("Field1");
             writer.Write(4);            // Size of object reference
@@ -1145,19 +1140,16 @@ namespace IcepackTest
             writer.Write(3);            // Array length
             writer.Write((uint)2);      // Type ID of object 4
 
-            writer.Write((uint)3);      // Type ID of root object
             writer.Write((uint)2);      // Field1
             writer.Write((uint)3);      // Field2
             writer.Write((uint)4);      // Field3
 
-            writer.Write((uint)2);      // Type ID of object 2
             writer.Write(123);          // Field1
 
             writer.Write(1);            // Array[0]
             writer.Write(2);            // Array[1]
             writer.Write(3);            // Array[2]
 
-            writer.Write((uint)2);      // Type ID of object 4
             writer.Write(456);          // Field1
             writer.Close();
 
@@ -1192,13 +1184,13 @@ namespace IcepackTest
             writer.Write(typeof(RegisteredClass).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(0);            // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(0);            // Number of fields
 
             writer.Write(typeof(ClassWithMultipleObjectFields).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(12);           // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(3);            // Number of fields            
             writer.Write("Field1");
             writer.Write(4);            // Size of object reference
@@ -1214,12 +1206,10 @@ namespace IcepackTest
             writer.Write(3);            // Dictionary length
             writer.Write((uint)2);      // Type ID of object 4
 
-            writer.Write((uint)3);      // Type ID of root object
             writer.Write((uint)2);      // Field1
             writer.Write((uint)3);      // Field2
             writer.Write((uint)4);      // Field3
 
-            writer.Write((uint)2);      // Type ID of object 2
             writer.Write((byte)1);      // Key 0
             writer.Write(2);            // Value 0
             writer.Write((byte)3);      // Key 1
@@ -1227,7 +1217,6 @@ namespace IcepackTest
             writer.Write((byte)5);      // Key 2
             writer.Write(6);            // Value 2
 
-            writer.Write((uint)2);      // Type ID of object 4
             writer.Close();
 
             stream.Position = 0;
@@ -1254,7 +1243,7 @@ namespace IcepackTest
             writer.Write(typeof(BaseClass).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(4);            // Type size
-            writer.Write(false);        // Has a parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(1);            // Number of fields
             writer.Write("FieldBase");
             writer.Write(4);            // Field size
@@ -1262,7 +1251,7 @@ namespace IcepackTest
             writer.Write("MissingParentClass");
             writer.Write((byte)6);      // Category: class
             writer.Write(4);            // Type size
-            writer.Write(true);         // Has a parent
+            writer.Write((uint)1);      // Has a parent
             writer.Write(1);            // Number of fields
             writer.Write("FieldMissing");
             writer.Write(4);            // Field size
@@ -1270,7 +1259,7 @@ namespace IcepackTest
             writer.Write(typeof(DerivedClass).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(4);            // Type size
-            writer.Write(true);         // Has a parent
+            writer.Write((uint)2);      // Has a parent
             writer.Write(1);            // Number of fields
             writer.Write("FieldDerived");
             writer.Write(4);            // Field size
@@ -1278,12 +1267,9 @@ namespace IcepackTest
             writer.Write(1);            // Number of objects
             writer.Write((uint)3);      // Type ID of root object
 
-            writer.Write((uint)3);      // Type ID of root object
-            writer.Write(123);          // Field1
-            writer.Write((uint)2);      // Type ID of parent class
-            writer.Write(456);          // Field1
-            writer.Write((uint)1);      // Type ID of grandparent class
-            writer.Write(789);          // Field1
+            writer.Write(123);          // Derived class: Field1
+            writer.Write(456);          // Parent class: Field1
+            writer.Write(789);          // Grandparent class: Field1
 
             writer.Close();
 
@@ -1308,23 +1294,25 @@ namespace IcepackTest
             writer.Write(typeof(BaseClass).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(4);            // Type size
-            writer.Write(false);        // Has a parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(1);            // Number of fields
             writer.Write("FieldBase");
             writer.Write(4);            // Field size
 
             writer.Write(typeof(FormerBaseClass).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
-            writer.Write(4);            // Type size
-            writer.Write(true);         // Has a parent
-            writer.Write(1);            // Number of fields
-            writer.Write("FieldFormerBase");
+            writer.Write(8);            // Type size
+            writer.Write((uint)1);      // Has a parent
+            writer.Write(2);            // Number of fields
+            writer.Write("FieldFormerBase1");
+            writer.Write(4);            // Field size
+            writer.Write("FieldFormerBase2");
             writer.Write(4);            // Field size
 
             writer.Write(typeof(DerivedClass).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(4);            // Type size
-            writer.Write(true);         // Has a parent
+            writer.Write((uint)2);      // Has a parent
             writer.Write(1);            // Number of fields
             writer.Write("FieldDerived");
             writer.Write(4);            // Field size
@@ -1332,12 +1320,10 @@ namespace IcepackTest
             writer.Write(1);            // Number of objects
             writer.Write((uint)3);      // Type ID of root object
 
-            writer.Write((uint)3);      // Type ID of root object
-            writer.Write(123);          // Field1
-            writer.Write((uint)2);      // Type ID of parent class
-            writer.Write(456);          // Field1
-            writer.Write((uint)1);      // Type ID of grandparent class
-            writer.Write(789);          // Field1
+            writer.Write(123);          // Derived class: Field1
+            writer.Write(456);          // Parent class: Field1
+            writer.Write(654);          // Parent class: Field2
+            writer.Write(789);          // Grandparent class: Field1
 
             writer.Close();
 
@@ -1362,7 +1348,7 @@ namespace IcepackTest
             writer.Write(typeof(ClassWithObjectField).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(12);           // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(3);            // Number of fields            
             writer.Write("Field1");
             writer.Write(4);            // Size of int
@@ -1383,7 +1369,6 @@ namespace IcepackTest
             writer.Write((uint)3);      // Type ID: enum
             writer.Write((short)456);   // Enum value
 
-            writer.Write((uint)1);      // Type ID of root object
             writer.Write(123);          // Field1
             writer.Write((uint)2);      // Field2
             writer.Write(789);          // Field3
@@ -1412,7 +1397,7 @@ namespace IcepackTest
             writer.Write(typeof(ClassWithTypeField).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(12);           // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(3);            // Number of fields            
             writer.Write("Field1");
             writer.Write(4);            // Size of int
@@ -1432,7 +1417,6 @@ namespace IcepackTest
             writer.Write((uint)2);      // Type ID of Type object
             writer.Write((uint)3);      // Value of Type object
 
-            writer.Write((uint)1);      // Type ID of root object
             writer.Write(123);          // Field1
             writer.Write((uint)2);      // Field2
             writer.Write(789);          // Field3
@@ -1461,7 +1445,7 @@ namespace IcepackTest
             writer.Write(typeof(ClassWithRenamedField).AssemblyQualifiedName);
             writer.Write((byte)6);      // Category: class
             writer.Write(12);           // Type size
-            writer.Write(false);        // Has no parent
+            writer.Write((uint)0);      // Has no parent
             writer.Write(3);            // Number of fields            
             writer.Write("Field1");
             writer.Write(4);            // Size of int
@@ -1473,7 +1457,6 @@ namespace IcepackTest
             writer.Write(1);            // Number of objects
             writer.Write((uint)1);      // Type ID of root object
 
-            writer.Write((uint)1);      // Type ID of root object
             writer.Write(123);          // Field1
             writer.Write(456);          // Field9000
             writer.Write(789);          // Field3

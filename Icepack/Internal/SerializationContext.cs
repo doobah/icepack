@@ -112,7 +112,11 @@ namespace Icepack
                 if (registeredTypeMetadata == null)
                     throw new IcepackException($"Type {type} is not registered for serialization!");
 
-                var newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata);
+                TypeMetadata parentTypeMetadata = null;
+                if (registeredTypeMetadata.Category == TypeCategory.Class && type.BaseType != typeof(object))
+                    parentTypeMetadata = GetTypeMetadata(type.BaseType);
+
+                var newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata, parentTypeMetadata);
                 Types.Add(type, newTypeMetadata);
                 TypesInOrder.Add(newTypeMetadata);
                 return newTypeMetadata;

@@ -185,8 +185,6 @@ namespace Icepack
 
             while (true)
             {
-                writer.Write(typeMetadata.Id);
-
                 for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
                 {
                     FieldMetadata field = typeMetadata.Fields[fieldIdx];

@@ -30,7 +30,7 @@ namespace Icepack
         public Dictionary<string, FieldMetadata> FieldsByPreviousName { get; }
 
         /// <summary> Only used for regular class types. This indicates whether the class has a base class that is not <see cref="object"/>. </summary>
-        public bool HasParent { get; }
+        public TypeMetadata Parent { get; }
 
         /// <summary> Only used for hashset types. A delegate that adds an item to a hash set without having to cast it to the right type. </summary>
         public Action<object, object> HashSetAdder { get; }
@@ -84,12 +84,12 @@ namespace Icepack
         /// <param name="registeredTypeMetadata"> The metadata for the type retrieved from the type registry. </param>
         /// <param name="id"> A unique ID for the type. </param>
         /// <param name="enumUnderlyingTypeMetadata"> For an enum type, this is the metadata for the underlying type. Otherwise null. </param>
-        public TypeMetadata(TypeMetadata registeredTypeMetadata, uint id, TypeMetadata enumUnderlyingTypeMetadata)
+        public TypeMetadata(TypeMetadata registeredTypeMetadata, uint id, TypeMetadata enumUnderlyingTypeMetadata, TypeMetadata parentTypeMetadata)
         {
             Id = id;
             EnumUnderlyingTypeMetadata = enumUnderlyingTypeMetadata;
+            Parent = parentTypeMetadata;
 
-            HasParent = registeredTypeMetadata.HasParent;
             Type = registeredTypeMetadata.Type;
             Fields = registeredTypeMetadata.Fields;
             FieldsByName = registeredTypeMetadata.FieldsByName;
@@ -125,10 +125,11 @@ namespace Icepack
         /// <param name="keySize"> For dictionary types. The size of a key in bytes. </param>
         /// <param name="enumUnderlyingTypeMetadata"> For enum types. Metadata for the underlying type. </param>
         public TypeMetadata(TypeMetadata registeredTypeMetadata, List<string> fieldNames, List<int> fieldSizes,
-            uint id, bool hasParent, TypeCategory category, int itemSize, int keySize, int instanceSize, TypeMetadata enumUnderlyingTypeMetadata)
+            uint id, TypeMetadata parentTypeMetadata, TypeCategory category, int itemSize, int keySize, int instanceSize,
+            TypeMetadata enumUnderlyingTypeMetadata)
         {
             Id = id;
-            HasParent = hasParent;
+            Parent = parentTypeMetadata;
             Category = category;
             ItemSize = itemSize;
             KeySize = keySize;
@@ -187,7 +188,7 @@ namespace Icepack
         /// <param name="typeRegistry"> The serializer's type registry. </param>
         public TypeMetadata(Type type, TypeRegistry typeRegistry)
         {
-            HasParent = false;
+            Parent = null;
             Fields = new List<FieldMetadata>();
             FieldsByName = new Dictionary<string, FieldMetadata>();
             FieldsByPreviousName = new Dictionary<string, FieldMetadata>();
@@ -264,16 +265,11 @@ namespace Icepack
                     }
                 case TypeCategory.Class:
                     {
-                        HasParent = Type.BaseType != typeof(object);
                         PopulateFields(typeRegistry);
                         PopulateSize();
                         break;
                     }
                 case TypeCategory.Enum:
-                    {
-                        EnumUnderlyingTypeMetadata = typeRegistry.GetTypeMetadata(Type.GetEnumUnderlyingType());
-                        break;
-                    }
                 case TypeCategory.Type:
                     {
                         break;

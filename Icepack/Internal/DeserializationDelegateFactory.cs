@@ -216,53 +216,33 @@ namespace Icepack
         {
             object obj = objectMetadata.Value;
             TypeMetadata typeMetadata = objectMetadata.Type;
+            TypeMetadata currentTypeMetadata = typeMetadata;
 
-            if (typeMetadata.Type == null)
+            while (currentTypeMetadata != null)
             {
-                while (true)
+                // Skip the class if it is missing or the object no longer derives from it
+                if (currentTypeMetadata.Type == null || !currentTypeMetadata.Type.IsAssignableFrom(typeMetadata.Type))
+                    reader.BaseStream.Position += currentTypeMetadata.InstanceSize;
+                else
                 {
-                    uint partialClassTypeId = reader.ReadUInt32();
-                    // Type IDs start from 1
-                    TypeMetadata partialClassTypeMetadata = context.Types[partialClassTypeId - 1];
-                    reader.BaseStream.Position += partialClassTypeMetadata.InstanceSize;
-
-                    if (!partialClassTypeMetadata.HasParent)
-                        break;
-                }
-            }
-            else
-            {
-                while (true)
-                {
-                    uint partialClassTypeId = reader.ReadUInt32();
-                    // Type IDs start from 1
-                    TypeMetadata partialClassTypeMetadata = context.Types[partialClassTypeId - 1];
-
-                    // Skip the partial class if it is missing or the object no longer derives from it
-                    if (partialClassTypeMetadata.Type == null || !partialClassTypeMetadata.Type.IsAssignableFrom(typeMetadata.Type))
-                        reader.BaseStream.Position += typeMetadata.InstanceSize;
-                    else
+                    for (int fieldIdx = 0; fieldIdx < currentTypeMetadata.Fields.Count; fieldIdx++)
                     {
-                        for (int fieldIdx = 0; fieldIdx < partialClassTypeMetadata.Fields.Count; fieldIdx++)
+                        FieldMetadata field = currentTypeMetadata.Fields[fieldIdx];
+                        if (field.FieldInfo == null)
+                            reader.BaseStream.Position += field.Size;
+                        else
                         {
-                            FieldMetadata field = partialClassTypeMetadata.Fields[fieldIdx];
-                            if (field.FieldInfo == null)
-                                reader.BaseStream.Position += field.Size;
-                            else
-                            {
-                                object value = field.Deserialize(context, reader);
-                                field.Setter(obj, value);
-                            }
+                            object value = field.Deserialize(context, reader);
+                            field.Setter(obj, value);
                         }
                     }
-
-                    if (!partialClassTypeMetadata.HasParent)    
-                        break;
                 }
 
-                if (obj is ISerializerListener listener)
-                    listener.OnAfterDeserialize();
+                currentTypeMetadata = currentTypeMetadata.Parent;
             }
+
+            if (obj is ISerializerListener listener)
+                listener.OnAfterDeserialize();
         }
 
         private static void DeserializeImmutableReferenceType(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)

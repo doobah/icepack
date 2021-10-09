@@ -12,7 +12,7 @@ namespace Icepack
     public class Serializer
     {
         /// <summary> Serializers with the same compatibility version are guaranteed to be interoperable. </summary>
-        public const ushort CompatibilityVersion = 3;
+        public const ushort CompatibilityVersion = 4;
 
         private readonly TypeRegistry typeRegistry;
 
@@ -170,7 +170,10 @@ namespace Icepack
                         break;
                     case TypeCategory.Class:
                         writer.Write(typeMetadata.InstanceSize);
-                        writer.Write(typeMetadata.HasParent);
+                        if (typeMetadata.Parent == null)
+                            writer.Write((uint)0);
+                        else
+                            writer.Write(typeMetadata.Parent.Id);
                         writer.Write(typeMetadata.Fields.Count);
 
                         for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
@@ -310,7 +313,7 @@ namespace Icepack
                 int itemSize = 0;
                 int keySize = 0;
                 int instanceSize = 0;
-                bool hasParent = false;
+                TypeMetadata parentTypeMetadata = null;
                 List<string> fieldNames = null;
                 List<int> fieldSizes = null;
                 TypeMetadata enumUnderlyingTypeMetadata = null;
@@ -346,9 +349,13 @@ namespace Icepack
                     case TypeCategory.Class:
                         {
                             instanceSize = reader.ReadInt32();
-                            hasParent = reader.ReadBoolean();
+                            
+                            uint parentTypeId = reader.ReadUInt32();
+                            if (parentTypeId != 0)
+                                parentTypeMetadata = context.Types[parentTypeId - 1];
 
                             int numberOfFields = reader.ReadInt32();
+
                             fieldNames = new List<string>(numberOfFields);
                             fieldSizes = new List<int>(numberOfFields);
                             for (int f = 0; f < numberOfFields; f++)
@@ -369,7 +376,7 @@ namespace Icepack
                 }
 
                 var typeMetadata = new TypeMetadata(registeredTypeMetadata, fieldNames, fieldSizes, (uint)(t + 1),
-                    hasParent, category, itemSize, keySize, instanceSize, enumUnderlyingTypeMetadata);
+                    parentTypeMetadata, category, itemSize, keySize, instanceSize, enumUnderlyingTypeMetadata);
                 context.Types[t] = typeMetadata;
             }
         }

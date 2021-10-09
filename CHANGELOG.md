@@ -1,3 +1,8 @@
+# v1.0.3
+
+* Fixed issue where a class that the object is no longer derived from was not being skipped correctly.
+* Include parent ID in type metadata instead of before each class. This decreases the size of the serialized output.
+
 # v1.0.2
 
 * Serializer can now call private constructors.
