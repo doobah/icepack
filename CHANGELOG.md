@@ -1,3 +1,7 @@
+# v1.0.4
+
+* Added documentation to nuget package.
+
 # v1.0.3
 
 * Fixed issue where a class that the object is no longer derived from was not being skipped correctly.
