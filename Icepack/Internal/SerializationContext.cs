@@ -101,7 +101,8 @@ namespace Icepack
         /// <returns> The metadata for the type. </returns>
         public TypeMetadata GetTypeMetadata(Type type)
         {
-            if (!Types.ContainsKey(type))
+            TypeMetadata typeMetadata;
+            if (!Types.TryGetValue(type, out typeMetadata))
             {
                 // If this is an enum, we want the underlying type to be present ahead of the enum type
                 TypeMetadata enumUnderlyingTypeMetadata = null;
@@ -116,13 +117,55 @@ namespace Icepack
                 if (registeredTypeMetadata.Category == TypeCategory.Class && type.BaseType != typeof(object))
                     parentTypeMetadata = GetTypeMetadata(type.BaseType);
 
-                var newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata, parentTypeMetadata);
+                TypeMetadata keyTypeMetadata = null;
+                if (registeredTypeMetadata.Category == TypeCategory.Dictionary)
+                {
+                    Type keyType = type.GenericTypeArguments[0];
+                    if (keyType.IsValueType)
+                        keyTypeMetadata = GetTypeMetadata(keyType);
+                }
+
+                TypeMetadata itemTypeMetadata = null;
+                switch (registeredTypeMetadata.Category)
+                {
+                    case TypeCategory.Array:
+                        {
+                            Type itemType = type.GetElementType();
+                            if (itemType.IsValueType)
+                                itemTypeMetadata = GetTypeMetadata(itemType);
+                            break;
+                        }
+                    case TypeCategory.List:
+                        {
+                            Type itemType = type.GenericTypeArguments[0];
+                            if (itemType.IsValueType)
+                                itemTypeMetadata = GetTypeMetadata(itemType);
+                            break;
+                        }
+                    case TypeCategory.HashSet:
+                        {
+                            Type itemType = type.GenericTypeArguments[0];
+                            if (itemType.IsValueType)
+                                itemTypeMetadata = GetTypeMetadata(itemType);
+                            break;
+                        }
+                    case TypeCategory.Dictionary:
+                        {
+                            Type itemType = type.GenericTypeArguments[1];
+                            if (itemType.IsValueType)
+                                itemTypeMetadata = GetTypeMetadata(itemType);
+                            break;
+                        }
+                }
+
+                var newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata, parentTypeMetadata,
+                                                       keyTypeMetadata, itemTypeMetadata);
                 Types.Add(type, newTypeMetadata);
                 TypesInOrder.Add(newTypeMetadata);
                 return newTypeMetadata;
             }
 
-            return Types[type];
+            return typeMetadata;
         }
     }
 }

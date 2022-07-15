@@ -63,7 +63,7 @@ namespace Icepack
             while (currentObjId < context.ObjectsInOrder.Count)
             {
                 ObjectMetadata objToSerialize = context.ObjectsInOrder[currentObjId];
-                TypeMetadata typeMetadata = objToSerialize.Type;
+                TypeMetadata typeMetadata = objToSerialize.TypeMetadata;
                 typeMetadata.SerializeReferenceType(objToSerialize, context, objectDataWriter);
 
                 currentObjId++;
@@ -93,7 +93,7 @@ namespace Icepack
             for (int objectIdx = 0; objectIdx < context.ObjectsInOrder.Count; objectIdx++)
             {
                 ObjectMetadata objectMetadata = context.ObjectsInOrder[objectIdx];
-                TypeMetadata typeMetadata = objectMetadata.Type;
+                TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
                 writer.Write(typeMetadata.Id);
 
@@ -103,7 +103,7 @@ namespace Icepack
                         // "Boxed" immutable values are serialized entirely as metadata since they are unable to be
                         // pre-instantiated and updated later like mutable structs and classes, and the final value
                         // must be present when resolving references to these values.
-                        typeMetadata.SerializeImmutable(objectMetadata.Value, context, writer);
+                        typeMetadata.SerializeImmutable(objectMetadata.Value, context, writer, null);
                         break;
                     case TypeCategory.Array:
                     case TypeCategory.List:
@@ -115,7 +115,7 @@ namespace Icepack
                     case TypeCategory.Class:
                         break;
                     case TypeCategory.Enum:
-                        typeMetadata.EnumUnderlyingTypeMetadata.SerializeImmutable(objectMetadata.Value, context, writer);
+                        typeMetadata.EnumUnderlyingTypeMetadata.SerializeImmutable(objectMetadata.Value, context, writer, null);
                         break;
                     case TypeCategory.Type:
                         // Type objects are serialized as an ID of a registered type, as metadata so that references
@@ -124,7 +124,7 @@ namespace Icepack
                         writer.Write(valueTypeMetadata.Id);
                         break;
                     default:
-                        throw new IcepackException($"Invalid type category: {objectMetadata.Type.Category}");
+                        throw new IcepackException($"Invalid type category: {objectMetadata.TypeMetadata.Category}");
                 }
             }
         }
@@ -170,10 +170,10 @@ namespace Icepack
                         break;
                     case TypeCategory.Class:
                         writer.Write(typeMetadata.InstanceSize);
-                        if (typeMetadata.Parent == null)
+                        if (typeMetadata.ParentTypeMetadata == null)
                             writer.Write((uint)0);
                         else
-                            writer.Write(typeMetadata.Parent.Id);
+                            writer.Write(typeMetadata.ParentTypeMetadata.Id);
                         writer.Write(typeMetadata.Fields.Count);
 
                         for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
@@ -215,7 +215,7 @@ namespace Icepack
             for (int i = 0; i < context.Objects.Length; i++)
             {
                 ObjectMetadata classObjMetadata = context.Objects[i];
-                TypeMetadata typeMetadata = classObjMetadata.Type;
+                TypeMetadata typeMetadata = classObjMetadata.TypeMetadata;
                 typeMetadata.DeserializeReferenceType(classObjMetadata, context, reader);
             }
 

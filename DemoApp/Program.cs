@@ -8,28 +8,40 @@ namespace DemoApp
     internal class Program
     {
         [SerializableObject]
-        private class DataClass
+        private struct DataType
         {
             public int Field1 { get; set; }
         }
 
         static void Main(string[] args)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                Serializer serializer = new Serializer();
-                serializer.Serialize(GetData(), stream);
-                stream.Position = 0;
-                serializer.Deserialize<List<DataClass>>(stream);
-            }
+            MemoryStream stream = new MemoryStream();
+
+            List<DataType> data = PrepareData();
+            DateTime startTime;
+            Serializer serializer = new Serializer();
+
+            startTime = DateTime.Now;
+            serializer.Serialize(data, stream);
+            TimeSpan serializeTime = DateTime.Now - startTime;
+
+            stream.Position = 0;
+
+            startTime = DateTime.Now;
+            serializer.Deserialize<List<DataType>>(stream);
+            TimeSpan deserializeTime = DateTime.Now - startTime;
+
+            Console.WriteLine("Serialize: {0:F}, Deserialize: {1:F}", serializeTime.TotalSeconds, deserializeTime.TotalSeconds);
+
+            stream.Close();
         }
 
-        private static object GetData()
+        private static List<DataType> PrepareData()
         {
-            List<DataClass> data = new List<DataClass>();
+            List<DataType> data = new List<DataType>();
             for (int i = 0; i < 10000000; i++)
             {
-                DataClass item = new DataClass();
+                DataType item = new DataType();
                 item.Field1 = 123;
 
                 data.Add(item);

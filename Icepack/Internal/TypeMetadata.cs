@@ -30,21 +30,27 @@ namespace Icepack
         public Dictionary<string, FieldMetadata> FieldsByPreviousName { get; }
 
         /// <summary> Only used for regular class types. This indicates whether the class has a base class that is not <see cref="object"/>. </summary>
-        public TypeMetadata Parent { get; }
+        public TypeMetadata ParentTypeMetadata { get; }
 
-        /// <summary> Only used for hashset types. A delegate that adds an item to a hash set without having to cast it to the right type. </summary>
+        /// <summary> Only used for dictionary types during serialization. The metadata for the key type. </summary>
+        public TypeMetadata KeyTypeMetadata { get; }
+
+        /// <summary> Used for array, list, hashset, and dictionary types during serialization. The metadata for the item type. </summary>
+        public TypeMetadata ItemTypeMetadata { get; }
+
+        /// <summary> Only used for hashset types during deserialization. A delegate that adds an item to a hash set without having to cast it to the right type. </summary>
         public Action<object, object> HashSetAdder { get; }
 
         /// <summary> Only used for dictionary types. A delegate that serializes the key for a dictionary entry. </summary>
-        public Action<object, SerializationContext, BinaryWriter> SerializeKey { get; }
+        public Action<object, SerializationContext, BinaryWriter, TypeMetadata> SerializeKey { get; }
 
         /// <summary>
         /// Used for array, list, hashset, and dictionary types. A delegate that serializes an item (or an entry value for a dictionary).
         /// </summary>
-        public Action<object, SerializationContext, BinaryWriter> SerializeItem { get; }
+        public Action<object, SerializationContext, BinaryWriter, TypeMetadata> SerializeItem { get; }
 
         /// <summary> Used for immutable types. Serializes the object. </summary>
-        public Action<object, SerializationContext, BinaryWriter> SerializeImmutable { get; }
+        public Action<object, SerializationContext, BinaryWriter, TypeMetadata> SerializeImmutable { get; }
 
         /// <summary> A delegate used to serialize a reference type object, or a boxed value type object. </summary>
         public Action<ObjectMetadata, SerializationContext, BinaryWriter> SerializeReferenceType { get; }
@@ -76,19 +82,25 @@ namespace Icepack
 
         /// <summary>
         /// Only used for regular struct and class types. The size of an instance of the type in bytes, calculated by summing the sizes
-        /// of each of the fields.
+        /// of each of the fields during registration. During deserialization, this value is determined by the encoded instance size value.
         /// </summary>
         public int InstanceSize { get; private set; }
 
-        /// <summary> Called during serialization. Creates new type metadata. </summary>
+        /// <summary> Called during serialization. Creates new type metadata for the serialization context. </summary>
         /// <param name="registeredTypeMetadata"> The metadata for the type retrieved from the type registry. </param>
         /// <param name="id"> A unique ID for the type. </param>
         /// <param name="enumUnderlyingTypeMetadata"> For an enum type, this is the metadata for the underlying type. Otherwise null. </param>
-        public TypeMetadata(TypeMetadata registeredTypeMetadata, uint id, TypeMetadata enumUnderlyingTypeMetadata, TypeMetadata parentTypeMetadata)
+        /// <param name="parentTypeMetadata"> The metadata for the base type. </param>
+        /// <param name="keyTypeMetadata"> For a dictionary type, this is the the metadata for the key type. Otherwise null. </param>
+        /// <param name="itemTypeMetadata"> For an array, list, hashset, or dictionary type, this is the metadata for the item type. Otherwise null. </param>
+        public TypeMetadata(TypeMetadata registeredTypeMetadata, uint id, TypeMetadata enumUnderlyingTypeMetadata, TypeMetadata parentTypeMetadata,
+                            TypeMetadata keyTypeMetadata, TypeMetadata itemTypeMetadata)
         {
             Id = id;
             EnumUnderlyingTypeMetadata = enumUnderlyingTypeMetadata;
-            Parent = parentTypeMetadata;
+            ParentTypeMetadata = parentTypeMetadata;
+            KeyTypeMetadata = keyTypeMetadata;
+            ItemTypeMetadata = itemTypeMetadata;
 
             Type = registeredTypeMetadata.Type;
             Fields = registeredTypeMetadata.Fields;
@@ -98,20 +110,15 @@ namespace Icepack
             ItemSize = registeredTypeMetadata.ItemSize;
             KeySize = registeredTypeMetadata.KeySize;
             InstanceSize = registeredTypeMetadata.InstanceSize;
-            HashSetAdder = registeredTypeMetadata.HashSetAdder;
             SerializeKey = registeredTypeMetadata.SerializeKey;
             SerializeItem = registeredTypeMetadata.SerializeItem;
             SerializeImmutable = registeredTypeMetadata.SerializeImmutable;
             SerializeReferenceType = registeredTypeMetadata.SerializeReferenceType;
-            DeserializeKey = registeredTypeMetadata.DeserializeKey;
-            DeserializeItem = registeredTypeMetadata.DeserializeItem;
-            DeserializeImmutable = registeredTypeMetadata.DeserializeImmutable;
-            DeserializeReferenceType = registeredTypeMetadata.DeserializeReferenceType;
         }
 
         /// <summary>
         /// Called during deserialization. Copies relevant information from the registered type metadata and filters the fields based on
-        /// what is provided by the serialized data.
+        /// what is provided by the serialized data. Only for the deserialization context.
         /// </summary>
         /// <param name="registeredTypeMetadata"> The metadata for the type retrieved from the type registry. </param>
         /// <param name="fieldNames"> A list of names of serialized fields. </param>
@@ -129,7 +136,7 @@ namespace Icepack
             TypeMetadata enumUnderlyingTypeMetadata)
         {
             Id = id;
-            Parent = parentTypeMetadata;
+            ParentTypeMetadata = parentTypeMetadata;
             Category = category;
             ItemSize = itemSize;
             KeySize = keySize;
@@ -137,7 +144,6 @@ namespace Icepack
             EnumUnderlyingTypeMetadata = enumUnderlyingTypeMetadata;
             FieldsByName = null;
             FieldsByPreviousName = null;
-            SerializeReferenceType = SerializationDelegateFactory.GetReferenceTypeOperation(category);
             DeserializeReferenceType = DeserializationDelegateFactory.GetReferenceTypeOperation(category);
 
             if (registeredTypeMetadata == null)
@@ -145,9 +151,6 @@ namespace Icepack
                 Type = null;
                 Fields = null;
                 HashSetAdder = null;
-                SerializeKey = null;
-                SerializeItem = null;
-                SerializeImmutable = null;
                 DeserializeKey = null;
                 DeserializeItem = null;
                 DeserializeImmutable = null;
@@ -174,9 +177,6 @@ namespace Icepack
                 }
 
                 HashSetAdder = registeredTypeMetadata.HashSetAdder;
-                SerializeKey = registeredTypeMetadata.SerializeKey;
-                SerializeItem = registeredTypeMetadata.SerializeItem;
-                SerializeImmutable = registeredTypeMetadata.SerializeImmutable;
                 DeserializeKey = registeredTypeMetadata.DeserializeKey;
                 DeserializeItem = registeredTypeMetadata.DeserializeItem;
                 DeserializeImmutable = registeredTypeMetadata.DeserializeImmutable;
@@ -188,7 +188,7 @@ namespace Icepack
         /// <param name="typeRegistry"> The serializer's type registry. </param>
         public TypeMetadata(Type type, TypeRegistry typeRegistry)
         {
-            Parent = null;
+            ParentTypeMetadata = null;
             Fields = new List<FieldMetadata>();
             FieldsByName = new Dictionary<string, FieldMetadata>();
             FieldsByPreviousName = new Dictionary<string, FieldMetadata>();

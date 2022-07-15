@@ -44,7 +44,8 @@ namespace Icepack
             if (type.IsSubclassOf(typeof(Type)))
                 return types[typeof(Type)];
 
-            if (!types.ContainsKey(type))
+            TypeMetadata typeMetadata;
+            if (!types.TryGetValue(type, out typeMetadata))
             {
                 // Register arrays, lists, hashsets, and dictionaries by default
                 if (type.IsArray)
@@ -82,7 +83,7 @@ namespace Icepack
                 return newTypeMetadata;
             }
 
-            return types[type];
+            return typeMetadata;
         }
 
         /// <summary>

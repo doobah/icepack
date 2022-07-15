@@ -25,7 +25,7 @@ namespace Icepack
         public Func<DeserializationContext, BinaryReader, object> Deserialize { get; }
 
         /// <summary> Delegate that serializes the field for a given object. </summary>
-        public Action<object, SerializationContext, BinaryWriter> Serialize { get; }
+        public Action<object, SerializationContext, BinaryWriter, TypeMetadata> Serialize { get; }
 
         /// <summary> The size of the field in bytes. </summary>
         public int Size { get; }

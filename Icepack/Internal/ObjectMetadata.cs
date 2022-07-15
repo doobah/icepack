@@ -13,7 +13,7 @@ namespace Icepack
         public uint Id { get; }
 
         /// <summary> Metadata about the type of the object. </summary>
-        public TypeMetadata Type { get; }
+        public TypeMetadata TypeMetadata { get; }
 
         /// <summary> If the object is an array, list, hashset, or dictionary, this is the number of items. </summary>
         public int Length { get; }
@@ -29,7 +29,7 @@ namespace Icepack
         public ObjectMetadata(uint id, TypeMetadata type, int length, object value)
         {
             Id = id;
-            Type = type;
+            TypeMetadata = type;
             Length = length;
             Value = value;
         }
