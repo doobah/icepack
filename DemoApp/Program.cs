@@ -8,9 +8,18 @@ namespace DemoApp
     internal class Program
     {
         [SerializableObject]
-        private struct DataType
+        private struct InnerDataType
         {
             public int Field1 { get; set; }
+        }
+
+        [SerializableObject]
+        private struct DataType
+        {
+            public InnerDataType Field1 { get; set; }
+            public InnerDataType Field2 { get; set; }
+            public InnerDataType Field3 { get; set; }
+            public InnerDataType Field4 { get; set; }
         }
 
         static void Main(string[] args)
@@ -42,7 +51,18 @@ namespace DemoApp
             for (int i = 0; i < 10000000; i++)
             {
                 DataType item = new DataType();
-                item.Field1 = 123;
+                InnerDataType innerItem1 = new InnerDataType();
+                innerItem1.Field1 = 123;
+                InnerDataType innerItem2 = new InnerDataType();
+                innerItem2.Field1 = 123;
+                InnerDataType innerItem3 = new InnerDataType();
+                innerItem3.Field1 = 123;
+                InnerDataType innerItem4 = new InnerDataType();
+                innerItem4.Field1 = 123;
+                item.Field1 = innerItem1;
+                item.Field2 = innerItem2;
+                item.Field3 = innerItem3;
+                item.Field4 = innerItem4;
 
                 data.Add(item);
             }

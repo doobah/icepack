@@ -87,25 +87,27 @@ namespace Icepack
         public int InstanceSize { get; private set; }
 
         /// <summary> Called during serialization. Creates new type metadata for the serialization context. </summary>
+        /// <param name="context"> The serialization context. </param>
         /// <param name="registeredTypeMetadata"> The metadata for the type retrieved from the type registry. </param>
         /// <param name="id"> A unique ID for the type. </param>
         /// <param name="enumUnderlyingTypeMetadata"> For an enum type, this is the metadata for the underlying type. Otherwise null. </param>
         /// <param name="parentTypeMetadata"> The metadata for the base type. </param>
         /// <param name="keyTypeMetadata"> For a dictionary type, this is the the metadata for the key type. Otherwise null. </param>
         /// <param name="itemTypeMetadata"> For an array, list, hashset, or dictionary type, this is the metadata for the item type. Otherwise null. </param>
-        public TypeMetadata(TypeMetadata registeredTypeMetadata, uint id, TypeMetadata enumUnderlyingTypeMetadata, TypeMetadata parentTypeMetadata,
-                            TypeMetadata keyTypeMetadata, TypeMetadata itemTypeMetadata)
+        public TypeMetadata(SerializationContext context, TypeMetadata registeredTypeMetadata, uint id, TypeMetadata enumUnderlyingTypeMetadata, TypeMetadata parentTypeMetadata,
+                            TypeMetadata keyTypeMetadata, TypeMetadata itemTypeMetadata, List<FieldMetadata> fields, Dictionary<string, FieldMetadata> fieldsByName,
+                            Dictionary<string, FieldMetadata> fieldsByPreviousName)
         {
             Id = id;
             EnumUnderlyingTypeMetadata = enumUnderlyingTypeMetadata;
             ParentTypeMetadata = parentTypeMetadata;
             KeyTypeMetadata = keyTypeMetadata;
             ItemTypeMetadata = itemTypeMetadata;
+            Fields = fields;
+            FieldsByName = fieldsByName;
+            FieldsByPreviousName = fieldsByPreviousName;
 
             Type = registeredTypeMetadata.Type;
-            Fields = registeredTypeMetadata.Fields;
-            FieldsByName = registeredTypeMetadata.FieldsByName;
-            FieldsByPreviousName = registeredTypeMetadata.FieldsByPreviousName;
             Category = registeredTypeMetadata.Category;
             ItemSize = registeredTypeMetadata.ItemSize;
             KeySize = registeredTypeMetadata.KeySize;

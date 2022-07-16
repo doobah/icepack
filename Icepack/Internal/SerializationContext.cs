@@ -158,14 +158,32 @@ namespace Icepack
                         }
                 }
 
-                var newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata, parentTypeMetadata,
-                                                       keyTypeMetadata, itemTypeMetadata);
+                var fields = new List<FieldMetadata>();
+                foreach (FieldMetadata field in registeredTypeMetadata.Fields)
+                    fields.Add(convertRegisteredFieldMetadataToSerializable(field));
+                var fieldsByName = new Dictionary<string, FieldMetadata>();
+                foreach (KeyValuePair<string, FieldMetadata> pair in registeredTypeMetadata.FieldsByName)
+                    fieldsByName.Add(pair.Key, convertRegisteredFieldMetadataToSerializable(pair.Value));
+                var fieldsByPreviousName = new Dictionary<string, FieldMetadata>();
+                foreach (KeyValuePair<string, FieldMetadata> pair in registeredTypeMetadata.FieldsByPreviousName)
+                    fieldsByPreviousName.Add(pair.Key, convertRegisteredFieldMetadataToSerializable(pair.Value));
+
+                var newTypeMetadata = new TypeMetadata(this, registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata, parentTypeMetadata,
+                                                       keyTypeMetadata, itemTypeMetadata, fields, fieldsByName, fieldsByPreviousName);
                 Types.Add(type, newTypeMetadata);
                 TypesInOrder.Add(newTypeMetadata);
                 return newTypeMetadata;
             }
 
             return typeMetadata;
+        }
+
+        private FieldMetadata convertRegisteredFieldMetadataToSerializable(FieldMetadata registeredFieldMetadata)
+        {
+            TypeMetadata fieldTypeMetadata = null;
+            if (registeredFieldMetadata.FieldInfo.FieldType.IsValueType)
+                fieldTypeMetadata = GetTypeMetadata(registeredFieldMetadata.FieldInfo.FieldType);
+            return new FieldMetadata(registeredFieldMetadata, fieldTypeMetadata);
         }
     }
 }

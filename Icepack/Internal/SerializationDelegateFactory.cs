@@ -107,7 +107,7 @@ namespace Icepack
             {
                 FieldMetadata field = typeMetadata.Fields[fieldIdx];
                 object value = field.Getter(obj);
-                field.Serialize(value, context, writer, null);
+                field.Serialize(value, context, writer, field.Type);
             }
         }
 
@@ -130,7 +130,7 @@ namespace Icepack
             {
                 FieldMetadata field = typeMetadata.Fields[fieldIdx];
                 object value = field.Getter(obj);
-                field.Serialize(value, context, writer, null);
+                field.Serialize(value, context, writer, field.Type);
             }
         }
 
@@ -193,7 +193,7 @@ namespace Icepack
                 {
                     FieldMetadata field = typeMetadata.Fields[fieldIdx];
                     object value = field.Getter(obj);
-                    field.Serialize(value, context, writer, null);
+                    field.Serialize(value, context, writer, field.Type);
                 }
 
                 Type parentType = typeMetadata.Type.BaseType;

@@ -30,6 +30,9 @@ namespace Icepack
         /// <summary> The size of the field in bytes. </summary>
         public int Size { get; }
 
+        /// <summary> Metadata for the field's type. </summary>
+        public TypeMetadata Type { get; }
+
         /// <summary> Called during deserialization. Creates new field metadata. </summary>
         /// <param name="size"> The size of the field in bytes. </param>
         /// <param name="registeredFieldMetadata"> The corresponding registered metadata for the field. </param>
@@ -44,6 +47,7 @@ namespace Icepack
                 Setter = null;
                 Deserialize = null;
                 Serialize = null;
+                Type = null;
             }
             else
             {
@@ -52,6 +56,7 @@ namespace Icepack
                 Setter = registeredFieldMetadata.Setter;
                 Deserialize = registeredFieldMetadata.Deserialize;
                 Serialize = registeredFieldMetadata.Serialize;
+                Type = registeredFieldMetadata.Type;
             }
         }
 
@@ -66,6 +71,21 @@ namespace Icepack
             Deserialize = DeserializationDelegateFactory.GetFieldOperation(fieldInfo.FieldType);
             Serialize = SerializationDelegateFactory.GetFieldOperation(fieldInfo.FieldType);
             Size = FieldSizeFactory.GetFieldSize(fieldInfo.FieldType, typeRegistry);
+            Type = null;
+        }
+
+        /// <summary> Called during serialization. Creates new field metadata. </summary>
+        /// <param name="registeredFieldMetadata"> The registered metadata. </param>
+        /// <param name="typeMetadata"> The metadata for this field's type. </param>
+        public FieldMetadata(FieldMetadata registeredFieldMetadata, TypeMetadata typeMetadata)
+        {
+            FieldInfo = registeredFieldMetadata.FieldInfo;
+            Getter = registeredFieldMetadata.Getter;
+            Setter = registeredFieldMetadata.Setter;
+            Deserialize = registeredFieldMetadata.Deserialize;
+            Serialize = registeredFieldMetadata.Serialize;
+            Size = registeredFieldMetadata.Size;
+            Type = typeMetadata;
         }
 
         /// <summary> Builds the delegate used to get the value of the field. </summary>
