@@ -1,3 +1,8 @@
+# v1.0.5
+
+* Change target framework to .NET Core 3.1.
+* Optimize struct items and fields.
+
 # v1.0.4
 
 * Added documentation to nuget package.
