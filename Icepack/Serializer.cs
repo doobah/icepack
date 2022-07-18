@@ -8,18 +8,47 @@ using System.IO;
 
 namespace Icepack
 {
+    /// <summary> Options for the serializer. </summary>
+    public class SerializerSettings
+    {
+        /// <summary>
+        /// Whether references will be preserved. If this is false, references to the same object will be serialized as separate objects.
+        /// </summary>
+        public bool PreserveReferences { get; set; }
+
+        /// <summary>
+        /// The maximum depth allowed when references are not preserved. If the depth exceeds this value, it is assumed that there is a
+        /// circular reference, and an exception will be thrown.
+        /// </summary>
+        public int MaxDepth { get; set; }
+
+        public SerializerSettings()
+        {
+            PreserveReferences = true;
+            MaxDepth = 1000;
+        }
+    }
+
     /// <summary> Serializes/deserializes objects. </summary>
-    public class Serializer
+    public sealed class Serializer
     {
         /// <summary> Serializers with the same compatibility version are guaranteed to be interoperable. </summary>
         public const ushort CompatibilityVersion = 4;
 
         private readonly TypeRegistry typeRegistry;
 
+        private readonly SerializerSettings settings;
+
+        public Serializer() : this(new SerializerSettings()) { }
+
         /// <summary> Creates a new serializer. </summary>
-        public Serializer()
+        public Serializer(SerializerSettings settings)
         {
+            if (settings == null)
+                settings = new SerializerSettings();
+
             typeRegistry = new TypeRegistry();
+            this.settings = settings;
 
             // Pre-register all immutable types, along with the Type type.
             RegisterType(typeof(string));
@@ -53,7 +82,7 @@ namespace Icepack
         {
             var objectDataStream = new MemoryStream();
             var objectDataWriter = new BinaryWriter(objectDataStream, Encoding.Unicode, true);
-            var context = new SerializationContext(typeRegistry);
+            var context = new SerializationContext(typeRegistry, settings);
 
             context.RegisterObject(rootObj);
 
@@ -63,6 +92,7 @@ namespace Icepack
             while (currentObjId < context.ObjectsInOrder.Count)
             {
                 ObjectMetadata objToSerialize = context.ObjectsInOrder[currentObjId];
+                context.CurrentDepth = objToSerialize.Depth;
                 TypeMetadata typeMetadata = objToSerialize.TypeMetadata;
                 typeMetadata.SerializeReferenceType(objToSerialize, context, objectDataWriter);
 
@@ -88,7 +118,7 @@ namespace Icepack
         /// <param name="writer"> Writes the metadata to a stream. </param>
         private static void SerializeObjectMetadata(SerializationContext context, BinaryWriter writer)
         {
-            writer.Write(context.Objects.Count);
+            writer.Write(context.ObjectsInOrder.Count);
 
             for (int objectIdx = 0; objectIdx < context.ObjectsInOrder.Count; objectIdx++)
             {
@@ -294,7 +324,7 @@ namespace Icepack
                         throw new IcepackException($"Invalid category: {objectTypeMetadata.Category}");
                 }
 
-                context.Objects[i] = new ObjectMetadata((uint)i + 1, objectTypeMetadata, length, obj);
+                context.Objects[i] = new ObjectMetadata((uint)i + 1, objectTypeMetadata, length, obj, 0);
             }
         }
 

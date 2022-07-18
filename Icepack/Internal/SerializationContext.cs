@@ -9,7 +9,7 @@ using System.IO;
 namespace Icepack
 {
     /// <summary> Contains state information for the current serialization process. </summary>
-    internal class SerializationContext
+    internal sealed class SerializationContext
     {
         /// <summary> Maps a type to metadata about the type. </summary>
         public Dictionary<Type, TypeMetadata> Types { get; }
@@ -23,6 +23,12 @@ namespace Icepack
         /// <summary> A list of object metadata in order of ID. </summary>
         public List<ObjectMetadata> ObjectsInOrder { get; }
 
+        /// <summary> Settings for the serializer. </summary>
+        public SerializerSettings Settings { get; }
+
+        /// <summary> The nesting depth of the object currently being serialized. </summary>
+        public int CurrentDepth { get; set; }
+
         /// <summary> Keeps track of the largest assigned object ID. </summary>
         private uint largestObjectId;
 
@@ -34,15 +40,17 @@ namespace Icepack
 
         /// <summary> Creates a new serialization context. </summary>
         /// <param name="typeRegistry"> The serializer's type registry. </param>
-        public SerializationContext(TypeRegistry typeRegistry)
+        public SerializationContext(TypeRegistry typeRegistry, SerializerSettings settings)
         {
             Objects = new Dictionary<object, ObjectMetadata>();
             ObjectsInOrder = new List<ObjectMetadata>();
             Types = new Dictionary<Type, TypeMetadata>();
             TypesInOrder = new List<TypeMetadata>();
+            CurrentDepth = -1;
             largestObjectId = 0;
             largestTypeId = 0;
             this.typeRegistry = typeRegistry;
+            Settings = settings;
         }
 
         /// <summary> Registers an object for serialization. </summary>
@@ -87,8 +95,11 @@ namespace Icepack
                     throw new IcepackException($"Invalid type category: {typeMetadata.Category}");
             }
 
-            var objMetadata = new ObjectMetadata(newId, typeMetadata, length, obj);
-            Objects.Add(obj, objMetadata);
+            var objMetadata = new ObjectMetadata(newId, typeMetadata, length, obj, CurrentDepth + 1);
+            if (Settings.PreserveReferences)
+                Objects.Add(obj, objMetadata);
+            else if (CurrentDepth > Settings.MaxDepth)
+                throw new IcepackException($"Exceeded maximum depth while serializing: ${obj}");
             ObjectsInOrder.Add(objMetadata);
             
             return newId;

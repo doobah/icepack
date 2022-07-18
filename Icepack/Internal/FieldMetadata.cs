@@ -10,7 +10,7 @@ using System.IO;
 namespace Icepack
 {
     /// <summary> Stores data used to serialize/deserialize a field. </summary>
-    internal class FieldMetadata
+    internal sealed class FieldMetadata
     {
         /// <summary> Reflection data for the field. </summary>
         public FieldInfo FieldInfo { get; }

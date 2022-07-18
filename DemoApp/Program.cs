@@ -14,7 +14,7 @@ namespace DemoApp
         }
 
         [SerializableObject]
-        private struct DataType
+        private class DataType
         {
             public InnerDataType Field1 { get; set; }
             public InnerDataType Field2 { get; set; }
@@ -28,7 +28,7 @@ namespace DemoApp
 
             List<DataType> data = PrepareData();
             DateTime startTime;
-            Serializer serializer = new Serializer();
+            Serializer serializer = new Serializer(new SerializerSettings() { PreserveReferences = false });
 
             startTime = DateTime.Now;
             serializer.Serialize(data, stream);

@@ -9,7 +9,7 @@ using System.IO;
 namespace Icepack
 {
     /// <summary> Contains information necessary to serialize/deserialize a type. </summary>
-    internal class TypeMetadata
+    internal sealed class TypeMetadata
     {
         /// <summary> A unique ID for the type. This is not assigned during registration. </summary>
         public uint Id { get; }
