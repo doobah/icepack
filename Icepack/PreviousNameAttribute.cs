@@ -8,7 +8,7 @@ namespace Icepack
 {
     /// <summary> Allows the serializer to match a serialized field with the corresponding renamed one. </summary>
     [AttributeUsage(AttributeTargets.Field, Inherited = true)]
-    public class PreviousNameAttribute : Attribute
+    public sealed class PreviousNameAttribute : Attribute
     {
         /// <summary> The previous name of the field. </summary>
         public string Name { get; }

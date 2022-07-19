@@ -8,7 +8,7 @@ using System.IO;
 namespace Icepack
 {
     /// <summary> Stores state for the current deserialization operation. </summary>
-    internal class DeserializationContext
+    internal sealed class DeserializationContext
     {
         /// <summary> Metadata for types declared in the serialized data, indexed by type ID. </summary>
         public TypeMetadata[] Types { get; set; }

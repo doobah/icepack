@@ -9,7 +9,7 @@ using System.IO;
 namespace Icepack
 {
     /// <summary> Options for the serializer. </summary>
-    public class SerializerSettings
+    public sealed class SerializerSettings
     {
         /// <summary>
         /// Whether references will be preserved. If this is false, references to the same object will be serialized as separate objects.
@@ -299,7 +299,7 @@ namespace Icepack
                             if (objectType == null)
                                 obj = null;
                             else
-                                obj = Activator.CreateInstance(objectType, length);
+                                obj = objectTypeMetadata.CreateCollection(length);
                             break;
                         }
                     case TypeCategory.Struct:
@@ -307,7 +307,7 @@ namespace Icepack
                         if (objectType == null)
                             obj = null;
                         else
-                            obj = Activator.CreateInstance(objectType, true);
+                            obj = objectTypeMetadata.CreateClassOrStruct();
                         break;
                     case TypeCategory.Enum:
                         object underlyingValue = objectTypeMetadata.EnumUnderlyingTypeMetadata.DeserializeImmutable(context, reader);

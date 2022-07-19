@@ -69,6 +69,12 @@ namespace Icepack
         /// <summary> A delegate used to deserialize a reference type object, or a boxed value type object. </summary>
         public Action<ObjectMetadata, DeserializationContext, BinaryReader> DeserializeReferenceType { get; }
 
+        /// <summary> A compiled expression that creates a class or struct for deserialization. </summary>
+        public Func<object> CreateClassOrStruct { get; }
+
+        /// <summary> A compiled expression that creates a collection class for deserialization. </summary>
+        public Func<int, object> CreateCollection { get; }
+
         /// <summary> The category for the type. Determines serialization/deserialization behaviour for a type. </summary>
         public TypeCategory Category { get; }
 
@@ -156,6 +162,8 @@ namespace Icepack
                 DeserializeKey = null;
                 DeserializeItem = null;
                 DeserializeImmutable = null;
+                CreateClassOrStruct = null;
+                CreateCollection = null;
             }
             else
             {
@@ -182,6 +190,8 @@ namespace Icepack
                 DeserializeKey = registeredTypeMetadata.DeserializeKey;
                 DeserializeItem = registeredTypeMetadata.DeserializeItem;
                 DeserializeImmutable = registeredTypeMetadata.DeserializeImmutable;
+                CreateClassOrStruct = registeredTypeMetadata.CreateClassOrStruct;
+                CreateCollection = registeredTypeMetadata.CreateCollection;
             }
         }
 
@@ -203,6 +213,8 @@ namespace Icepack
             DeserializeItem = null;
             DeserializeImmutable = null;
             DeserializeReferenceType = null;
+            CreateClassOrStruct = null;
+            CreateCollection = null;
             ItemSize = 0;
             KeySize = 0;
             InstanceSize = 0;
@@ -236,6 +248,7 @@ namespace Icepack
                         SerializeItem = SerializationDelegateFactory.GetFieldOperation(itemType);
                         DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(itemType);
                         ItemSize = FieldSizeFactory.GetFieldSize(itemType, typeRegistry);
+                        CreateCollection = BuildCollectionCreator();
                         break;
                     }
                 case TypeCategory.HashSet:
@@ -245,6 +258,7 @@ namespace Icepack
                         DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(itemType);
                         ItemSize = FieldSizeFactory.GetFieldSize(itemType, typeRegistry);
                         HashSetAdder = BuildHashSetAdder();
+                        CreateCollection = BuildCollectionCreator();
                         break;
                     }
                 case TypeCategory.Dictionary:
@@ -257,18 +271,22 @@ namespace Icepack
                         SerializeItem = SerializationDelegateFactory.GetFieldOperation(valueType);
                         DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(valueType);
                         ItemSize = FieldSizeFactory.GetFieldSize(valueType, typeRegistry);
+                        CreateCollection = BuildCollectionCreator();
                         break;
                     }
                 case TypeCategory.Struct:
                     {
                         PopulateFields(typeRegistry);
                         PopulateSize();
+                        CreateClassOrStruct = BuildClassOrStructCreator();
                         break;
                     }
                 case TypeCategory.Class:
                     {
                         PopulateFields(typeRegistry);
                         PopulateSize();
+                        if (!Type.IsAbstract)
+                            CreateClassOrStruct = BuildClassOrStructCreator();
                         break;
                     }
                 case TypeCategory.Enum:
@@ -362,9 +380,44 @@ namespace Icepack
             UnaryExpression exConvertValueToItemType = Expression.Convert(exValue, itemType);
             MethodCallExpression exAdd = Expression.Call(exConvertInstanceToDeclaringType, methodInfo, exConvertValueToItemType);
             Expression<Action<object, object>> lambda = Expression.Lambda<Action<object, object>>(exAdd, exInstance, exValue);
-            Action<object, object> action = lambda.Compile();
+            Action<object, object> compiled = lambda.Compile();
 
-            return action;
+            return compiled;
+        }
+
+        /// <summary> Builds the delegate used to create new instances of a type. </summary>
+        /// <returns> The delegate. </returns>
+        private Func<object> BuildClassOrStructCreator()
+        {
+            NewExpression exNew;
+            try
+            {
+                exNew = Expression.New(Type);
+            }
+            catch (ArgumentException)
+            {
+                throw new IcepackException($"Type '{Type}' does not have a default constructor!");
+            }
+
+            UnaryExpression exConvert = Expression.Convert(exNew, typeof(object));
+            Expression<Func<object>> lambda = Expression.Lambda<Func<object>>(exConvert);
+            var compiled = lambda.Compile();
+
+            return compiled;
+        }
+
+        /// <summary> Builds the delegate used to create new instances of a collection type. </summary>
+        /// <returns> The delegate. </returns>
+        private Func<int, object> BuildCollectionCreator()
+        {
+            ConstructorInfo constructor = Type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(int) }, null);
+            ParameterExpression exParam = Expression.Parameter(typeof(int));
+            NewExpression exNew = Expression.New(constructor, exParam);
+            UnaryExpression exConvert = Expression.Convert(exNew, typeof(object));
+            Expression<Func<int, object>> lambda = Expression.Lambda<Func<int, object>>(exConvert, exParam);
+            var compiled = lambda.Compile();
+
+            return compiled;
         }
     }
 }

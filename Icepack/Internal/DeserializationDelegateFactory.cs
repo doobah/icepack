@@ -87,13 +87,14 @@ namespace Icepack
             // Type IDs start from 1
             TypeMetadata typeMetadata = context.Types[typeId - 1];
 
+            // Skip instance if type doesn't exist
             if (typeMetadata.Type == null)
             {
                 reader.BaseStream.Position += typeMetadata.InstanceSize;
                 return null;
             }
 
-            object structObj = Activator.CreateInstance(typeMetadata.Type, true);
+            object structObj = typeMetadata.CreateClassOrStruct();
 
             for (int i = 0; i < typeMetadata.Fields.Count; i++)
             {
@@ -119,6 +120,7 @@ namespace Icepack
             // Type IDs start from 1
             TypeMetadata typeMetadata = context.Types[typeId - 1];
 
+            // Skip instance if type doesn't exist
             if (typeMetadata.Type == null)
             {
                 reader.BaseStream.Position += typeMetadata.InstanceSize;

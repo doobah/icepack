@@ -45,31 +45,25 @@ namespace Icepack
                 return types[typeof(Type)];
 
             TypeMetadata typeMetadata;
-            if (!types.TryGetValue(type, out typeMetadata))
+            if (types.TryGetValue(type, out typeMetadata))
+                return typeMetadata;
+
+            // Register arrays, lists, hashsets, and dictionaries by default
+            if (type.IsArray)
+                GetTypeMetadata(type.GetElementType());
+            else if (type.IsGenericType)
             {
-                // Register arrays, lists, hashsets, and dictionaries by default
-                if (type.IsArray)
-                    GetTypeMetadata(type.GetElementType());
-                else if (type.IsGenericType)
+                Type genericTypeDef = type.GetGenericTypeDefinition();
+                if (genericTypeDef == typeof(List<>) || genericTypeDef == typeof(HashSet<>))
                 {
-                    Type genericTypeDef = type.GetGenericTypeDefinition();
-                    if (genericTypeDef == typeof(List<>) || genericTypeDef == typeof(HashSet<>))
-                    {
-                        Type[] genericArgs = type.GetGenericArguments();
-                        GetTypeMetadata(genericArgs[0]);
-                    }
-                    else if (genericTypeDef == typeof(Dictionary<,>))
-                    {
-                        Type[] genericArgs = type.GetGenericArguments();
-                        GetTypeMetadata(genericArgs[0]);
-                        GetTypeMetadata(genericArgs[1]);
-                    }
-                    else
-                    {
-                        object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
-                        if (attributes.Length == 0)
-                            throw new IcepackException($"Type {type} is not registered for serialization!");
-                    }
+                    Type[] genericArgs = type.GetGenericArguments();
+                    GetTypeMetadata(genericArgs[0]);
+                }
+                else if (genericTypeDef == typeof(Dictionary<,>))
+                {
+                    Type[] genericArgs = type.GetGenericArguments();
+                    GetTypeMetadata(genericArgs[0]);
+                    GetTypeMetadata(genericArgs[1]);
                 }
                 else
                 {
@@ -77,13 +71,17 @@ namespace Icepack
                     if (attributes.Length == 0)
                         throw new IcepackException($"Type {type} is not registered for serialization!");
                 }
-
-                var newTypeMetadata = new TypeMetadata(type, this);
-                types.Add(type, newTypeMetadata);
-                return newTypeMetadata;
+            }
+            else
+            {
+                object[] attributes = type.GetCustomAttributes(typeof(SerializableObjectAttribute), true);
+                if (attributes.Length == 0)
+                    throw new IcepackException($"Type {type} is not registered for serialization!");
             }
 
-            return typeMetadata;
+            var newTypeMetadata = new TypeMetadata(type, this);
+            types.Add(type, newTypeMetadata);
+            return newTypeMetadata;
         }
 
         /// <summary>

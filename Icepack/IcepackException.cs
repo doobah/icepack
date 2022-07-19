@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Icepack
 {
     /// <summary> An exception thrown by the serializer. </summary>
-    public class IcepackException : Exception
+    public sealed class IcepackException : Exception
     {
         /// <summary> Create a new <see cref="IcepackException"/>. </summary>
         /// <param name="message"> The details of the exception. </param>

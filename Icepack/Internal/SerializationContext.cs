@@ -60,10 +60,12 @@ namespace Icepack
         {
             uint newId = ++largestObjectId;
 
-            // Treat all type values as instances of Type, for simplicity.
-            Type type = obj.GetType();
-            if (type.IsSubclassOf(typeof(Type)))
+            Type type;
+            if (obj is Type)
+                // Treat all type values as instances of Type, for simplicity.
                 type = typeof(Type);
+            else
+                type = obj.GetType();
             TypeMetadata typeMetadata = GetTypeMetadata(type);
 
             int length = 0;
@@ -113,80 +115,78 @@ namespace Icepack
         public TypeMetadata GetTypeMetadata(Type type)
         {
             TypeMetadata typeMetadata;
-            if (!Types.TryGetValue(type, out typeMetadata))
+            if (Types.TryGetValue(type, out typeMetadata))
+                return typeMetadata;
+
+            // If this is an enum, we want the underlying type to be present ahead of the enum type
+            TypeMetadata enumUnderlyingTypeMetadata = null;
+            if (type.IsEnum)
+                enumUnderlyingTypeMetadata = GetTypeMetadata(type.GetEnumUnderlyingType());
+
+            TypeMetadata registeredTypeMetadata = typeRegistry.GetTypeMetadata(type);
+            if (registeredTypeMetadata == null)
+                throw new IcepackException($"Type {type} is not registered for serialization!");
+
+            TypeMetadata parentTypeMetadata = null;
+            if (registeredTypeMetadata.Category == TypeCategory.Class && type.BaseType != typeof(object))
+                parentTypeMetadata = GetTypeMetadata(type.BaseType);
+
+            TypeMetadata keyTypeMetadata = null;
+            if (registeredTypeMetadata.Category == TypeCategory.Dictionary)
             {
-                // If this is an enum, we want the underlying type to be present ahead of the enum type
-                TypeMetadata enumUnderlyingTypeMetadata = null;
-                if (type.IsEnum)
-                    enumUnderlyingTypeMetadata = GetTypeMetadata(type.GetEnumUnderlyingType());
-
-                TypeMetadata registeredTypeMetadata = typeRegistry.GetTypeMetadata(type);
-                if (registeredTypeMetadata == null)
-                    throw new IcepackException($"Type {type} is not registered for serialization!");
-
-                TypeMetadata parentTypeMetadata = null;
-                if (registeredTypeMetadata.Category == TypeCategory.Class && type.BaseType != typeof(object))
-                    parentTypeMetadata = GetTypeMetadata(type.BaseType);
-
-                TypeMetadata keyTypeMetadata = null;
-                if (registeredTypeMetadata.Category == TypeCategory.Dictionary)
-                {
-                    Type keyType = type.GenericTypeArguments[0];
-                    if (keyType.IsValueType)
-                        keyTypeMetadata = GetTypeMetadata(keyType);
-                }
-
-                TypeMetadata itemTypeMetadata = null;
-                switch (registeredTypeMetadata.Category)
-                {
-                    case TypeCategory.Array:
-                        {
-                            Type itemType = type.GetElementType();
-                            if (itemType.IsValueType)
-                                itemTypeMetadata = GetTypeMetadata(itemType);
-                            break;
-                        }
-                    case TypeCategory.List:
-                        {
-                            Type itemType = type.GenericTypeArguments[0];
-                            if (itemType.IsValueType)
-                                itemTypeMetadata = GetTypeMetadata(itemType);
-                            break;
-                        }
-                    case TypeCategory.HashSet:
-                        {
-                            Type itemType = type.GenericTypeArguments[0];
-                            if (itemType.IsValueType)
-                                itemTypeMetadata = GetTypeMetadata(itemType);
-                            break;
-                        }
-                    case TypeCategory.Dictionary:
-                        {
-                            Type itemType = type.GenericTypeArguments[1];
-                            if (itemType.IsValueType)
-                                itemTypeMetadata = GetTypeMetadata(itemType);
-                            break;
-                        }
-                }
-
-                var fields = new List<FieldMetadata>();
-                foreach (FieldMetadata field in registeredTypeMetadata.Fields)
-                    fields.Add(convertRegisteredFieldMetadataToSerializable(field));
-                var fieldsByName = new Dictionary<string, FieldMetadata>();
-                foreach (KeyValuePair<string, FieldMetadata> pair in registeredTypeMetadata.FieldsByName)
-                    fieldsByName.Add(pair.Key, convertRegisteredFieldMetadataToSerializable(pair.Value));
-                var fieldsByPreviousName = new Dictionary<string, FieldMetadata>();
-                foreach (KeyValuePair<string, FieldMetadata> pair in registeredTypeMetadata.FieldsByPreviousName)
-                    fieldsByPreviousName.Add(pair.Key, convertRegisteredFieldMetadataToSerializable(pair.Value));
-
-                var newTypeMetadata = new TypeMetadata(this, registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata, parentTypeMetadata,
-                                                       keyTypeMetadata, itemTypeMetadata, fields, fieldsByName, fieldsByPreviousName);
-                Types.Add(type, newTypeMetadata);
-                TypesInOrder.Add(newTypeMetadata);
-                return newTypeMetadata;
+                Type keyType = type.GenericTypeArguments[0];
+                if (keyType.IsValueType)
+                    keyTypeMetadata = GetTypeMetadata(keyType);
             }
 
-            return typeMetadata;
+            TypeMetadata itemTypeMetadata = null;
+            switch (registeredTypeMetadata.Category)
+            {
+                case TypeCategory.Array:
+                    {
+                        Type itemType = type.GetElementType();
+                        if (itemType.IsValueType)
+                            itemTypeMetadata = GetTypeMetadata(itemType);
+                        break;
+                    }
+                case TypeCategory.List:
+                    {
+                        Type itemType = type.GenericTypeArguments[0];
+                        if (itemType.IsValueType)
+                            itemTypeMetadata = GetTypeMetadata(itemType);
+                        break;
+                    }
+                case TypeCategory.HashSet:
+                    {
+                        Type itemType = type.GenericTypeArguments[0];
+                        if (itemType.IsValueType)
+                            itemTypeMetadata = GetTypeMetadata(itemType);
+                        break;
+                    }
+                case TypeCategory.Dictionary:
+                    {
+                        Type itemType = type.GenericTypeArguments[1];
+                        if (itemType.IsValueType)
+                            itemTypeMetadata = GetTypeMetadata(itemType);
+                        break;
+                    }
+            }
+
+            var fields = new List<FieldMetadata>();
+            foreach (FieldMetadata field in registeredTypeMetadata.Fields)
+                fields.Add(convertRegisteredFieldMetadataToSerializable(field));
+            var fieldsByName = new Dictionary<string, FieldMetadata>();
+            foreach (KeyValuePair<string, FieldMetadata> pair in registeredTypeMetadata.FieldsByName)
+                fieldsByName.Add(pair.Key, convertRegisteredFieldMetadataToSerializable(pair.Value));
+            var fieldsByPreviousName = new Dictionary<string, FieldMetadata>();
+            foreach (KeyValuePair<string, FieldMetadata> pair in registeredTypeMetadata.FieldsByPreviousName)
+                fieldsByPreviousName.Add(pair.Key, convertRegisteredFieldMetadataToSerializable(pair.Value));
+
+            var newTypeMetadata = new TypeMetadata(this, registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata, parentTypeMetadata,
+                                                   keyTypeMetadata, itemTypeMetadata, fields, fieldsByName, fieldsByPreviousName);
+            Types.Add(type, newTypeMetadata);
+            TypesInOrder.Add(newTypeMetadata);
+            return newTypeMetadata;
         }
 
         private FieldMetadata convertRegisteredFieldMetadataToSerializable(FieldMetadata registeredFieldMetadata)
