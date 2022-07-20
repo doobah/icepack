@@ -1,3 +1,8 @@
+# v1.0.7
+
+* Optimize class/struct instantiation.
+* Use `is` instead of `IsSubclassOf()`
+
 # v1.0.6
 
 * Add a way to disable preserving references for efficiency.

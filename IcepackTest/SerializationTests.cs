@@ -293,6 +293,17 @@ namespace IcepackTest
             }
         }
 
+        [SerializableObject]
+        private class ClassWithNoDefaultConstructor
+        {
+            public readonly int Field;
+
+            public ClassWithNoDefaultConstructor(int field)
+            {
+                Field = field;
+            }
+        }
+
         [Test]
         public void SerializeClassWithPrivateConstructor()
         {
@@ -1672,6 +1683,21 @@ namespace IcepackTest
                 serializer.Serialize(obj, stream);
             });
             Assert.True(exception.Message.Contains("Exceeded maximum depth"));
+            stream.Close();
+        }
+
+        [Test]
+        public void SerializeClassWithNoDefaultConstructor()
+        {
+            var serializer = new Serializer();
+
+            ClassWithNoDefaultConstructor obj = new ClassWithNoDefaultConstructor(123);
+
+            var stream = new MemoryStream();
+            IcepackException exception = Assert.Throws<IcepackException>(() => {
+                serializer.Serialize(obj, stream);
+            });
+            Assert.True(exception.Message.Contains("does not have a default constructor"));
             stream.Close();
         }
     }

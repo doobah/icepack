@@ -4,12 +4,12 @@
 
 Icepack is a lightweight serialization library for C#.
 
-It was designed as part of a game development project, specifically to address limitations that other serialization libraries have when serializing inheritance hierarchies. Libraries such as MessagePack and Protobuf provide a way for the user to inform the serializer about class hierarchies, by assigning fixed IDs to child classes. A scenario where this does not work well is a game engine's entity/component system, where in order to build functionality on top of the engine, the user needs to extend some classes exposed by the engine. If the user then wishes to import third-party libraries that extend the same classes, it is very impractical to find out which IDs have already been used, and to stay backwards compatible. Icepack solves this by including type information as part of the serialization format, while avoiding the verbosity of serializers like Json.NET by automatically assigning IDs to types and field names, and storing these in lookup tables. The additional size overhead of the type and field names is reasonable for game development projects, where the serialized object graphs are likely to be large and composed of many instances of the same types, for example, scenes or state machines. Icepack also avoids clashes between identically-named fields in different classes in the same inheritance hierarchy, by relating every field to the class that it is declared in.
+It was designed as part of a game development project, specifically to address limitations that other serialization libraries have when serializing inheritance hierarchies. Libraries such as MessagePack and Protobuf provide a way for the user to inform the serializer about class hierarchies by assigning IDs to child classes. A scenario where this does not work well is a game engine's entity/component system, where in order to build functionality on top of the engine, the user needs to extend some classes exposed by the engine. If the user then wishes to import third-party libraries that extend the same classes, it becomes impractical to find out which IDs have already been used, and to stay backwards compatible. Icepack solves this by including type information as part of the serialization format, while avoiding the verbosity of serializers like Json.NET by automatically assigning IDs to types and field names, and storing these in lookup tables. The additional size overhead of the type and field names is reasonable for game development projects, where the serialized object graphs are likely to be large and composed of many instances of the same types, for example, scenes or state machines. Icepack also avoids clashes between identically-named fields in different classes in the same inheritance hierarchy, by relating every field to the class that it is declared in.
 
 # Features
 
-* Object references are preserved.
-* The format favours deserialization performance over serialization performance. This is important for games since the end-user is more affected by loading times.
+* Object references are preserved by default, although this can be disabled globally.
+* The format favours deserialization performance over serialization performance. This is important for games since the end-user is usually more affected by load times than save times.
 * Types are included for serialization by calling the serializer's `RegisterType` method, or annotating the type with the `SerializableObject` attribute.
 * Fields can be ignored by annotating them with the `IgnoreField` attribute.
 * The `ISerializerListener` interface is provided to allow classes and structs to execute additional logic before serialization and after deserialization.
@@ -24,9 +24,9 @@ It was designed as part of a game development project, specifically to address l
 
 # Limitations
 
-* Currently only fields (both private and public) are serialized, not properties.
+* Only fields (both private and public) are serialized, not properties.
 * `nuint` and `nint` are not supported.
-* `span` and other exotic types are not supported.
+* `span` is not supported.
 * Deserializing after changing the type of a serialized field results in undefined behaviour.
 * Changing the name of a type will result in the serializer ignoring objects of that type.
 
