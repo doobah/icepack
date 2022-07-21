@@ -1,3 +1,7 @@
+# v1.0.8
+
+* Target .NET 6.0
+
 # v1.0.7
 
 * Optimize class/struct instantiation.
