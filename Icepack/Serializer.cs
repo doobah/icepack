@@ -8,37 +8,19 @@ using System.IO;
 
 namespace Icepack
 {
-    /// <summary> Options for the serializer. </summary>
-    public sealed class SerializerSettings
-    {
-        /// <summary>
-        /// Whether references will be preserved. If this is false, references to the same object will be serialized as separate objects.
-        /// </summary>
-        public bool PreserveReferences { get; set; }
-
-        /// <summary>
-        /// The maximum depth allowed when references are not preserved. If the depth exceeds this value, it is assumed that there is a
-        /// circular reference, and an exception will be thrown.
-        /// </summary>
-        public int MaxDepth { get; set; }
-
-        public SerializerSettings()
-        {
-            PreserveReferences = true;
-            MaxDepth = 1000;
-        }
-    }
-
     /// <summary> Serializes/deserializes objects. </summary>
     public sealed class Serializer
     {
         /// <summary> Serializers with the same compatibility version are guaranteed to be interoperable. </summary>
-        public const ushort CompatibilityVersion = 4;
+        public const ushort CompatibilityVersion = 5;
 
-        private readonly TypeRegistry typeRegistry;
+        /// <summary> Keeps track of type information. </summary>
+        internal TypeRegistry TypeRegistry { get; }
 
-        private readonly SerializerSettings settings;
+        /// <summary> Settings for the serializer. </summary>
+        internal SerializerSettings Settings { get; }
 
+        /// <summary> Creates a new serializer with default settings. </summary>
         public Serializer() : this(new SerializerSettings()) { }
 
         /// <summary> Creates a new serializer. </summary>
@@ -47,8 +29,8 @@ namespace Icepack
             if (settings == null)
                 settings = new SerializerSettings();
 
-            typeRegistry = new TypeRegistry();
-            this.settings = settings;
+            TypeRegistry = new TypeRegistry(this);
+            Settings = settings;
 
             // Pre-register all immutable types, along with the Type type.
             RegisterType(typeof(string));
@@ -72,7 +54,7 @@ namespace Icepack
         /// <param name="type"> The type to register. </param>
         public void RegisterType(Type type)
         {
-            typeRegistry.RegisterType(type);
+            TypeRegistry.RegisterType(type);
         }
 
         /// <summary> Serializes an object graph to a stream. </summary>
@@ -82,7 +64,7 @@ namespace Icepack
         {
             var objectDataStream = new MemoryStream();
             var objectDataWriter = new BinaryWriter(objectDataStream, Encoding.Unicode, true);
-            var context = new SerializationContext(typeRegistry, settings);
+            var context = new SerializationContext(this);
 
             context.RegisterObject(rootObj);
 
@@ -339,7 +321,7 @@ namespace Icepack
             for (int t = 0; t < numberOfTypes; t++)
             {
                 string typeName = reader.ReadString();
-                TypeMetadata registeredTypeMetadata = typeRegistry.GetTypeMetadata(typeName);
+                TypeMetadata registeredTypeMetadata = TypeRegistry.GetTypeMetadata(typeName);
                 int itemSize = 0;
                 int keySize = 0;
                 int instanceSize = 0;

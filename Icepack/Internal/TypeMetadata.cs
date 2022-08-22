@@ -198,7 +198,7 @@ namespace Icepack
         /// <summary> Called during type registration. </summary>
         /// <param name="type"> The type. </param>
         /// <param name="typeRegistry"> The serializer's type registry. </param>
-        public TypeMetadata(Type type, TypeRegistry typeRegistry)
+        public TypeMetadata(Type type, Serializer serializer)
         {
             ParentTypeMetadata = null;
             Fields = new List<FieldMetadata>();
@@ -239,7 +239,7 @@ namespace Icepack
                         Type elementType = type.GetElementType();
                         SerializeItem = SerializationDelegateFactory.GetFieldOperation(elementType);
                         DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(elementType);
-                        ItemSize = FieldSizeFactory.GetFieldSize(elementType, typeRegistry);
+                        ItemSize = FieldSizeFactory.GetFieldSize(elementType, serializer.TypeRegistry);
                         break;
                     }
                 case TypeCategory.List:
@@ -247,7 +247,7 @@ namespace Icepack
                         Type itemType = type.GenericTypeArguments[0];
                         SerializeItem = SerializationDelegateFactory.GetFieldOperation(itemType);
                         DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(itemType);
-                        ItemSize = FieldSizeFactory.GetFieldSize(itemType, typeRegistry);
+                        ItemSize = FieldSizeFactory.GetFieldSize(itemType, serializer.TypeRegistry);
                         CreateCollection = BuildCollectionCreator();
                         break;
                     }
@@ -256,7 +256,7 @@ namespace Icepack
                         Type itemType = type.GenericTypeArguments[0];
                         SerializeItem = SerializationDelegateFactory.GetFieldOperation(itemType);
                         DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(itemType);
-                        ItemSize = FieldSizeFactory.GetFieldSize(itemType, typeRegistry);
+                        ItemSize = FieldSizeFactory.GetFieldSize(itemType, serializer.TypeRegistry);
                         HashSetAdder = BuildHashSetAdder();
                         CreateCollection = BuildCollectionCreator();
                         break;
@@ -266,24 +266,24 @@ namespace Icepack
                         Type keyType = type.GenericTypeArguments[0];
                         SerializeKey = SerializationDelegateFactory.GetFieldOperation(keyType);
                         DeserializeKey = DeserializationDelegateFactory.GetFieldOperation(keyType);
-                        KeySize = FieldSizeFactory.GetFieldSize(keyType, typeRegistry);
+                        KeySize = FieldSizeFactory.GetFieldSize(keyType, serializer.TypeRegistry);
                         Type valueType = type.GenericTypeArguments[1];
                         SerializeItem = SerializationDelegateFactory.GetFieldOperation(valueType);
                         DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(valueType);
-                        ItemSize = FieldSizeFactory.GetFieldSize(valueType, typeRegistry);
+                        ItemSize = FieldSizeFactory.GetFieldSize(valueType, serializer.TypeRegistry);
                         CreateCollection = BuildCollectionCreator();
                         break;
                     }
                 case TypeCategory.Struct:
                     {
-                        PopulateFields(typeRegistry);
+                        PopulateFields(serializer);
                         PopulateSize();
                         CreateClassOrStruct = BuildClassOrStructCreator();
                         break;
                     }
                 case TypeCategory.Class:
                     {
-                        PopulateFields(typeRegistry);
+                        PopulateFields(serializer);
                         PopulateSize();
                         if (!Type.IsAbstract)
                             CreateClassOrStruct = BuildClassOrStructCreator();
@@ -335,15 +335,24 @@ namespace Icepack
 
         /// <summary> Used for regular struct and class types. Builds the metadata for the fields. </summary>
         /// <param name="typeRegistry"> The serializer's type registry. </param>
-        private void PopulateFields(TypeRegistry typeRegistry)
+        private void PopulateFields(Serializer serializer)
         {
             foreach (FieldInfo fieldInfo in Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
-                IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
-                if (ignoreAttr != null)
-                    continue;
+                if (serializer.Settings.SerializeByDefault)
+                {
+                    IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
+                    if (ignoreAttr != null)
+                        continue;
+                }
+                else
+                {
+                    SerializableFieldAttribute serializableFieldAttr = fieldInfo.GetCustomAttribute<SerializableFieldAttribute>();
+                    if (serializableFieldAttr == null)
+                        continue;
+                }
 
-                var fieldMetadata = new FieldMetadata(fieldInfo, typeRegistry);
+                var fieldMetadata = new FieldMetadata(fieldInfo, serializer);
                 FieldsByName.Add(fieldInfo.Name, fieldMetadata);
 
                 PreviousNameAttribute previousNameAttr = fieldInfo.GetCustomAttribute<PreviousNameAttribute>();

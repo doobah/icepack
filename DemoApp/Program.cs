@@ -7,13 +7,13 @@ namespace DemoApp
 {
     internal class Program
     {
-        [SerializableObject]
+        [SerializableType]
         private struct InnerDataType
         {
             public int Field1 { get; set; }
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class DataType
         {
             public InnerDataType Field1 { get; set; }
@@ -28,7 +28,7 @@ namespace DemoApp
 
             List<DataType> data = PrepareData();
             DateTime startTime;
-            Serializer serializer = new Serializer(new SerializerSettings() { PreserveReferences = false });
+            Serializer serializer = new Serializer(new SerializerSettings(preserveReferences: false));
 
             startTime = DateTime.Now;
             serializer.Serialize(data, stream);

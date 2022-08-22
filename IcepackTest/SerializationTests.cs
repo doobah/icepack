@@ -10,7 +10,7 @@ namespace IcepackTest
 {
     public class SerializationTests
     {
-        [SerializableObject]
+        [SerializableType]
         private class FlatClass
         {
             public int Field1;
@@ -18,21 +18,21 @@ namespace IcepackTest
             public float Field3;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private struct SerializableStruct
         {
             public int Field1;
             public int Field2;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class HierarchicalObject
         {
             public int Field1;
             public HierarchicalObject Nested;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ParentClass
         {
 #pragma warning disable IDE0044 // Add readonly modifier
@@ -52,7 +52,7 @@ namespace IcepackTest
             }
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ChildClass : ParentClass
         {
 #pragma warning disable IDE0044 // Add readonly modifier
@@ -72,7 +72,7 @@ namespace IcepackTest
             }
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ObjectWithIgnoredField
         {
             public int Field1 = 0;
@@ -81,26 +81,26 @@ namespace IcepackTest
             public int Field2 = 0;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class RegisteredClass
         {
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ObjectWithObjectReferences
         {
             public RegisteredClass Field1;
             public RegisteredClass Field2;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private struct StructWithObjectReferences
         {
             public FlatClass Field1;
             public int Field2;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private enum SerializableEnum
         {
             Option1,
@@ -112,13 +112,13 @@ namespace IcepackTest
         {
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassWithIntField
         {
             public int Field1;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassWithMultipleObjectFields
         {
             public object Field1;
@@ -126,7 +126,7 @@ namespace IcepackTest
             public object Field3;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassThatImplementsInterface : IInterface
         {
             private int field;
@@ -139,7 +139,7 @@ namespace IcepackTest
             }
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassWithInterfaceField
         {
             public int Field1;
@@ -152,7 +152,7 @@ namespace IcepackTest
             int Value { get; set; }
         }
 
-        [SerializableObject]
+        [SerializableType]
         private struct StructThatImplementsInterface : IInterface
         {
             private int field;
@@ -164,7 +164,7 @@ namespace IcepackTest
             }
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassWithSerializationHooks : ISerializerListener
         {
             public int Field;
@@ -180,7 +180,7 @@ namespace IcepackTest
             }
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassWithStructWithSerializationHooksField
         {
             public int Field1;
@@ -188,7 +188,7 @@ namespace IcepackTest
             public int Field3;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private struct StructWithSerializationHooks : ISerializerListener
         {
             public int Field;
@@ -214,26 +214,26 @@ namespace IcepackTest
             public int Field;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class BaseClass
         {
             public int FieldBase;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class FormerBaseClass : BaseClass
         {
             public int FieldFormerBase1;
             public int FieldFormerBase2;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class DerivedClass : BaseClass
         {
             public int FieldDerived;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassWithEnumField
         {
             public int Field1;
@@ -241,7 +241,7 @@ namespace IcepackTest
             public int Field3;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassWithObjectField
         {
             public int Field1;
@@ -249,7 +249,7 @@ namespace IcepackTest
             public int Field3;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassWithTypeField
         {
             public int Field1;
@@ -257,7 +257,7 @@ namespace IcepackTest
             public int Field3;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassWithRenamedField
         {
             public int Field1;
@@ -266,7 +266,7 @@ namespace IcepackTest
             public int Field3;
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassWithReadonlyField
         {
             public readonly int Field;
@@ -277,7 +277,7 @@ namespace IcepackTest
             }
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassWithPrivateConstructor
         {
             public readonly int Field;
@@ -293,7 +293,7 @@ namespace IcepackTest
             }
         }
 
-        [SerializableObject]
+        [SerializableType]
         private class ClassWithNoDefaultConstructor
         {
             public readonly int Field;
@@ -302,6 +302,15 @@ namespace IcepackTest
             {
                 Field = field;
             }
+        }
+
+        [SerializableType]
+        private class ClassWithSerializedField
+        {
+            [SerializableField]
+            public int Field1 = 0;
+
+            public int Field2 = 0;
         }
 
         [Test]
@@ -1653,7 +1662,7 @@ namespace IcepackTest
         [Test]
         public void SerializeWithoutPreservingReferences()
         {
-            var serializer = new Serializer(new SerializerSettings() { PreserveReferences = false });
+            var serializer = new Serializer(new SerializerSettings(preserveReferences: false));
 
             var nestedObj = new RegisteredClass();
             var obj = new ObjectWithObjectReferences() { Field1 = nestedObj, Field2 = nestedObj };
@@ -1672,7 +1681,7 @@ namespace IcepackTest
         [Test]
         public void SerializeCircularReferenceWithoutPreservingReferences()
         {
-            var serializer = new Serializer(new SerializerSettings() { PreserveReferences = false });
+            var serializer = new Serializer(new SerializerSettings(preserveReferences: false));
 
             var obj = new HierarchicalObject();
             obj.Field1 = 123;
@@ -1699,6 +1708,25 @@ namespace IcepackTest
             });
             Assert.True(exception.Message.Contains("does not have a default constructor"));
             stream.Close();
+        }
+
+        [Test]
+        public void SerializeClassWithoutSerializeByDefault()
+        {
+            var serializer = new Serializer(new SerializerSettings(serializeByDefault: false));
+
+            ClassWithSerializedField obj = new ClassWithSerializedField();
+            obj.Field1 = 123;
+            obj.Field2 = 456;
+
+            var stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            stream.Position = 0;
+            ClassWithSerializedField deserializedObj = serializer.Deserialize<ClassWithSerializedField>(stream);
+            stream.Close();
+
+            Assert.AreEqual(123, deserializedObj.Field1);
+            Assert.AreEqual(0, deserializedObj.Field2);
         }
     }
 }

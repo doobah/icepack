@@ -63,14 +63,14 @@ namespace Icepack
         /// <summary> Called during type registration. Creates new field metadata. </summary>
         /// <param name="fieldInfo"> The <see cref="FieldInfo"/> for the field. </param>
         /// <param name="typeRegistry"> The serializer's type registry. </param>
-        public FieldMetadata(FieldInfo fieldInfo, TypeRegistry typeRegistry)
+        public FieldMetadata(FieldInfo fieldInfo, Serializer serializer)
         {
             FieldInfo = fieldInfo;
             Getter = BuildGetter(fieldInfo);
             Setter = BuildSetter(fieldInfo);
             Deserialize = DeserializationDelegateFactory.GetFieldOperation(fieldInfo.FieldType);
             Serialize = SerializationDelegateFactory.GetFieldOperation(fieldInfo.FieldType);
-            Size = FieldSizeFactory.GetFieldSize(fieldInfo.FieldType, typeRegistry);
+            Size = FieldSizeFactory.GetFieldSize(fieldInfo.FieldType, serializer.TypeRegistry);
             Type = null;
         }
 

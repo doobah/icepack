@@ -84,7 +84,7 @@ namespace Icepack
         {
             if (value == null)
                 writer.Write((uint)0);
-            else if (context.Settings.PreserveReferences && context.Objects.ContainsKey(value))
+            else if (context.Serializer.Settings.PreserveReferences && context.Objects.ContainsKey(value))
                 writer.Write(context.Objects[value].Id);
             else
             {
