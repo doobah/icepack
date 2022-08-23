@@ -2,7 +2,6 @@ using NUnit.Framework;
 using Icepack;
 using System.Collections.Generic;
 using System;
-using Newtonsoft.Json;
 using System.IO;
 using System.Text;
 
@@ -311,6 +310,12 @@ namespace IcepackTest
             public int Field1 = 0;
 
             public int Field2 = 0;
+        }
+
+        [SerializableType]
+        private class GenericClass<T>
+        {
+            public T Field = default;
         }
 
         [Test]
@@ -1727,6 +1732,38 @@ namespace IcepackTest
 
             Assert.AreEqual(123, deserializedObj.Field1);
             Assert.AreEqual(0, deserializedObj.Field2);
+        }
+
+        [Test]
+        public void SerializeGenericClass()
+        {
+            var serializer = new Serializer();
+
+            GenericClass<string> obj = new GenericClass<string>();
+            obj.Field = "asdf";
+
+            var stream = new MemoryStream();
+            serializer.Serialize(obj, stream);
+            stream.Position = 0;
+            GenericClass<string> deserializedObj = serializer.Deserialize<GenericClass<string>>(stream);
+            stream.Close();
+
+            Assert.AreEqual("asdf", deserializedObj.Field);
+        }
+
+        [Test]
+        public void SerializeGenericClassWithUnregisteredParameterType()
+        {
+            var serializer = new Serializer();
+
+            GenericClass<UnregisteredClass> obj = new GenericClass<UnregisteredClass>();
+            obj.Field = new UnregisteredClass();
+
+            var stream = new MemoryStream();
+            Assert.Throws<IcepackException>(() => {
+                serializer.Serialize(obj, stream);
+            });
+            stream.Close();
         }
     }
 }
