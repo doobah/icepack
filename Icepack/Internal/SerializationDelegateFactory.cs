@@ -82,15 +82,8 @@ namespace Icepack
 
         private static void SerializeObjectReference(object value, SerializationContext context, BinaryWriter writer, TypeMetadata _)
         {
-            if (value == null)
-                writer.Write((uint)0);
-            else if (context.Serializer.Settings.PreserveReferences && context.Objects.ContainsKey(value))
-                writer.Write(context.Objects[value].Id);
-            else
-            {
-                uint id = context.RegisterObject(value);
-                writer.Write(id);
-            }
+            uint id = context.RegisterObject(value);
+            writer.Write(id);
         }
 
         private static void SerializeBoxedStruct(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)

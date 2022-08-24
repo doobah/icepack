@@ -231,7 +231,7 @@ namespace Icepack
                 typeMetadata.DeserializeReferenceType(classObjMetadata, context, reader);
             }
 
-            T rootObject = (T)context.Objects[0].Value;
+            T rootObject = context.Objects.Length == 0 ? default(T) : (T)context.Objects[0].Value;
 
             reader.Dispose();
 

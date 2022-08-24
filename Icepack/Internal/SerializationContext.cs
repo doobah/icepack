@@ -54,6 +54,11 @@ namespace Icepack
         /// <returns> A unique ID for the object. </returns>
         public uint RegisterObject(object obj)
         {
+            if (obj == null)
+                return 0;
+            else if (Serializer.Settings.PreserveReferences && Objects.ContainsKey(obj))
+                return Objects[obj].Id;
+
             uint newId = ++largestObjectId;
 
             Type type;
