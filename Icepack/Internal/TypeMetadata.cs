@@ -339,6 +339,9 @@ namespace Icepack
         {
             foreach (FieldInfo fieldInfo in Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
+                if (Utils.IsUnsupportedType(fieldInfo.FieldType))
+                    continue;
+
                 if (serializer.Settings.SerializeByDefault)
                 {
                     IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();

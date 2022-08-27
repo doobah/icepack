@@ -317,5 +317,23 @@ namespace IcepackTest
         {
             public T Field = default;
         }
+
+        public delegate int Del(int arg);
+
+        [SerializableType]
+        private class ClassWithIntPtrField
+        {
+            public int Field1;
+            public nint Field2;
+            public int Field3;
+        }
+
+        [SerializableType]
+        private class ClassWithDelegateField
+        {
+            public int Field1;
+            public Del Field2;
+            public int Field3;
+        }
     }
 }

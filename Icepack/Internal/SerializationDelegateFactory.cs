@@ -240,7 +240,7 @@ namespace Icepack
                 case TypeCategory.Type:
                     return SerializeType;
                 default:
-                    throw new IcepackException($"Invalid type category: {category}");
+                    throw new IcepackException($"Unexpected type category: {category}");
             }
         }
 
@@ -264,7 +264,7 @@ namespace Icepack
             else if (underlyingType == typeof(ulong))
                 return SerializeUInt64;
             else
-                throw new IcepackException($"Invalid enum type: {type}");
+                throw new IcepackException($"Unexpected enum type: {type}");
         }
 
         /// <summary> Returns the delegate used to serialize fields of the given type. </summary>
@@ -305,7 +305,7 @@ namespace Icepack
             else if (type.IsClass || type.IsInterface)
                 return SerializeObjectReference;
             else
-                throw new IcepackException($"Unable to serialize object of type: {type}");
+                throw new IcepackException($"Unexpected field type: {type}");
         }
 
         /// <summary> Returns the delegate used to serialize immutable types. </summary>

@@ -27,13 +27,10 @@ namespace Icepack
         /// <remarks> This is used to allow types in other assemblies to be serialized, or for arrays and concrete generic classes. </remarks>
         public TypeMetadata RegisterType(Type type)
         {
-            if (types.ContainsKey(type))
-                return types[type];
+            if (Utils.IsUnsupportedType(type))
+                throw new IcepackException($"Unsupported type: {type}");
 
-            var newTypeMetadata = new TypeMetadata(type, serializer);
-            types.Add(type, newTypeMetadata);
-
-            return newTypeMetadata;
+            return GetTypeMetadata(type, true);
         }
 
         /// <summary>
@@ -41,8 +38,11 @@ namespace Icepack
         /// lazy-registers types that have the <see cref="SerializableTypeAttribute"/> attribute.
         /// </summary>
         /// <param name="type"> The type to retrieve metadata for. </param>
+        /// <param name="registerWithoutAttribute">
+        /// Whether to allow registration of the type without requiring it to be annotated with <see cref="SerializableAttribute"/>.
+        /// </param>
         /// <returns> The metadata for the type. </returns>
-        public TypeMetadata GetTypeMetadata(Type type)
+        public TypeMetadata GetTypeMetadata(Type type, bool registerWithoutAttribute = false)
         {
             // Treat all type values as instances of Type, for simplicity.
             if (type.IsSubclassOf(typeof(Type)))
@@ -54,33 +54,39 @@ namespace Icepack
 
             // Register arrays, lists, hashsets, and dictionaries by default
             if (type.IsArray)
-                GetTypeMetadata(type.GetElementType());
+                GetTypeMetadata(type.GetElementType(), registerWithoutAttribute);
             else if (type.IsGenericType)
             {
                 Type genericTypeDef = type.GetGenericTypeDefinition();
                 if (genericTypeDef == typeof(List<>) || genericTypeDef == typeof(HashSet<>))
                 {
                     Type[] genericArgs = type.GetGenericArguments();
-                    GetTypeMetadata(genericArgs[0]);
+                    GetTypeMetadata(genericArgs[0], registerWithoutAttribute);
                 }
                 else if (genericTypeDef == typeof(Dictionary<,>))
                 {
                     Type[] genericArgs = type.GetGenericArguments();
-                    GetTypeMetadata(genericArgs[0]);
-                    GetTypeMetadata(genericArgs[1]);
+                    GetTypeMetadata(genericArgs[0], registerWithoutAttribute);
+                    GetTypeMetadata(genericArgs[1], registerWithoutAttribute);
                 }
                 else
+                {
+                    if (!registerWithoutAttribute)
+                    {
+                        object[] attributes = type.GetCustomAttributes(typeof(SerializableTypeAttribute), true);
+                        if (attributes.Length == 0)
+                            throw new IcepackException($"Type {type} is not registered for serialization!");
+                    }
+                }
+            }
+            else
+            {
+                if (!registerWithoutAttribute)
                 {
                     object[] attributes = type.GetCustomAttributes(typeof(SerializableTypeAttribute), true);
                     if (attributes.Length == 0)
                         throw new IcepackException($"Type {type} is not registered for serialization!");
                 }
-            }
-            else
-            {
-                object[] attributes = type.GetCustomAttributes(typeof(SerializableTypeAttribute), true);
-                if (attributes.Length == 0)
-                    throw new IcepackException($"Type {type} is not registered for serialization!");
             }
 
             var newTypeMetadata = new TypeMetadata(type, serializer);

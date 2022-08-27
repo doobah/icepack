@@ -193,8 +193,9 @@ namespace Icepack
         private FieldMetadata convertRegisteredFieldMetadataToSerializable(FieldMetadata registeredFieldMetadata)
         {
             TypeMetadata fieldTypeMetadata = null;
-            if (registeredFieldMetadata.FieldInfo.FieldType.IsValueType)
-                fieldTypeMetadata = GetTypeMetadata(registeredFieldMetadata.FieldInfo.FieldType);
+            Type fieldType = registeredFieldMetadata.FieldInfo.FieldType;
+            if (fieldType.IsValueType)
+                fieldTypeMetadata = GetTypeMetadata(fieldType);
             return new FieldMetadata(registeredFieldMetadata, fieldTypeMetadata);
         }
     }
