@@ -335,5 +335,30 @@ namespace IcepackTest
             public Del Field2;
             public int Field3;
         }
+
+        private struct UnregisteredStruct
+        {
+        }
+
+        [SerializableType]
+        private class ClassWithUnregisteredStructFieldType
+        {
+            public int Field1;
+            public UnregisteredStruct Field2;
+            public int Field3;
+        }
+
+        [SerializableType]
+        private struct RegisteredStruct
+        {
+        }
+
+        [SerializableType]
+        private class ClassWithRegisteredStructFieldType
+        {
+            public int Field1;
+            public RegisteredStruct Field2;
+            public int Field3;
+        }
     }
 }

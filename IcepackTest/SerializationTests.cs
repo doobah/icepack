@@ -450,7 +450,7 @@ namespace IcepackTest
         public void SerializeStructsInInterfaceArray()
         {
             var serializer = new Serializer();
-            serializer.RegisterType(typeof(IInterface[]));
+            serializer.RegisterType(typeof(IInterface));
 
             var s1 = new StructThatImplementsInterface() { Value = 123 };
             var s2 = new StructThatImplementsInterface() { Value = 456 };
@@ -569,7 +569,7 @@ namespace IcepackTest
         public void SerializeInterfaceArray()
         {
             var serializer = new Serializer();
-            serializer.RegisterType(typeof(IInterface[]));
+            serializer.RegisterType(typeof(IInterface));
 
             IInterface obj1 = new ClassThatImplementsInterface() { Value = 123 };
             IInterface obj2 = new ClassThatImplementsInterface() { Value = 456 };
@@ -593,7 +593,7 @@ namespace IcepackTest
         public void SerializeClassWithInterfaceField()
         {
             var serializer = new Serializer();
-            serializer.RegisterType(typeof(IInterface[]));
+            serializer.RegisterType(typeof(IInterface));
 
             IInterface intf = new ClassThatImplementsInterface() { Value = 456 };
             var obj = new ClassWithInterfaceField() {
@@ -776,21 +776,6 @@ namespace IcepackTest
         }
 
         [Test]
-        public void SerializeGenericClassWithUnregisteredParameterType()
-        {
-            var serializer = new Serializer();
-
-            GenericClass<UnregisteredClass> obj = new GenericClass<UnregisteredClass>();
-            obj.Field = new UnregisteredClass();
-
-            var stream = new MemoryStream();
-            Assert.Throws<IcepackException>(() => {
-                serializer.Serialize(obj, stream);
-            });
-            stream.Close();
-        }
-
-        [Test]
         public void SerializeNull()
         {
             var serializer = new Serializer();
@@ -925,6 +910,89 @@ namespace IcepackTest
                 Assert.Null(deserializedObj.Field2);
                 Assert.AreEqual(3, deserializedObj.Field3);
             }
+        }
+
+        [Test]
+        public void RegisterGenericClassWithUnregisteredParameterType()
+        {
+            var serializer = new Serializer();
+            Assert.DoesNotThrow(() => {
+                serializer.RegisterType(typeof(GenericClass<UnregisteredClass>));
+            });
+        }
+
+        [Test]
+        public void RegisterListWithUnregisteredParameterType()
+        {
+            var serializer = new Serializer();
+            Assert.Throws<IcepackException>(() => {
+                serializer.RegisterType(typeof(List<UnregisteredClass>));
+            });
+        }
+
+        [Test]
+        public void RegisterClassWithUnregisteredStructFieldType()
+        {
+            var serializer = new Serializer();
+            Assert.Throws<IcepackException>(() => {
+                serializer.RegisterType(typeof(ClassWithUnregisteredStructFieldType));
+            });
+        }
+
+        [Test]
+        public void LazyRegisterAnnotatedListParameterType()
+        {
+            var serializer = new Serializer();
+
+            List<RegisteredClass> obj = new List<RegisteredClass>();
+
+            var stream = new MemoryStream();
+            Assert.DoesNotThrow(() => {
+                serializer.Serialize(obj, stream);
+            });
+            stream.Close();
+        }
+
+        [Test]
+        public void LazyRegisterAnnotatedStructFieldType()
+        {
+            var serializer = new Serializer();
+
+            ClassWithRegisteredStructFieldType obj = new ClassWithRegisteredStructFieldType();
+
+            var stream = new MemoryStream();
+            Assert.DoesNotThrow(() => {
+                serializer.Serialize(obj, stream);
+            });
+            stream.Close();
+        }
+
+        [Test]
+        public void LazyRegisterNonAnnotatedListParameterType()
+        {
+            var serializer = new Serializer();
+
+            List<UnregisteredClass> obj = new List<UnregisteredClass>();
+
+            var stream = new MemoryStream();
+            Assert.Throws<IcepackException>(() => {
+                serializer.Serialize(obj, stream);
+            });
+            stream.Close();
+        }
+
+        [Test]
+        public void LazyRegisterNonAnnotatedStructFieldType()
+        {
+            var serializer = new Serializer();
+
+            ClassWithUnregisteredStructFieldType obj = new ClassWithUnregisteredStructFieldType();
+
+            var stream = new MemoryStream();
+            Assert.Throws<IcepackException>(() => {
+                serializer.Serialize(obj, stream);
+            });
+            stream.Close();
         }
     }
 }
