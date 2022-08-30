@@ -92,6 +92,9 @@ namespace Icepack
         /// </summary>
         public int InstanceSize { get; private set; }
 
+        /// <summary> Options that control how objects of this type are serialized. </summary>
+        public TypeSerializationSettings Settings { get; }
+
         /// <summary> Called during serialization. Creates new type metadata for the serialization context. </summary>
         /// <param name="context"> The serialization context. </param>
         /// <param name="registeredTypeMetadata"> The metadata for the type retrieved from the type registry. </param>
@@ -122,6 +125,7 @@ namespace Icepack
             SerializeItem = registeredTypeMetadata.SerializeItem;
             SerializeImmutable = registeredTypeMetadata.SerializeImmutable;
             SerializeReferenceType = registeredTypeMetadata.SerializeReferenceType;
+            Settings = registeredTypeMetadata.Settings;
         }
 
         /// <summary>
@@ -164,6 +168,7 @@ namespace Icepack
                 DeserializeImmutable = null;
                 CreateClassOrStruct = null;
                 CreateCollection = null;
+                Settings = null;
             }
             else
             {
@@ -192,13 +197,15 @@ namespace Icepack
                 DeserializeImmutable = registeredTypeMetadata.DeserializeImmutable;
                 CreateClassOrStruct = registeredTypeMetadata.CreateClassOrStruct;
                 CreateCollection = registeredTypeMetadata.CreateCollection;
+                Settings = registeredTypeMetadata.Settings;
             }
         }
 
         /// <summary> Called during type registration. </summary>
         /// <param name="type"> The type. </param>
-        /// <param name="typeRegistry"> The serializer's type registry. </param>
-        public TypeMetadata(Type type, Serializer serializer)
+        /// <param name="serializer"> The serializer. </param>
+        /// <param name="settings"> Options that control how objects of this type are serialized. </param>
+        public TypeMetadata(Type type, Serializer serializer, TypeSerializationSettings settings)
         {
             ParentTypeMetadata = null;
             Fields = new List<FieldMetadata>();
@@ -221,6 +228,7 @@ namespace Icepack
             Id = 0;
             EnumUnderlyingTypeMetadata = null;
 
+            Settings = settings;
             Type = type;
             Category = GetCategory(type);
             SerializeReferenceType = SerializationDelegateFactory.GetReferenceTypeOperation(Category);

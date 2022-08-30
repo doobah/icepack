@@ -23,17 +23,6 @@ namespace Icepack
             types = new Dictionary<Type, TypeMetadata>();
         }
 
-        /// <summary> Registers a type as serializable. </summary>
-        /// <param name="type"> The type to register. </param>
-        /// <remarks> This is used to allow types in other assemblies to be serialized, or for arrays and concrete generic classes. </remarks>
-        public TypeMetadata RegisterType(Type type)
-        {
-            if (Utils.IsUnsupportedType(type))
-                throw new IcepackException($"Unsupported type: {type}");
-
-            return GetTypeMetadata(type, true);
-        }
-
         /// <summary>
         /// Called during type registration and serialization. Retrieves the metadata for a type and
         /// lazy-registers types that have the <see cref="SerializableTypeAttribute"/> attribute.
@@ -41,7 +30,7 @@ namespace Icepack
         /// <param name="type"> The type to retrieve metadata for. </param>
         /// <param name="preRegister"> Whether this method was called by <see cref="RegisterType(Type)"/>. </param>
         /// <returns> The metadata for the type. </returns>
-        public TypeMetadata GetTypeMetadata(Type type, bool preRegister = false)
+        public TypeMetadata GetTypeMetadata(Type type, TypeSerializationSettings settings = null)
         {
             // Treat all type values as instances of Type, for simplicity.
             if (type.IsSubclassOf(typeof(Type)))
@@ -67,25 +56,32 @@ namespace Icepack
                 }
                 else
                 {
-                    if (!preRegister)
+                    if (settings == null)
                     {
                         SerializableTypeAttribute attr = type.GetCustomAttribute<SerializableTypeAttribute>(true);
                         if (attr == null)
                             throw new IcepackException($"Type {type} is not registered for serialization!");
+                        else
+                            settings = TypeSerializationSettings.FromSerializableTypeAttribute(attr);
                     }
                 }
             }
             else
             {
-                if (!preRegister)
+                if (settings == null)
                 {
                     SerializableTypeAttribute attr = type.GetCustomAttribute<SerializableTypeAttribute>(true);
                     if (attr == null)
                         throw new IcepackException($"Type {type} is not registered for serialization!");
+                    else
+                        settings = TypeSerializationSettings.FromSerializableTypeAttribute(attr);
                 }
             }
 
-            var newTypeMetadata = new TypeMetadata(type, serializer);
+            if (settings == null)
+                settings = new TypeSerializationSettings();
+
+            var newTypeMetadata = new TypeMetadata(type, serializer, settings);
             types.Add(type, newTypeMetadata);
             return newTypeMetadata;
         }

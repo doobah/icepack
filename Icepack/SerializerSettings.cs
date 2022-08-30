@@ -30,7 +30,7 @@ namespace Icepack
         /// <summary> Creates a new <see cref="SerializerSettings"/>. </summary>
         /// <param name="preserveReferences">
         /// Whether references will be preserved. True by default. If false, references to the same object
-        /// will be serialized as separate objects.
+        /// will be serialized as separate objects. Overrides any type or field specific setting.
         /// </param>
         /// <param name="maxDepth">
         /// The maximum depth allowed when references are not preserved. If the depth exceeds this value, it is assumed that there is a

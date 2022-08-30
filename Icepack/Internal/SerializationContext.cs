@@ -51,23 +51,40 @@ namespace Icepack
 
         /// <summary> Registers an object for serialization. </summary>
         /// <param name="obj"> The object. </param>
+        /// <param name="preserveReference"> Whether to preserve references to the object. </param>
         /// <returns> A unique ID for the object. </returns>
-        public uint RegisterObject(object obj)
+        public uint RegisterObject(object obj, bool preserveReference)
         {
             if (obj == null)
                 return 0;
-            else if (Serializer.Settings.PreserveReferences && Objects.ContainsKey(obj))
-                return Objects[obj].Id;
 
-            uint newId = ++largestObjectId;
+            TypeMetadata typeMetadata = null;
 
-            Type type;
-            if (obj is Type)
-                // Treat all type values as instances of Type, for simplicity.
-                type = typeof(Type);
-            else
-                type = obj.GetType();
-            TypeMetadata typeMetadata = GetTypeMetadata(type);
+            if (preserveReference)
+            {
+                if (Objects.ContainsKey(obj))
+                {
+                    ObjectMetadata existingObjMetadata = Objects[obj];
+                    typeMetadata = existingObjMetadata.TypeMetadata;
+
+                    preserveReference = preserveReference && typeMetadata.Settings.PreserveReferences;
+                    if (preserveReference)
+                        return existingObjMetadata.Id;
+                }
+            }
+
+            if (typeMetadata == null)
+            {
+                Type type;
+                if (obj is Type)
+                    // Treat all type values as instances of Type, for simplicity.
+                    type = typeof(Type);
+                else
+                    type = obj.GetType();
+                typeMetadata = GetTypeMetadata(type);
+
+                preserveReference = preserveReference && typeMetadata.Settings.PreserveReferences;
+            }
 
             int length = 0;
             switch (typeMetadata.Category)
@@ -98,8 +115,10 @@ namespace Icepack
                     throw new IcepackException($"Invalid type category: {typeMetadata.Category}");
             }
 
+            uint newId = ++largestObjectId;
+
             var objMetadata = new ObjectMetadata(newId, typeMetadata, length, obj, CurrentDepth + 1);
-            if (Serializer.Settings.PreserveReferences)
+            if (preserveReference)
                 Objects.Add(obj, objMetadata);
             else if (CurrentDepth > Serializer.Settings.MaxDepth)
                 throw new IcepackException($"Exceeded maximum depth while serializing: ${obj}");

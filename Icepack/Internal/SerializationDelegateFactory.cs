@@ -82,7 +82,7 @@ namespace Icepack
 
         private static void SerializeObjectReference(object value, SerializationContext context, BinaryWriter writer, TypeMetadata _)
         {
-            uint id = context.RegisterObject(value);
+            uint id = context.RegisterObject(value, context.Serializer.Settings.PreserveReferences);
             writer.Write(id);
         }
 

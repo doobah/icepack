@@ -52,9 +52,22 @@ namespace Icepack
 
         /// <summary> Registers a type as serializable. </summary>
         /// <param name="type"> The type to register. </param>
-        public void RegisterType(Type type)
+        /// <param name="settings"> Options that control how objects of the specified type are serialized. </param>
+        public void RegisterType(Type type, TypeSerializationSettings settings = null)
         {
-            TypeRegistry.RegisterType(type);
+            if (Utils.IsUnsupportedType(type))
+                throw new IcepackException($"Unsupported type: {type}");
+
+            if (settings == null)
+            {
+                SerializableTypeAttribute attr = type.GetCustomAttribute<SerializableTypeAttribute>();
+                if (attr == null)
+                    settings = new TypeSerializationSettings();
+                else
+                    settings = TypeSerializationSettings.FromSerializableTypeAttribute(attr);
+            }
+
+            TypeRegistry.GetTypeMetadata(type, settings);
         }
 
         /// <summary> Serializes an object graph to a stream. </summary>
@@ -66,7 +79,7 @@ namespace Icepack
             var objectDataWriter = new BinaryWriter(objectDataStream, Encoding.Unicode, true);
             var context = new SerializationContext(this);
 
-            context.RegisterObject(rootObj);
+            context.RegisterObject(rootObj, Settings.PreserveReferences);
 
             // Each time an object reference is encountered, a new object will be added to the list.
             // Iterate through the growing list until there are no more objects to serialize.

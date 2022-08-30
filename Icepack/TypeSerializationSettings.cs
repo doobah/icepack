@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace Icepack
 {
-    /// <summary> Allows a class or struct to be serialized/deserialized. </summary>
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum, Inherited = true)]
-    public sealed class SerializableTypeAttribute : Attribute
+    /// <summary> Contains options that control how objects of a type are serialized. </summary>
+    public sealed class TypeSerializationSettings
     {
         /// <summary>
         /// Whether references to objects of this type should be preserved. Default is true. This overrides
@@ -16,11 +15,18 @@ namespace Icepack
         /// </summary>
         public bool PreserveReferences { get; }
 
-        /// <summary> Creates a new <see cref="SerializableTypeAttribute"/>. </summary>
+        /// <summary> Creates a new <see cref="TypeSerializationSettings"/>. </summary>
         /// <param name="preserveReferences"> Whether references to objects of this type should be preserved. </param>
-        public SerializableTypeAttribute(bool preserveReferences = true)
+        public TypeSerializationSettings(bool preserveReferences = true)
         {
             PreserveReferences = preserveReferences;
+        }
+
+        internal static TypeSerializationSettings FromSerializableTypeAttribute(SerializableTypeAttribute attr)
+        {
+            return new TypeSerializationSettings(
+                preserveReferences: attr.PreserveReferences
+            );
         }
     }
 }

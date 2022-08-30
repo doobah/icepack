@@ -9,7 +9,7 @@ using System.IO;
 
 namespace IcepackTest
 {
-    public partial class SerializationTests
+    public class VersionToleranceTests
     {
         [Test]
         public void CompatibilityMatch()
