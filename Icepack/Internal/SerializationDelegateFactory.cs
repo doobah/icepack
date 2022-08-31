@@ -190,7 +190,7 @@ namespace Icepack
                 }
 
                 Type parentType = typeMetadata.Type.BaseType;
-                if (parentType == typeof(object))
+                if (parentType == null)
                     break;
 
                 // This will throw an exception if the parent type does not exist

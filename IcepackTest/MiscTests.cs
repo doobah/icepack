@@ -264,5 +264,19 @@ namespace IcepackTest
 
             Assert.Null(deserializedObj);
         }
+
+        [Test]
+        public void SerializeObject()
+        {
+            var serializer = new Serializer();
+
+            var stream = new MemoryStream();
+            serializer.Serialize(new object(), stream);
+            stream.Position = 0;
+            object deserializedObj = serializer.Deserialize<object>(stream);
+            stream.Close();
+
+            Assert.NotNull(deserializedObj);
+        }
     }
 }

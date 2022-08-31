@@ -105,5 +105,24 @@ namespace IcepackTest
             Assert.AreNotEqual(deserializedObj.Field1, deserializedObj.Field2);
             Assert.AreEqual(deserializedObj.Field3, deserializedObj.Field4);
         }
+
+        [Test]
+        public void SerializeObjectOfTypeInObjectListWithoutPreservingReferences()
+        {
+            var serializer = new Serializer();
+
+            var obj1 = new ClassWithReferencePreservationDisabled();
+            var obj2 = new ClassWithReferencePreservationEnabled();
+            var list = new List<object> { obj1, obj1, obj2, obj2 };
+
+            var stream = new MemoryStream();
+            serializer.Serialize(list, stream);
+            stream.Position = 0;
+            var deserializedObj = serializer.Deserialize<List<object>>(stream);
+            stream.Close();
+
+            Assert.AreNotEqual(deserializedObj[0], deserializedObj[1]);
+            Assert.AreEqual(deserializedObj[2], deserializedObj[3]);
+        }
     }
 }

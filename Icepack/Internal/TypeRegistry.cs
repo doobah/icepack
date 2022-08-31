@@ -40,9 +40,13 @@ namespace Icepack
             if (types.TryGetValue(type, out typeMetadata))
                 return typeMetadata;
 
-            // Register arrays, lists, hashsets, and dictionaries by default
-            if (type.IsArray)
-                GetTypeMetadata(type.GetElementType());
+            // Register common types by default
+            if (type == typeof(object))
+            {
+            }
+            else if (type.IsArray)
+            {
+            }
             else if (type.IsGenericType)
             {
                 Type genericTypeDef = type.GetGenericTypeDefinition();
@@ -50,9 +54,6 @@ namespace Icepack
                     genericTypeDef == typeof(HashSet<>) ||
                     genericTypeDef == typeof(Dictionary<,>))
                 {
-                    Type[] genericArgs = type.GetGenericArguments();
-                    foreach (Type genericArg in genericArgs)
-                        GetTypeMetadata(genericArg);
                 }
                 else
                 {

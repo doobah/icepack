@@ -148,7 +148,7 @@ namespace Icepack
                 throw new IcepackException($"Type {type} is not registered for serialization!");
 
             TypeMetadata parentTypeMetadata = null;
-            if (registeredTypeMetadata.Category == TypeCategory.Class && type.BaseType != typeof(object))
+            if (registeredTypeMetadata.Category == TypeCategory.Class && type.BaseType != typeof(object) && type.BaseType != null)
                 parentTypeMetadata = GetTypeMetadata(type.BaseType);
 
             TypeMetadata keyTypeMetadata = null;
@@ -202,7 +202,7 @@ namespace Icepack
             foreach (KeyValuePair<string, FieldMetadata> pair in registeredTypeMetadata.FieldsByPreviousName)
                 fieldsByPreviousName.Add(pair.Key, convertRegisteredFieldMetadataToSerializable(pair.Value));
 
-            var newTypeMetadata = new TypeMetadata(this, registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata, parentTypeMetadata,
+            var newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata, parentTypeMetadata,
                                                    keyTypeMetadata, itemTypeMetadata, fields, fieldsByName, fieldsByPreviousName);
             Types.Add(type, newTypeMetadata);
             TypesInOrder.Add(newTypeMetadata);

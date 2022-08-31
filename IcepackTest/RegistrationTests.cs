@@ -21,10 +21,10 @@ namespace IcepackTest
         }
 
         [Test]
-        public void RegisterListWithUnregisteredParameterType()
+        public void PreRegisterListWithUnregisteredParameterType()
         {
             var serializer = new Serializer();
-            Assert.Throws<IcepackException>(() => {
+            Assert.DoesNotThrow(() => {
                 serializer.RegisterType(typeof(List<UnregisteredClass>));
             });
         }
@@ -66,6 +66,10 @@ namespace IcepackTest
             stream.Close();
         }
 
+        /// <remarks>
+        /// Serializing a List type with a non-annotated parameter type should pass as long as it has no elements of that type.
+        /// Note that it may never have elements of that type if the type is an abstract base class.
+        /// </remarks>
         [Test]
         public void LazyRegisterNonAnnotatedListParameterType()
         {
@@ -74,7 +78,7 @@ namespace IcepackTest
             List<UnregisteredClass> obj = new List<UnregisteredClass>();
 
             var stream = new MemoryStream();
-            Assert.Throws<IcepackException>(() => {
+            Assert.DoesNotThrow(() => {
                 serializer.Serialize(obj, stream);
             });
             stream.Close();
