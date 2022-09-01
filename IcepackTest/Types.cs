@@ -358,40 +358,4 @@ namespace IcepackTest
         public RegisteredStruct Field2;
         public int Field3;
     }
-
-    [SerializableType(preserveReferences: false)]
-    internal class ClassWithReferencePreservationDisabled
-    {
-    }
-
-    [SerializableType]
-    internal class ClassWithReferencePreservationEnabled
-    {
-    }
-
-    [SerializableType]
-    internal class ReferencePreservationTestClass
-    {
-        public ClassWithReferencePreservationDisabled Field1;
-        public ClassWithReferencePreservationDisabled Field2;
-        public ClassWithReferencePreservationEnabled Field3;
-        public ClassWithReferencePreservationEnabled Field4;
-    }
-
-    [SerializableType]
-    internal class ReferencePreservationTestClassWithObjectFields
-    {
-        public object Field1;
-        public object Field2;
-        public object Field3;
-        public object Field4;
-    }
-
-    internal class UnregisteredClass1
-    {
-    }
-
-    internal class UnregisteredClass2
-    {
-    }
 }

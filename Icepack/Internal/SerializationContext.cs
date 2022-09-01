@@ -51,40 +51,16 @@ namespace Icepack
 
         /// <summary> Registers an object for serialization. </summary>
         /// <param name="obj"> The object. </param>
-        /// <param name="preserveReference"> Whether to preserve references to the object. </param>
         /// <returns> A unique ID for the object. </returns>
-        public uint RegisterObject(object obj, bool preserveReference)
+        public uint RegisterObject(object obj)
         {
             if (obj == null)
                 return 0;
 
-            TypeMetadata typeMetadata = null;
+            if (Serializer.Settings.PreserveReferences && Objects.ContainsKey(obj))
+                return Objects[obj].Id;
 
-            if (preserveReference)
-            {
-                if (Objects.ContainsKey(obj))
-                {
-                    ObjectMetadata existingObjMetadata = Objects[obj];
-                    typeMetadata = existingObjMetadata.TypeMetadata;
-
-                    preserveReference = preserveReference && typeMetadata.Settings.PreserveReferences;
-                    if (preserveReference)
-                        return existingObjMetadata.Id;
-                }
-            }
-
-            if (typeMetadata == null)
-            {
-                Type type;
-                if (obj is Type)
-                    // Treat all type values as instances of Type, for simplicity.
-                    type = typeof(Type);
-                else
-                    type = obj.GetType();
-                typeMetadata = GetTypeMetadata(type);
-
-                preserveReference = preserveReference && typeMetadata.Settings.PreserveReferences;
-            }
+            TypeMetadata typeMetadata = GetTypeMetadata(obj.GetType());
 
             int length = 0;
             switch (typeMetadata.Category)
@@ -118,7 +94,7 @@ namespace Icepack
             uint newId = ++largestObjectId;
 
             var objMetadata = new ObjectMetadata(newId, typeMetadata, length, obj, CurrentDepth + 1);
-            if (preserveReference)
+            if (Serializer.Settings.PreserveReferences)
                 Objects.Add(obj, objMetadata);
             else if (CurrentDepth > Serializer.Settings.MaxDepth)
                 throw new IcepackException($"Exceeded maximum depth while serializing: ${obj}");
@@ -134,6 +110,10 @@ namespace Icepack
         /// <returns> The metadata for the type. </returns>
         public TypeMetadata GetTypeMetadata(Type type)
         {
+            // Treat all type values as instances of Type, for simplicity.
+            if (type.IsSubclassOf(typeof(Type)))
+                type = typeof(Type);
+
             TypeMetadata typeMetadata;
             if (Types.TryGetValue(type, out typeMetadata))
                 return typeMetadata;

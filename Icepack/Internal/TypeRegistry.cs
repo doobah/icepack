@@ -30,7 +30,7 @@ namespace Icepack
         /// <param name="type"> The type to retrieve metadata for. </param>
         /// <param name="preRegister"> Whether this method was called by <see cref="RegisterType(Type)"/>. </param>
         /// <returns> The metadata for the type. </returns>
-        public TypeMetadata GetTypeMetadata(Type type, TypeSerializationSettings settings = null)
+        public TypeMetadata GetTypeMetadata(Type type, bool preRegister = false)
         {
             // Treat all type values as instances of Type, for simplicity.
             if (type.IsSubclassOf(typeof(Type)))
@@ -57,32 +57,25 @@ namespace Icepack
                 }
                 else
                 {
-                    if (settings == null)
+                    if (!preRegister)
                     {
                         SerializableTypeAttribute attr = type.GetCustomAttribute<SerializableTypeAttribute>(true);
                         if (attr == null)
                             throw new IcepackException($"Type {type} is not registered for serialization!");
-                        else
-                            settings = TypeSerializationSettings.FromSerializableTypeAttribute(attr);
                     }
                 }
             }
             else
             {
-                if (settings == null)
+                if (!preRegister)
                 {
                     SerializableTypeAttribute attr = type.GetCustomAttribute<SerializableTypeAttribute>(true);
                     if (attr == null)
                         throw new IcepackException($"Type {type} is not registered for serialization!");
-                    else
-                        settings = TypeSerializationSettings.FromSerializableTypeAttribute(attr);
                 }
             }
 
-            if (settings == null)
-                settings = new TypeSerializationSettings();
-
-            var newTypeMetadata = new TypeMetadata(type, serializer, settings);
+            var newTypeMetadata = new TypeMetadata(type, serializer);
             types.Add(type, newTypeMetadata);
             return newTypeMetadata;
         }
