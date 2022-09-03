@@ -431,5 +431,64 @@ namespace Icepack
 
             return compiled;
         }
+
+        /// <summary> Serialize the type metadata. </summary>
+        /// <param name="context"> The current serialization context. </param>
+        /// <param name="writer"> Writes the metadata to a stream. </param>
+        public void SerializeMetadata(SerializationContext context, BinaryWriter writer)
+        {
+            writer.Write(Type.AssemblyQualifiedName);
+            writer.Write((byte)Category);
+
+            switch (Category)
+            {
+                case TypeCategory.Immutable:
+                    break;
+                case TypeCategory.Array:
+                case TypeCategory.List:
+                case TypeCategory.HashSet:
+                    writer.Write(ItemSize);
+                    break;
+                case TypeCategory.Dictionary:
+                    writer.Write(KeySize);
+                    writer.Write(ItemSize);
+                    break;
+                case TypeCategory.Struct:
+                    writer.Write(InstanceSize);
+                    writer.Write(Fields.Count);
+
+                    for (int fieldIdx = 0; fieldIdx < Fields.Count; fieldIdx++)
+                    {
+                        FieldMetadata fieldMetadata = Fields[fieldIdx];
+
+                        writer.Write(fieldMetadata.FieldInfo.Name);
+                        writer.Write(fieldMetadata.Size);
+                    }
+                    break;
+                case TypeCategory.Class:
+                    writer.Write(InstanceSize);
+                    if (ParentTypeMetadata == null)
+                        writer.Write((uint)0);
+                    else
+                        writer.Write(ParentTypeMetadata.Id);
+                    writer.Write(Fields.Count);
+
+                    for (int fieldIdx = 0; fieldIdx < Fields.Count; fieldIdx++)
+                    {
+                        FieldMetadata fieldMetadata = Fields[fieldIdx];
+
+                        writer.Write(fieldMetadata.FieldInfo.Name);
+                        writer.Write(fieldMetadata.Size);
+                    }
+                    break;
+                case TypeCategory.Enum:
+                    writer.Write(EnumUnderlyingTypeMetadata.Id);
+                    break;
+                case TypeCategory.Type:
+                    break;
+                default:
+                    throw new IcepackException($"Invalid category ID: {Category}");
+            }
+        }
     }
 }

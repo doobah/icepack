@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 
 namespace IcepackTest
 {
+#pragma warning disable 0649 // "never assigned to"
+
     [SerializableType]
     internal class FlatClass
     {
         public int Field1;
-        public string Field2;
+        public string? Field2;
         public float Field3;
     }
 
@@ -26,7 +28,7 @@ namespace IcepackTest
     internal class HierarchicalObject
     {
         public int Field1;
-        public HierarchicalObject Nested;
+        public HierarchicalObject? Nested;
     }
 
     [SerializableType]
@@ -86,8 +88,8 @@ namespace IcepackTest
     [SerializableType]
     internal class ObjectWithObjectReferences
     {
-        public RegisteredClass Field1;
-        public RegisteredClass Field2;
+        public RegisteredClass? Field1;
+        public RegisteredClass? Field2;
     }
 
     [SerializableType]
@@ -118,9 +120,9 @@ namespace IcepackTest
     [SerializableType]
     internal class ClassWithMultipleObjectFields
     {
-        public object Field1;
-        public object Field2;
-        public object Field3;
+        public object? Field1;
+        public object? Field2;
+        public object? Field3;
     }
 
     [SerializableType]
@@ -140,7 +142,7 @@ namespace IcepackTest
     internal class ClassWithInterfaceField
     {
         public int Field1;
-        public IInterface Field2;
+        public IInterface? Field2;
         public int Field3;
     }
 
@@ -242,7 +244,7 @@ namespace IcepackTest
     internal class ClassWithObjectField
     {
         public int Field1;
-        public object Field2;
+        public object? Field2;
         public int Field3;
     }
 
@@ -250,7 +252,7 @@ namespace IcepackTest
     internal class ClassWithTypeField
     {
         public int Field1;
-        public Type Field2;
+        public Type? Field2;
         public int Field3;
     }
 
@@ -313,7 +315,7 @@ namespace IcepackTest
     [SerializableType]
     internal class GenericClass<T>
     {
-        public T Field = default;
+        public T? Field = default;
     }
 
     internal delegate int Del(int arg);
@@ -330,7 +332,7 @@ namespace IcepackTest
     internal class ClassWithDelegateField
     {
         public int Field1;
-        public Del Field2;
+        public Del? Field2;
         public int Field3;
     }
 
@@ -358,4 +360,6 @@ namespace IcepackTest
         public RegisteredStruct Field2;
         public int Field3;
     }
+
+#pragma warning restore 0649 // "never assigned to"
 }

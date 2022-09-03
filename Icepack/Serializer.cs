@@ -66,148 +66,42 @@ namespace Icepack
         /// <param name="outputStream"> The stream to output the serialized data to. </param>
         public void Serialize(object rootObj, Stream outputStream)
         {
-            var objectDataStream = new MemoryStream();
-            var objectDataWriter = new BinaryWriter(objectDataStream, Encoding.Unicode, true);
             var context = new SerializationContext(this);
 
             context.RegisterObject(rootObj);
 
-            // Each time an object reference is encountered, a new object will be added to the list.
-            // Iterate through the growing list until there are no more objects to serialize.
-            int currentObjId = 0;
-            while (currentObjId < context.ObjectsInOrder.Count)
+            using (var objectDataStream = new MemoryStream())
             {
-                ObjectMetadata objToSerialize = context.ObjectsInOrder[currentObjId];
-                context.CurrentDepth = objToSerialize.Depth;
-                TypeMetadata typeMetadata = objToSerialize.TypeMetadata;
-                typeMetadata.SerializeReferenceType(objToSerialize, context, objectDataWriter);
-
-                currentObjId++;
-            }
-
-            var metadataWriter = new BinaryWriter(outputStream, Encoding.Unicode, true);
-            metadataWriter.Write(CompatibilityVersion);
-            SerializeTypeMetadata(context, metadataWriter);
-            SerializeObjectMetadata(context, metadataWriter);
-
-            // The object data needs to go after the metadata in the output stream
-            objectDataStream.Position = 0;
-            objectDataStream.CopyTo(outputStream);
-
-            objectDataStream.Close();
-            objectDataWriter.Close();
-            metadataWriter.Close();
-        }
-
-        /// <summary> Serializes the object metadata. </summary>
-        /// <param name="context"> The current serialization context. </param>
-        /// <param name="writer"> Writes the metadata to a stream. </param>
-        private static void SerializeObjectMetadata(SerializationContext context, BinaryWriter writer)
-        {
-            writer.Write(context.ObjectsInOrder.Count);
-
-            for (int objectIdx = 0; objectIdx < context.ObjectsInOrder.Count; objectIdx++)
-            {
-                ObjectMetadata objectMetadata = context.ObjectsInOrder[objectIdx];
-                TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
-
-                writer.Write(typeMetadata.Id);
-
-                switch (typeMetadata.Category)
+                using (var objectDataWriter = new BinaryWriter(objectDataStream, Encoding.Unicode, true))
                 {
-                    case TypeCategory.Immutable:
-                        // "Boxed" immutable values are serialized entirely as metadata since they are unable to be
-                        // pre-instantiated and updated later like mutable structs and classes, and the final value
-                        // must be present when resolving references to these values.
-                        typeMetadata.SerializeImmutable(objectMetadata.Value, context, writer, null);
-                        break;
-                    case TypeCategory.Array:
-                    case TypeCategory.List:
-                    case TypeCategory.HashSet:
-                    case TypeCategory.Dictionary:
-                        writer.Write(objectMetadata.Length);
-                        break;
-                    case TypeCategory.Struct:
-                    case TypeCategory.Class:
-                        break;
-                    case TypeCategory.Enum:
-                        typeMetadata.EnumUnderlyingTypeMetadata.SerializeImmutable(objectMetadata.Value, context, writer, null);
-                        break;
-                    case TypeCategory.Type:
-                        // Type objects are serialized as an ID of a registered type, as metadata so that references
-                        // to a type object can be immediately resolved to a type.
-                        TypeMetadata valueTypeMetadata = context.GetTypeMetadata((Type)objectMetadata.Value);
-                        writer.Write(valueTypeMetadata.Id);
-                        break;
-                    default:
-                        throw new IcepackException($"Invalid type category: {objectMetadata.TypeMetadata.Category}");
+                    // Each time an object reference is encountered, a new object will be added to the list.
+                    // Iterate through the growing list until there are no more objects to serialize.
+                    int currentObjId = 0;
+                    while (currentObjId < context.ObjectsInOrder.Count)
+                    {
+                        context.ObjectsInOrder[currentObjId].SerializeValue(context, objectDataWriter);
+                        currentObjId++;
+                    }
                 }
-            }
-        }
 
-        /// <summary> Serializes the type metadata. </summary>
-        /// <param name="context"> The current serialization context. </param>
-        /// <param name="writer"> Writes the metadata to a stream. </param>
-        private static void SerializeTypeMetadata(SerializationContext context, BinaryWriter writer)
-        {
-            writer.Write(context.Types.Count);
-
-            for (int typeIdx = 0; typeIdx < context.TypesInOrder.Count; typeIdx++)
-            {
-                TypeMetadata typeMetadata = context.TypesInOrder[typeIdx];
-
-                writer.Write(typeMetadata.Type.AssemblyQualifiedName);
-                writer.Write((byte)typeMetadata.Category);
-                
-                switch (typeMetadata.Category)
+                using (var metadataWriter = new BinaryWriter(outputStream, Encoding.Unicode, true))
                 {
-                    case TypeCategory.Immutable:
-                        break;
-                    case TypeCategory.Array:
-                    case TypeCategory.List:
-                    case TypeCategory.HashSet:
-                        writer.Write(typeMetadata.ItemSize);
-                        break;
-                    case TypeCategory.Dictionary:
-                        writer.Write(typeMetadata.KeySize);
-                        writer.Write(typeMetadata.ItemSize);
-                        break;
-                    case TypeCategory.Struct:
-                        writer.Write(typeMetadata.InstanceSize);
-                        writer.Write(typeMetadata.Fields.Count);
+                    metadataWriter.Write(CompatibilityVersion);
 
-                        for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
-                        {
-                            FieldMetadata fieldMetadata = typeMetadata.Fields[fieldIdx];
+                    // Serialize type metadata
+                    metadataWriter.Write(context.Types.Count);
+                    for (int typeIdx = 0; typeIdx < context.TypesInOrder.Count; typeIdx++)
+                        context.TypesInOrder[typeIdx].SerializeMetadata(context, metadataWriter);
 
-                            writer.Write(fieldMetadata.FieldInfo.Name);
-                            writer.Write(fieldMetadata.Size);
-                        }
-                        break;
-                    case TypeCategory.Class:
-                        writer.Write(typeMetadata.InstanceSize);
-                        if (typeMetadata.ParentTypeMetadata == null)
-                            writer.Write((uint)0);
-                        else
-                            writer.Write(typeMetadata.ParentTypeMetadata.Id);
-                        writer.Write(typeMetadata.Fields.Count);
-
-                        for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
-                        {
-                            FieldMetadata fieldMetadata = typeMetadata.Fields[fieldIdx];
-
-                            writer.Write(fieldMetadata.FieldInfo.Name);
-                            writer.Write(fieldMetadata.Size);
-                        }
-                        break;
-                    case TypeCategory.Enum:
-                        writer.Write(typeMetadata.EnumUnderlyingTypeMetadata.Id);
-                        break;
-                    case TypeCategory.Type:
-                        break;
-                    default:
-                        throw new IcepackException($"Invalid category ID: {typeMetadata.Category}");
+                    // Serialize object metadata
+                    metadataWriter.Write(context.ObjectsInOrder.Count);
+                    for (int objectIdx = 0; objectIdx < context.ObjectsInOrder.Count; objectIdx++)
+                        context.ObjectsInOrder[objectIdx].SerializeMetadata(context, metadataWriter);
                 }
+
+                // The object data needs to go after the metadata in the output stream
+                objectDataStream.Position = 0;
+                objectDataStream.CopyTo(outputStream);
             }
         }
 
@@ -215,31 +109,28 @@ namespace Icepack
         /// <typeparam name="T"> The type of the object being deserialized. </typeparam>
         /// <param name="inputStream"> The stream containing the data to deserialize. </param>
         /// <returns> The deserialized object. </returns>
-        public T Deserialize<T>(Stream inputStream)
+        public T? Deserialize<T>(Stream inputStream)
         {
-            var reader = new BinaryReader(inputStream, Encoding.Unicode, true);
-            var context = new DeserializationContext();
-
-            ushort compatibilityVersion = reader.ReadUInt16();
-
-            if (compatibilityVersion != CompatibilityVersion)
-                throw new IcepackException($"Expected compatibility version {CompatibilityVersion}, received {compatibilityVersion}");
-
-            DeserializeTypeMetadata(context, reader);
-            DeserializeObjectMetadata(context, reader);
-
-            for (int i = 0; i < context.Objects.Length; i++)
+            using (var reader = new BinaryReader(inputStream, Encoding.Unicode, true))
             {
-                ObjectMetadata classObjMetadata = context.Objects[i];
-                TypeMetadata typeMetadata = classObjMetadata.TypeMetadata;
-                typeMetadata.DeserializeReferenceType(classObjMetadata, context, reader);
+                ushort compatibilityVersion = reader.ReadUInt16();
+                if (compatibilityVersion != CompatibilityVersion)
+                    throw new IcepackException($"Expected compatibility version {CompatibilityVersion}, received {compatibilityVersion}");
+
+                var context = new DeserializationContext();
+
+                DeserializeTypeMetadata(context, reader);
+                DeserializeObjectMetadata(context, reader);
+
+                for (int i = 0; i < context.Objects.Length; i++)
+                {
+                    ObjectMetadata classObjMetadata = context.Objects[i];
+                    TypeMetadata typeMetadata = classObjMetadata.TypeMetadata;
+                    typeMetadata.DeserializeReferenceType(classObjMetadata, context, reader);
+                }
+
+                return context.Objects.Length == 0 ? default(T) : (T)context.Objects[0].Value;
             }
-
-            T rootObject = context.Objects.Length == 0 ? default(T) : (T)context.Objects[0].Value;
-
-            reader.Dispose();
-
-            return rootObject;
         }
 
         /// <summary> Deserializes the object metadata. </summary>

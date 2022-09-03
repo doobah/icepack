@@ -65,5 +65,16 @@ namespace IcepackTest
             Assert.NotNull(deserializedObj);
             Assert.AreEqual(typeof(int), deserializedObj);
         }
+
+        [Test]
+        public void SerializeNonRegisteredType()
+        {
+            var serializer = new Serializer();
+
+            var stream = new MemoryStream();
+            Assert.Throws<IcepackException>(() => {
+                serializer.Serialize(typeof(UnregisteredClass), stream);
+            });
+        }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Icepack
 {
@@ -39,6 +40,55 @@ namespace Icepack
             Length = length;
             Value = value;
             Depth = depth;
+        }
+
+        /// <summary> Serialize the object value. </summary>
+        /// <param name="context"> The current serialization context. </param>
+        /// <param name="writer"> Writes the data to a stream. </param>
+        public void SerializeValue(SerializationContext context, BinaryWriter writer)
+        {
+            context.CurrentDepth = Depth;
+            TypeMetadata.SerializeReferenceType(this, context, writer);
+        }
+
+        /// <summary> Serialize the object metadata. </summary>
+        /// <param name="context"> The current serialization context. </param>
+        /// <param name="writer"> Writes the metadata to a stream. </param>
+        public void SerializeMetadata(SerializationContext context, BinaryWriter writer)
+        {
+            TypeMetadata typeMetadata = TypeMetadata;
+
+            writer.Write(typeMetadata.Id);
+
+            switch (typeMetadata.Category)
+            {
+                case TypeCategory.Immutable:
+                    // "Boxed" immutable values are serialized entirely as metadata since they are unable to be
+                    // pre-instantiated and updated later like mutable structs and classes, and the final value
+                    // must be present when resolving references to these values.
+                    typeMetadata.SerializeImmutable(Value, context, writer, null);
+                    break;
+                case TypeCategory.Array:
+                case TypeCategory.List:
+                case TypeCategory.HashSet:
+                case TypeCategory.Dictionary:
+                    writer.Write(Length);
+                    break;
+                case TypeCategory.Struct:
+                case TypeCategory.Class:
+                    break;
+                case TypeCategory.Enum:
+                    typeMetadata.EnumUnderlyingTypeMetadata.SerializeImmutable(Value, context, writer, null);
+                    break;
+                case TypeCategory.Type:
+                    // Type objects are serialized as an ID of a registered type, as metadata so that references
+                    // to a type object can be immediately resolved to a type.
+                    TypeMetadata valueTypeMetadata = context.GetTypeMetadata((Type)Value);
+                    writer.Write(valueTypeMetadata.Id);
+                    break;
+                default:
+                    throw new IcepackException($"Invalid type category: {TypeMetadata.Category}");
+            }
         }
     }
 }
