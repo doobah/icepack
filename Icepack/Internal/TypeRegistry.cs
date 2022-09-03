@@ -36,7 +36,7 @@ namespace Icepack
             if (type.IsSubclassOf(typeof(Type)))
                 return types[typeof(Type)];
 
-            TypeMetadata typeMetadata;
+            TypeMetadata? typeMetadata;
             if (types.TryGetValue(type, out typeMetadata))
                 return typeMetadata;
 
@@ -59,7 +59,7 @@ namespace Icepack
                 {
                     if (!preRegister)
                     {
-                        SerializableTypeAttribute attr = type.GetCustomAttribute<SerializableTypeAttribute>(true);
+                        SerializableTypeAttribute? attr = type.GetCustomAttribute<SerializableTypeAttribute>(true);
                         if (attr == null)
                             throw new IcepackException($"Type {type} is not registered for serialization!");
                     }
@@ -69,7 +69,7 @@ namespace Icepack
             {
                 if (!preRegister)
                 {
-                    SerializableTypeAttribute attr = type.GetCustomAttribute<SerializableTypeAttribute>(true);
+                    SerializableTypeAttribute? attr = type.GetCustomAttribute<SerializableTypeAttribute>(true);
                     if (attr == null)
                         throw new IcepackException($"Type {type} is not registered for serialization!");
                 }
@@ -86,9 +86,9 @@ namespace Icepack
         /// </summary>
         /// <param name="name"> The assembly qualified name of the type. </param>
         /// <returns> Metadata for the specified type. </returns>
-        public TypeMetadata GetTypeMetadata(string name)
+        public TypeMetadata? GetTypeMetadata(string name)
         {
-            Type type = Type.GetType(name);
+            Type? type = Type.GetType(name);
             if (type == null)
                 return null;
 

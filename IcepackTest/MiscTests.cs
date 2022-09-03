@@ -19,7 +19,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             stream.Position = 0;
-            ClassWithPrivateConstructor deserializedObj = serializer.Deserialize<ClassWithPrivateConstructor>(stream);
+            ClassWithPrivateConstructor deserializedObj = serializer.Deserialize<ClassWithPrivateConstructor>(stream)!;
             stream.Close();
 
             Assert.AreEqual(123, deserializedObj.Field);
@@ -35,7 +35,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             stream.Position = 0;
-            ClassWithReadonlyField deserializedObj = serializer.Deserialize<ClassWithReadonlyField>(stream);
+            ClassWithReadonlyField deserializedObj = serializer.Deserialize<ClassWithReadonlyField>(stream)!;
             stream.Close();
 
             Assert.AreEqual(123, deserializedObj.Field);
@@ -51,7 +51,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             stream.Position = 0;
-            FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
+            FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream)!;
             stream.Close();
 
             Assert.AreEqual(123, deserializedObj.Field1);
@@ -69,7 +69,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             stream.Position = 0;
-            FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream);
+            FlatClass deserializedObj = serializer.Deserialize<FlatClass>(stream)!;
             stream.Close();
 
             Assert.AreEqual(123, deserializedObj.Field1);
@@ -88,13 +88,13 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(rootObj, stream);
             stream.Position = 0;
-            HierarchicalObject deserializedObj = serializer.Deserialize<HierarchicalObject>(stream);
+            HierarchicalObject deserializedObj = serializer.Deserialize<HierarchicalObject>(stream)!;
             stream.Close();
 
             Assert.AreEqual(456, deserializedObj.Field1);
             Assert.NotNull(deserializedObj.Nested);
 
-            HierarchicalObject deserializedNestedObj = deserializedObj.Nested;
+            HierarchicalObject deserializedNestedObj = deserializedObj.Nested!;
 
             Assert.AreEqual(123, deserializedNestedObj.Field1);
             Assert.Null(deserializedNestedObj.Nested);
@@ -110,7 +110,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             stream.Position = 0;
-            ChildClass deserializedObj = serializer.Deserialize<ChildClass>(stream);
+            ChildClass deserializedObj = serializer.Deserialize<ChildClass>(stream)!;
             stream.Close();
 
             Assert.AreEqual(123, deserializedObj.Field);
@@ -127,7 +127,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             stream.Position = 0;
-            ObjectWithIgnoredField deserializedObj = serializer.Deserialize<ObjectWithIgnoredField>(stream);
+            ObjectWithIgnoredField deserializedObj = serializer.Deserialize<ObjectWithIgnoredField>(stream)!;
             stream.Close();
 
             Assert.AreEqual(123, deserializedObj.Field1);
@@ -145,7 +145,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             stream.Position = 0;
-            ObjectWithObjectReferences deserializedObj = serializer.Deserialize<ObjectWithObjectReferences>(stream);
+            ObjectWithObjectReferences deserializedObj = serializer.Deserialize<ObjectWithObjectReferences>(stream)!;
             stream.Close();
 
             Assert.NotNull(deserializedObj.Field1);
@@ -163,7 +163,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             stream.Position = 0;
-            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
+            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream)!;
             stream.Close();
 
             Assert.NotNull(deserializedObj);
@@ -187,17 +187,17 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             stream.Position = 0;
-            ClassWithMultipleObjectFields deserializedObj = serializer.Deserialize<ClassWithMultipleObjectFields>(stream);
+            ClassWithMultipleObjectFields deserializedObj = serializer.Deserialize<ClassWithMultipleObjectFields>(stream)!;
             stream.Close();
 
             Assert.NotNull(deserializedObj);
             Assert.NotNull(deserializedObj.Field1);
-            Assert.IsTrue(deserializedObj.Field1.GetType() == typeof(RegisteredClass));
+            Assert.IsTrue(deserializedObj.Field1!.GetType() == typeof(RegisteredClass));
             Assert.NotNull(deserializedObj.Field2);
-            Assert.IsTrue(deserializedObj.Field2.GetType() == typeof(ClassWithIntField));
+            Assert.IsTrue(deserializedObj.Field2!.GetType() == typeof(ClassWithIntField));
             Assert.AreEqual(123, ((ClassWithIntField)deserializedObj.Field2).Field1);
             Assert.NotNull(deserializedObj.Field3);
-            Assert.IsTrue(deserializedObj.Field3.GetType() == typeof(RegisteredClass));
+            Assert.IsTrue(deserializedObj.Field3!.GetType() == typeof(RegisteredClass));
         }
 
         [Test]
@@ -210,7 +210,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             IcepackException exception = Assert.Throws<IcepackException>(() => {
                 serializer.Serialize(obj, stream);
-            });
+            })!;
             Assert.True(exception.Message.Contains("does not have a default constructor"));
             stream.Close();
         }
@@ -227,7 +227,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             stream.Position = 0;
-            ClassWithSerializedField deserializedObj = serializer.Deserialize<ClassWithSerializedField>(stream);
+            ClassWithSerializedField deserializedObj = serializer.Deserialize<ClassWithSerializedField>(stream)!;
             stream.Close();
 
             Assert.AreEqual(123, deserializedObj.Field1);
@@ -245,7 +245,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(obj, stream);
             stream.Position = 0;
-            GenericClass<string> deserializedObj = serializer.Deserialize<GenericClass<string>>(stream);
+            GenericClass<string> deserializedObj = serializer.Deserialize<GenericClass<string>>(stream)!;
             stream.Close();
 
             Assert.AreEqual("asdf", deserializedObj.Field);
@@ -259,7 +259,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(null, stream);
             stream.Position = 0;
-            object deserializedObj = serializer.Deserialize<object>(stream);
+            object? deserializedObj = serializer.Deserialize<object>(stream);
             stream.Close();
 
             Assert.Null(deserializedObj);
@@ -273,7 +273,7 @@ namespace IcepackTest
             var stream = new MemoryStream();
             serializer.Serialize(new object(), stream);
             stream.Position = 0;
-            object deserializedObj = serializer.Deserialize<object>(stream);
+            object? deserializedObj = serializer.Deserialize<object>(stream);
             stream.Close();
 
             Assert.NotNull(deserializedObj);

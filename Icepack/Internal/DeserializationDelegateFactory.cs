@@ -81,11 +81,11 @@ namespace Icepack
             return reader.ReadString();
         }
 
-        private static object DeserializeStructField(DeserializationContext context, BinaryReader reader)
+        private static object? DeserializeStructField(DeserializationContext context, BinaryReader reader)
         {
             uint typeId = reader.ReadUInt32();
             // Type IDs start from 1
-            TypeMetadata typeMetadata = context.Types[typeId - 1];
+            TypeMetadata typeMetadata = context.Types![typeId - 1];
 
             // Skip instance if type doesn't exist
             if (typeMetadata.Type == null)
@@ -94,17 +94,17 @@ namespace Icepack
                 return null;
             }
 
-            object structObj = typeMetadata.CreateClassOrStruct();
+            object structObj = typeMetadata.CreateClassOrStruct!();
 
-            for (int i = 0; i < typeMetadata.Fields.Count; i++)
+            for (int i = 0; i < typeMetadata.Fields!.Count; i++)
             {
                 FieldMetadata field = typeMetadata.Fields[i];
                 if (field.FieldInfo == null)
                     reader.BaseStream.Position += field.Size;
                 else
                 {
-                    object value = field.Deserialize(context, reader);
-                    field.Setter(structObj, value);
+                    object value = field.Deserialize!(context, reader)!;
+                    field.Setter!(structObj, value);
                 }
             }
 
@@ -118,7 +118,7 @@ namespace Icepack
         {
             uint typeId = reader.ReadUInt32();
             // Type IDs start from 1
-            TypeMetadata typeMetadata = context.Types[typeId - 1];
+            TypeMetadata typeMetadata = context.Types![typeId - 1];
 
             // Skip instance if type doesn't exist
             if (typeMetadata.Type == null)
@@ -127,17 +127,17 @@ namespace Icepack
                 return;
             }
 
-            object structObj = objectMetadata.Value;
+            object structObj = objectMetadata.Value!;
 
-            for (int i = 0; i < typeMetadata.Fields.Count; i++)
+            for (int i = 0; i < typeMetadata.Fields!.Count; i++)
             {
                 FieldMetadata field = typeMetadata.Fields[i];
                 if (field.FieldInfo == null)
                     reader.BaseStream.Position += field.Size;
                 else
                 {
-                    object value = field.Deserialize(context, reader);
-                    field.Setter(structObj, value);
+                    object value = field.Deserialize!(context, reader)!;
+                    field.Setter!(structObj, value);
                 }
             }
 
@@ -147,7 +147,7 @@ namespace Icepack
 
         private static void DeserializeArray(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)
         {
-            Array arrayObj = (Array)objectMetadata.Value;
+            Array arrayObj = (Array)objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             if (typeMetadata.Type == null)
@@ -156,7 +156,7 @@ namespace Icepack
             {
                 for (int i = 0; i < arrayObj.Length; i++)
                 {
-                    object value = typeMetadata.DeserializeItem(context, reader);
+                    object? value = typeMetadata.DeserializeItem!(context, reader);
                     arrayObj.SetValue(value, i);
                 }
             }
@@ -164,7 +164,7 @@ namespace Icepack
 
         private static void DeserializeList(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)
         {
-            IList listObj = (IList)objectMetadata.Value;
+            IList listObj = (IList)objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             if (typeMetadata.Type == null)
@@ -173,7 +173,7 @@ namespace Icepack
             {
                 for (int i = 0; i < objectMetadata.Length; i++)
                 {
-                    object value = typeMetadata.DeserializeItem(context, reader);
+                    object? value = typeMetadata.DeserializeItem!(context, reader);
                     listObj.Add(value);
                 }
             }
@@ -181,7 +181,7 @@ namespace Icepack
 
         private static void DeserializeHashSet(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)
         {
-            object hashSetObj = objectMetadata.Value;
+            object hashSetObj = objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             if (typeMetadata.Type == null)
@@ -190,15 +190,15 @@ namespace Icepack
             {
                 for (int i = 0; i < objectMetadata.Length; i++)
                 {
-                    object value = typeMetadata.DeserializeItem(context, reader);
-                    typeMetadata.HashSetAdder(hashSetObj, value);
+                    object value = typeMetadata.DeserializeItem!(context, reader)!;
+                    typeMetadata.HashSetAdder!(hashSetObj, value);
                 }
             }
         }
 
         private static void DeserializeDictionary(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)
         {
-            IDictionary dictObj = (IDictionary)objectMetadata.Value;
+            IDictionary dictObj = (IDictionary)objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             if (typeMetadata.Type == null)
@@ -207,8 +207,8 @@ namespace Icepack
             {
                 for (int i = 0; i < objectMetadata.Length; i++)
                 {
-                    object key = typeMetadata.DeserializeKey(context, reader);
-                    object value = typeMetadata.DeserializeItem(context, reader);
+                    object key = typeMetadata.DeserializeKey!(context, reader)!;
+                    object value = typeMetadata.DeserializeItem!(context, reader)!;
                     dictObj.Add(key, value);
                 }
             }
@@ -216,9 +216,9 @@ namespace Icepack
 
         private static void DeserializeNormalClass(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)
         {
-            object obj = objectMetadata.Value;
+            object obj = objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
-            TypeMetadata currentTypeMetadata = typeMetadata;
+            TypeMetadata? currentTypeMetadata = typeMetadata;
 
             while (currentTypeMetadata != null)
             {
@@ -227,15 +227,15 @@ namespace Icepack
                     reader.BaseStream.Position += currentTypeMetadata.InstanceSize;
                 else
                 {
-                    for (int fieldIdx = 0; fieldIdx < currentTypeMetadata.Fields.Count; fieldIdx++)
+                    for (int fieldIdx = 0; fieldIdx < currentTypeMetadata.Fields!.Count; fieldIdx++)
                     {
                         FieldMetadata field = currentTypeMetadata.Fields[fieldIdx];
                         if (field.FieldInfo == null)
                             reader.BaseStream.Position += field.Size;
                         else
                         {
-                            object value = field.Deserialize(context, reader);
-                            field.Setter(obj, value);
+                            object value = field.Deserialize!(context, reader)!;
+                            field.Setter!(obj, value);
                         }
                     }
                 }
@@ -292,10 +292,10 @@ namespace Icepack
             };
         }
 
-        private static object DeserializeObjectReference(DeserializationContext context, BinaryReader reader)
+        private static object? DeserializeObjectReference(DeserializationContext context, BinaryReader reader)
         {
             uint objId = reader.ReadUInt32();
-            return (objId == 0) ? null : context.Objects[objId - 1].Value;
+            return (objId == 0) ? null : context.Objects![objId - 1].Value;
         }
 
         private static Func<DeserializationContext, BinaryReader, object> GetEnumOperation(Type type)
@@ -325,7 +325,7 @@ namespace Icepack
         /// <summary> Returns the delegate used to deserialize fields of the given type. </summary>
         /// <param name="type"> The field's declaring type. </param>
         /// <returns> The deserialization delegate. </returns>
-        public static Func<DeserializationContext, BinaryReader, object> GetFieldOperation(Type type)
+        public static Func<DeserializationContext, BinaryReader, object?> GetFieldOperation(Type type)
         {
             if (type == typeof(byte))
                 return DeserializeByte;

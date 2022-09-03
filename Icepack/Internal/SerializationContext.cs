@@ -52,7 +52,7 @@ namespace Icepack
         /// <summary> Registers an object for serialization. </summary>
         /// <param name="obj"> The object. </param>
         /// <returns> A unique ID for the object. </returns>
-        public uint RegisterObject(object obj)
+        public uint RegisterObject(object? obj)
         {
             if (obj == null)
                 return 0;
@@ -114,12 +114,12 @@ namespace Icepack
             if (type.IsSubclassOf(typeof(Type)))
                 type = typeof(Type);
 
-            TypeMetadata typeMetadata;
+            TypeMetadata? typeMetadata;
             if (Types.TryGetValue(type, out typeMetadata))
                 return typeMetadata;
 
             // If this is an enum, we want the underlying type to be present ahead of the enum type
-            TypeMetadata enumUnderlyingTypeMetadata = null;
+            TypeMetadata? enumUnderlyingTypeMetadata = null;
             if (type.IsEnum)
                 enumUnderlyingTypeMetadata = GetTypeMetadata(type.GetEnumUnderlyingType());
 
@@ -127,11 +127,11 @@ namespace Icepack
             if (registeredTypeMetadata == null)
                 throw new IcepackException($"Type {type} is not registered for serialization!");
 
-            TypeMetadata parentTypeMetadata = null;
+            TypeMetadata? parentTypeMetadata = null;
             if (registeredTypeMetadata.Category == TypeCategory.Class && type.BaseType != typeof(object) && type.BaseType != null)
                 parentTypeMetadata = GetTypeMetadata(type.BaseType);
 
-            TypeMetadata keyTypeMetadata = null;
+            TypeMetadata? keyTypeMetadata = null;
             if (registeredTypeMetadata.Category == TypeCategory.Dictionary)
             {
                 Type keyType = type.GenericTypeArguments[0];
@@ -139,12 +139,12 @@ namespace Icepack
                     keyTypeMetadata = GetTypeMetadata(keyType);
             }
 
-            TypeMetadata itemTypeMetadata = null;
+            TypeMetadata? itemTypeMetadata = null;
             switch (registeredTypeMetadata.Category)
             {
                 case TypeCategory.Array:
                     {
-                        Type itemType = type.GetElementType();
+                        Type itemType = type.GetElementType()!;
                         if (itemType.IsValueType)
                             itemTypeMetadata = GetTypeMetadata(itemType);
                         break;
@@ -173,14 +173,14 @@ namespace Icepack
             }
 
             var fields = new List<FieldMetadata>();
-            foreach (FieldMetadata field in registeredTypeMetadata.Fields)
-                fields.Add(convertRegisteredFieldMetadataToSerializable(field));
+            foreach (FieldMetadata field in registeredTypeMetadata.Fields!)
+                fields.Add(ConvertRegisteredFieldMetadataToSerializable(field));
             var fieldsByName = new Dictionary<string, FieldMetadata>();
-            foreach (KeyValuePair<string, FieldMetadata> pair in registeredTypeMetadata.FieldsByName)
-                fieldsByName.Add(pair.Key, convertRegisteredFieldMetadataToSerializable(pair.Value));
+            foreach (KeyValuePair<string, FieldMetadata> pair in registeredTypeMetadata.FieldsByName!)
+                fieldsByName.Add(pair.Key, ConvertRegisteredFieldMetadataToSerializable(pair.Value));
             var fieldsByPreviousName = new Dictionary<string, FieldMetadata>();
-            foreach (KeyValuePair<string, FieldMetadata> pair in registeredTypeMetadata.FieldsByPreviousName)
-                fieldsByPreviousName.Add(pair.Key, convertRegisteredFieldMetadataToSerializable(pair.Value));
+            foreach (KeyValuePair<string, FieldMetadata> pair in registeredTypeMetadata.FieldsByPreviousName!)
+                fieldsByPreviousName.Add(pair.Key, ConvertRegisteredFieldMetadataToSerializable(pair.Value));
 
             var newTypeMetadata = new TypeMetadata(registeredTypeMetadata, ++largestTypeId, enumUnderlyingTypeMetadata, parentTypeMetadata,
                                                    keyTypeMetadata, itemTypeMetadata, fields, fieldsByName, fieldsByPreviousName);
@@ -189,10 +189,10 @@ namespace Icepack
             return newTypeMetadata;
         }
 
-        private FieldMetadata convertRegisteredFieldMetadataToSerializable(FieldMetadata registeredFieldMetadata)
+        private FieldMetadata ConvertRegisteredFieldMetadataToSerializable(FieldMetadata registeredFieldMetadata)
         {
-            TypeMetadata fieldTypeMetadata = null;
-            Type fieldType = registeredFieldMetadata.FieldInfo.FieldType;
+            TypeMetadata? fieldTypeMetadata = null;
+            Type fieldType = registeredFieldMetadata.FieldInfo!.FieldType;
             if (fieldType.IsValueType)
                 fieldTypeMetadata = GetTypeMetadata(fieldType);
             return new FieldMetadata(registeredFieldMetadata, fieldTypeMetadata);

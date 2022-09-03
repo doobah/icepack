@@ -13,30 +13,30 @@ namespace Icepack
     internal sealed class FieldMetadata
     {
         /// <summary> Reflection data for the field. </summary>
-        public FieldInfo FieldInfo { get; }
+        public FieldInfo? FieldInfo { get; }
 
         /// <summary> Delegate that gets the value of this field for a given object. </summary>
-        public Func<object, object> Getter { get; }
+        public Func<object, object>? Getter { get; }
 
         /// <summary> Delegate that sets the value of this field for a given object. The parameters are (object, value). </summary>
-        public Action<object, object> Setter { get; }
+        public Action<object, object>? Setter { get; }
 
         /// <summary> Delegate that deserializes the field for a given object. </summary>
-        public Func<DeserializationContext, BinaryReader, object> Deserialize { get; }
+        public Func<DeserializationContext, BinaryReader, object?>? Deserialize { get; }
 
         /// <summary> Delegate that serializes the field for a given object. </summary>
-        public Action<object, SerializationContext, BinaryWriter, TypeMetadata> Serialize { get; }
+        public Action<object, SerializationContext, BinaryWriter, TypeMetadata?>? Serialize { get; }
 
         /// <summary> The size of the field in bytes. </summary>
         public int Size { get; }
 
         /// <summary> Metadata for the field's type. </summary>
-        public TypeMetadata Type { get; }
+        public TypeMetadata? TypeMetadata { get; }
 
         /// <summary> Called during deserialization. Creates new field metadata. </summary>
         /// <param name="size"> The size of the field in bytes. </param>
         /// <param name="registeredFieldMetadata"> The corresponding registered metadata for the field. </param>
-        public FieldMetadata(int size, FieldMetadata registeredFieldMetadata)
+        public FieldMetadata(int size, FieldMetadata? registeredFieldMetadata)
         {
             Size = size;
 
@@ -47,7 +47,7 @@ namespace Icepack
                 Setter = null;
                 Deserialize = null;
                 Serialize = null;
-                Type = null;
+                TypeMetadata = null;
             }
             else
             {
@@ -56,7 +56,7 @@ namespace Icepack
                 Setter = registeredFieldMetadata.Setter;
                 Deserialize = registeredFieldMetadata.Deserialize;
                 Serialize = registeredFieldMetadata.Serialize;
-                Type = registeredFieldMetadata.Type;
+                TypeMetadata = registeredFieldMetadata.TypeMetadata;
             }
         }
 
@@ -71,13 +71,13 @@ namespace Icepack
             Deserialize = DeserializationDelegateFactory.GetFieldOperation(fieldInfo.FieldType);
             Serialize = SerializationDelegateFactory.GetFieldOperation(fieldInfo.FieldType);
             Size = FieldSizeFactory.GetFieldSize(fieldInfo.FieldType, serializer.TypeRegistry);
-            Type = null;
+            TypeMetadata = null;
         }
 
         /// <summary> Called during serialization. Creates new field metadata. </summary>
         /// <param name="registeredFieldMetadata"> The registered metadata. </param>
         /// <param name="typeMetadata"> The metadata for this field's type. </param>
-        public FieldMetadata(FieldMetadata registeredFieldMetadata, TypeMetadata typeMetadata)
+        public FieldMetadata(FieldMetadata registeredFieldMetadata, TypeMetadata? typeMetadata)
         {
             FieldInfo = registeredFieldMetadata.FieldInfo;
             Getter = registeredFieldMetadata.Getter;
@@ -85,7 +85,7 @@ namespace Icepack
             Deserialize = registeredFieldMetadata.Deserialize;
             Serialize = registeredFieldMetadata.Serialize;
             Size = registeredFieldMetadata.Size;
-            Type = typeMetadata;
+            TypeMetadata = typeMetadata;
         }
 
         /// <summary> Builds the delegate used to get the value of the field. </summary>
@@ -94,7 +94,7 @@ namespace Icepack
         private static Func<object, object> BuildGetter(FieldInfo fieldInfo)
         {
             ParameterExpression exInstance = Expression.Parameter(typeof(object));
-            UnaryExpression exConvertToDeclaringType = Expression.Convert(exInstance, fieldInfo.DeclaringType);
+            UnaryExpression exConvertToDeclaringType = Expression.Convert(exInstance, fieldInfo.DeclaringType!);
             MemberExpression exMemberAccess = Expression.MakeMemberAccess(exConvertToDeclaringType, fieldInfo);
             UnaryExpression exConvertToObject = Expression.Convert(exMemberAccess, typeof(object));
             Expression<Func<object, object>> lambda = Expression.Lambda<Func<object, object>>(exConvertToObject, exInstance);
@@ -117,7 +117,7 @@ namespace Icepack
 
             ILGenerator gen = method.GetILGenerator();
             gen.Emit(OpCodes.Ldarg_0);
-            if (fieldInfo.DeclaringType.IsValueType)
+            if (fieldInfo.DeclaringType!.IsValueType)
                 gen.Emit(OpCodes.Unbox, fieldInfo.DeclaringType);
             else
                 gen.Emit(OpCodes.Castclass, fieldInfo.DeclaringType);

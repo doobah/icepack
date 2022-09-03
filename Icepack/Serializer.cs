@@ -64,7 +64,7 @@ namespace Icepack
         /// <summary> Serializes an object graph to a stream. </summary>
         /// <param name="rootObj"> The root object to be serialized. </param>
         /// <param name="outputStream"> The stream to output the serialized data to. </param>
-        public void Serialize(object rootObj, Stream outputStream)
+        public void Serialize(object? rootObj, Stream outputStream)
         {
             var context = new SerializationContext(this);
 
@@ -122,14 +122,22 @@ namespace Icepack
                 DeserializeTypeMetadata(context, reader);
                 DeserializeObjectMetadata(context, reader);
 
-                for (int i = 0; i < context.Objects.Length; i++)
+                for (int i = 0; i < context.Objects!.Length; i++)
                 {
                     ObjectMetadata classObjMetadata = context.Objects[i];
-                    TypeMetadata typeMetadata = classObjMetadata.TypeMetadata;
-                    typeMetadata.DeserializeReferenceType(classObjMetadata, context, reader);
+                    classObjMetadata.TypeMetadata.DeserializeReferenceType!(classObjMetadata, context, reader);
                 }
 
-                return context.Objects.Length == 0 ? default(T) : (T)context.Objects[0].Value;
+                if (context.Objects.Length == 0)
+                    return default(T);
+                else
+                {
+                    object? rootObj = context.Objects[0].Value;
+                    if (rootObj == null)
+                        return default(T);
+                    else
+                        return (T)rootObj;
+                }
             }
         }
 
@@ -144,15 +152,15 @@ namespace Icepack
             for (int i = 0; i < numberOfObjects; i++)
             {
                 uint typeId = reader.ReadUInt32();
-                TypeMetadata objectTypeMetadata = context.Types[typeId - 1];
-                Type objectType = objectTypeMetadata.Type;
+                TypeMetadata objectTypeMetadata = context.Types![typeId - 1];
+                Type? objectType = objectTypeMetadata.Type;
                 int length = 0;
 
-                object obj;
+                object? obj;
                 switch (objectTypeMetadata.Category)
                 {
                     case TypeCategory.Immutable:
-                        obj = objectTypeMetadata.DeserializeImmutable(context, reader);
+                        obj = objectTypeMetadata.DeserializeImmutable!(context, reader);
                         break;
                     case TypeCategory.Array:
                         {
@@ -162,7 +170,7 @@ namespace Icepack
                                 obj = null;
                             else
                             {
-                                Type elementType = objectType.GetElementType();
+                                Type elementType = objectType.GetElementType()!;
                                 obj = Array.CreateInstance(elementType, length);
                             }
                             break;
@@ -176,7 +184,7 @@ namespace Icepack
                             if (objectType == null)
                                 obj = null;
                             else
-                                obj = objectTypeMetadata.CreateCollection(length);
+                                obj = objectTypeMetadata.CreateCollection!(length);
                             break;
                         }
                     case TypeCategory.Struct:
@@ -184,10 +192,12 @@ namespace Icepack
                         if (objectType == null)
                             obj = null;
                         else
-                            obj = objectTypeMetadata.CreateClassOrStruct();
+                            obj = objectTypeMetadata.CreateClassOrStruct!();
                         break;
                     case TypeCategory.Enum:
-                        object underlyingValue = objectTypeMetadata.EnumUnderlyingTypeMetadata.DeserializeImmutable(context, reader);
+                        // Need to deserialize regardless of whether the type still exists, to advance the stream past the value serialized in metadata.
+                        object underlyingValue = objectTypeMetadata.EnumUnderlyingTypeMetadata!.DeserializeImmutable!(context, reader)!;
+
                         if (objectType == null)
                             obj = null;
                         else
@@ -216,14 +226,14 @@ namespace Icepack
             for (int t = 0; t < numberOfTypes; t++)
             {
                 string typeName = reader.ReadString();
-                TypeMetadata registeredTypeMetadata = TypeRegistry.GetTypeMetadata(typeName);
+                TypeMetadata? registeredTypeMetadata = TypeRegistry.GetTypeMetadata(typeName);
                 int itemSize = 0;
                 int keySize = 0;
                 int instanceSize = 0;
-                TypeMetadata parentTypeMetadata = null;
-                List<string> fieldNames = null;
-                List<int> fieldSizes = null;
-                TypeMetadata enumUnderlyingTypeMetadata = null;
+                TypeMetadata? parentTypeMetadata = null;
+                List<string>? fieldNames = null;
+                List<int>? fieldSizes = null;
+                TypeMetadata? enumUnderlyingTypeMetadata = null;
 
                 TypeCategory category = (TypeCategory)reader.ReadByte();
                 switch (category)

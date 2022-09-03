@@ -15,65 +15,65 @@ namespace Icepack
         public uint Id { get; }
 
         /// <summary> The type. </summary>
-        public Type Type { get; }
+        public Type? Type { get; }
 
         /// <summary> Only used for enum types. This is metadata for the underlying type. </summary>
-        public TypeMetadata EnumUnderlyingTypeMetadata { get; }
+        public TypeMetadata? EnumUnderlyingTypeMetadata { get; }
 
         /// <summary> Only used for non-immutable and regular struct and class types. Metadata for each serializable field. </summary>
-        public List<FieldMetadata> Fields { get; }
+        public List<FieldMetadata>? Fields { get; }
 
         /// <summary> Maps a field name to metadata about that field. </summary>
-        public Dictionary<string, FieldMetadata> FieldsByName { get; }
+        public Dictionary<string, FieldMetadata>? FieldsByName { get; }
 
         /// <summary> Maps a field's previous name (specified by <see cref="PreviousNameAttribute"/>) to metadata about that field. </summary>
-        public Dictionary<string, FieldMetadata> FieldsByPreviousName { get; }
+        public Dictionary<string, FieldMetadata>? FieldsByPreviousName { get; }
 
         /// <summary> Only used for regular class types. This indicates whether the class has a base class that is not <see cref="object"/>. </summary>
-        public TypeMetadata ParentTypeMetadata { get; }
+        public TypeMetadata? ParentTypeMetadata { get; }
 
         /// <summary> Only used for dictionary types during serialization. The metadata for the key type. </summary>
-        public TypeMetadata KeyTypeMetadata { get; }
+        public TypeMetadata? KeyTypeMetadata { get; }
 
         /// <summary> Used for array, list, hashset, and dictionary types during serialization. The metadata for the item type. </summary>
-        public TypeMetadata ItemTypeMetadata { get; }
+        public TypeMetadata? ItemTypeMetadata { get; }
 
         /// <summary> Only used for hashset types during deserialization. A delegate that adds an item to a hash set without having to cast it to the right type. </summary>
-        public Action<object, object> HashSetAdder { get; }
+        public Action<object, object>? HashSetAdder { get; }
 
         /// <summary> Only used for dictionary types. A delegate that serializes the key for a dictionary entry. </summary>
-        public Action<object, SerializationContext, BinaryWriter, TypeMetadata> SerializeKey { get; }
+        public Action<object?, SerializationContext, BinaryWriter, TypeMetadata?>? SerializeKey { get; }
 
         /// <summary>
         /// Used for array, list, hashset, and dictionary types. A delegate that serializes an item (or an entry value for a dictionary).
         /// </summary>
-        public Action<object, SerializationContext, BinaryWriter, TypeMetadata> SerializeItem { get; }
+        public Action<object?, SerializationContext, BinaryWriter, TypeMetadata?>? SerializeItem { get; }
 
         /// <summary> Used for immutable types. Serializes the object. </summary>
-        public Action<object, SerializationContext, BinaryWriter, TypeMetadata> SerializeImmutable { get; }
+        public Action<object?, SerializationContext, BinaryWriter, TypeMetadata?>? SerializeImmutable { get; }
 
         /// <summary> A delegate used to serialize a reference type object, or a boxed value type object. </summary>
-        public Action<ObjectMetadata, SerializationContext, BinaryWriter> SerializeReferenceType { get; }
+        public Action<ObjectMetadata, SerializationContext, BinaryWriter>? SerializeReferenceType { get; }
 
         /// <summary> Only used for dictionary types. A delegate that deserializes the key for a dictionary entry. </summary>
-        public Func<DeserializationContext, BinaryReader, object> DeserializeKey { get; }
+        public Func<DeserializationContext, BinaryReader, object?>? DeserializeKey { get; }
 
         /// <summary>
         /// Used for array, list, hashset, and dictionary types. A delegate that deserializes an item (or an entry value for a dictionary).
         /// </summary>
-        public Func<DeserializationContext, BinaryReader, object> DeserializeItem { get; }
+        public Func<DeserializationContext, BinaryReader, object?>? DeserializeItem { get; }
 
         /// <summary> Used for immutable types. Deserializes the object. </summary>
-        public Func<DeserializationContext, BinaryReader, object> DeserializeImmutable { get; }
+        public Func<DeserializationContext, BinaryReader, object?>? DeserializeImmutable { get; }
 
         /// <summary> A delegate used to deserialize a reference type object, or a boxed value type object. </summary>
-        public Action<ObjectMetadata, DeserializationContext, BinaryReader> DeserializeReferenceType { get; }
+        public Action<ObjectMetadata, DeserializationContext, BinaryReader>? DeserializeReferenceType { get; }
 
         /// <summary> A compiled expression that creates a class or struct for deserialization. </summary>
-        public Func<object> CreateClassOrStruct { get; }
+        public Func<object>? CreateClassOrStruct { get; }
 
         /// <summary> A compiled expression that creates a collection class for deserialization. </summary>
-        public Func<int, object> CreateCollection { get; }
+        public Func<int, object>? CreateCollection { get; }
 
         /// <summary> The category for the type. Determines serialization/deserialization behaviour for a type. </summary>
         public TypeCategory Category { get; }
@@ -99,9 +99,9 @@ namespace Icepack
         /// <param name="parentTypeMetadata"> The metadata for the base type. </param>
         /// <param name="keyTypeMetadata"> For a dictionary type, this is the the metadata for the key type. Otherwise null. </param>
         /// <param name="itemTypeMetadata"> For an array, list, hashset, or dictionary type, this is the metadata for the item type. Otherwise null. </param>
-        public TypeMetadata(TypeMetadata registeredTypeMetadata, uint id, TypeMetadata enumUnderlyingTypeMetadata, TypeMetadata parentTypeMetadata,
-                            TypeMetadata keyTypeMetadata, TypeMetadata itemTypeMetadata, List<FieldMetadata> fields, Dictionary<string, FieldMetadata> fieldsByName,
-                            Dictionary<string, FieldMetadata> fieldsByPreviousName)
+        public TypeMetadata(TypeMetadata registeredTypeMetadata, uint id, TypeMetadata? enumUnderlyingTypeMetadata, TypeMetadata? parentTypeMetadata,
+                            TypeMetadata? keyTypeMetadata, TypeMetadata? itemTypeMetadata, List<FieldMetadata>? fields, Dictionary<string, FieldMetadata>? fieldsByName,
+                            Dictionary<string, FieldMetadata>? fieldsByPreviousName)
         {
             Id = id;
             EnumUnderlyingTypeMetadata = enumUnderlyingTypeMetadata;
@@ -138,9 +138,9 @@ namespace Icepack
         /// <param name="itemSize"> For array, list, hashset, and dictionary types. The size of an item in bytes. </param>
         /// <param name="keySize"> For dictionary types. The size of a key in bytes. </param>
         /// <param name="enumUnderlyingTypeMetadata"> For enum types. Metadata for the underlying type. </param>
-        public TypeMetadata(TypeMetadata registeredTypeMetadata, List<string> fieldNames, List<int> fieldSizes,
-            uint id, TypeMetadata parentTypeMetadata, TypeCategory category, int itemSize, int keySize, int instanceSize,
-            TypeMetadata enumUnderlyingTypeMetadata)
+        public TypeMetadata(TypeMetadata? registeredTypeMetadata, List<string>? fieldNames, List<int>? fieldSizes,
+            uint id, TypeMetadata? parentTypeMetadata, TypeCategory category, int itemSize, int keySize, int instanceSize,
+            TypeMetadata? enumUnderlyingTypeMetadata)
         {
             Id = id;
             ParentTypeMetadata = parentTypeMetadata;
@@ -176,10 +176,10 @@ namespace Icepack
                     for (int i = 0; i < fieldNames.Count; i++)
                     {
                         string fieldName = fieldNames[i];
-                        int fieldSize = fieldSizes[i];
-                        FieldMetadata registeredFieldMetadata = registeredTypeMetadata.FieldsByName.GetValueOrDefault(fieldName, null);
+                        int fieldSize = fieldSizes![i];
+                        FieldMetadata? registeredFieldMetadata = registeredTypeMetadata.FieldsByName!.GetValueOrDefault(fieldName, null);
                         if (registeredFieldMetadata == null)
-                            registeredFieldMetadata = registeredTypeMetadata.FieldsByPreviousName.GetValueOrDefault(fieldName, null);
+                            registeredFieldMetadata = registeredTypeMetadata.FieldsByPreviousName!.GetValueOrDefault(fieldName, null);
                         var fieldMetadata = new FieldMetadata(fieldSize, registeredFieldMetadata);
                         Fields.Add(fieldMetadata);
                     }
@@ -236,7 +236,7 @@ namespace Icepack
                     }
                 case TypeCategory.Array:
                     {
-                        Type elementType = type.GetElementType();
+                        Type elementType = type.GetElementType()!;
                         SerializeItem = SerializationDelegateFactory.GetFieldOperation(elementType);
                         DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(elementType);
                         ItemSize = FieldSizeFactory.GetFieldSize(elementType, serializer.TypeRegistry);
@@ -337,32 +337,32 @@ namespace Icepack
         /// <param name="typeRegistry"> The serializer's type registry. </param>
         private void PopulateFields(Serializer serializer)
         {
-            foreach (FieldInfo fieldInfo in Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            foreach (FieldInfo fieldInfo in Type!.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
                 if (Utils.IsUnsupportedType(fieldInfo.FieldType))
                     continue;
 
                 if (serializer.Settings.SerializeByDefault)
                 {
-                    IgnoreFieldAttribute ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
+                    IgnoreFieldAttribute? ignoreAttr = fieldInfo.GetCustomAttribute<IgnoreFieldAttribute>();
                     if (ignoreAttr != null)
                         continue;
                 }
                 else
                 {
-                    SerializableFieldAttribute serializableFieldAttr = fieldInfo.GetCustomAttribute<SerializableFieldAttribute>();
+                    SerializableFieldAttribute? serializableFieldAttr = fieldInfo.GetCustomAttribute<SerializableFieldAttribute>();
                     if (serializableFieldAttr == null)
                         continue;
                 }
 
                 var fieldMetadata = new FieldMetadata(fieldInfo, serializer);
-                FieldsByName.Add(fieldInfo.Name, fieldMetadata);
+                FieldsByName!.Add(fieldInfo.Name, fieldMetadata);
 
-                PreviousNameAttribute previousNameAttr = fieldInfo.GetCustomAttribute<PreviousNameAttribute>();
+                PreviousNameAttribute? previousNameAttr = fieldInfo.GetCustomAttribute<PreviousNameAttribute>();
                 if (previousNameAttr != null)
-                    FieldsByPreviousName.Add(previousNameAttr.Name, fieldMetadata);
+                    FieldsByPreviousName!.Add(previousNameAttr.Name, fieldMetadata);
 
-                Fields.Add(fieldMetadata);
+                Fields!.Add(fieldMetadata);
             }
         }
 
@@ -370,7 +370,7 @@ namespace Icepack
         private void PopulateSize()
         {
             int size = 0;
-            for (int i = 0; i < Fields.Count; i++)
+            for (int i = 0; i < Fields!.Count; i++)
             {
                 FieldMetadata fieldMetadata = Fields[i];
                 size += fieldMetadata.Size;
@@ -383,7 +383,7 @@ namespace Icepack
         /// <returns> The delegate. </returns>
         private Action<object, object> BuildHashSetAdder()
         {
-            MethodInfo methodInfo = Type.GetMethod("Add");
+            MethodInfo methodInfo = Type!.GetMethod("Add")!;
             Type itemType = Type.GetGenericArguments()[0];
 
             ParameterExpression exInstance = Expression.Parameter(typeof(object));
@@ -404,7 +404,7 @@ namespace Icepack
             NewExpression exNew;
             try
             {
-                exNew = Expression.New(Type);
+                exNew = Expression.New(Type!);
             }
             catch (ArgumentException)
             {
@@ -422,7 +422,7 @@ namespace Icepack
         /// <returns> The delegate. </returns>
         private Func<int, object> BuildCollectionCreator()
         {
-            ConstructorInfo constructor = Type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(int) }, null);
+            ConstructorInfo constructor = Type!.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(int) }, null)!;
             ParameterExpression exParam = Expression.Parameter(typeof(int));
             NewExpression exNew = Expression.New(constructor, exParam);
             UnaryExpression exConvert = Expression.Convert(exNew, typeof(object));
@@ -437,7 +437,7 @@ namespace Icepack
         /// <param name="writer"> Writes the metadata to a stream. </param>
         public void SerializeMetadata(SerializationContext context, BinaryWriter writer)
         {
-            writer.Write(Type.AssemblyQualifiedName);
+            writer.Write(Type!.AssemblyQualifiedName!);
             writer.Write((byte)Category);
 
             switch (Category)
@@ -455,13 +455,13 @@ namespace Icepack
                     break;
                 case TypeCategory.Struct:
                     writer.Write(InstanceSize);
-                    writer.Write(Fields.Count);
+                    writer.Write(Fields!.Count);
 
                     for (int fieldIdx = 0; fieldIdx < Fields.Count; fieldIdx++)
                     {
                         FieldMetadata fieldMetadata = Fields[fieldIdx];
 
-                        writer.Write(fieldMetadata.FieldInfo.Name);
+                        writer.Write(fieldMetadata.FieldInfo!.Name);
                         writer.Write(fieldMetadata.Size);
                     }
                     break;
@@ -471,18 +471,18 @@ namespace Icepack
                         writer.Write((uint)0);
                     else
                         writer.Write(ParentTypeMetadata.Id);
-                    writer.Write(Fields.Count);
+                    writer.Write(Fields!.Count);
 
                     for (int fieldIdx = 0; fieldIdx < Fields.Count; fieldIdx++)
                     {
                         FieldMetadata fieldMetadata = Fields[fieldIdx];
 
-                        writer.Write(fieldMetadata.FieldInfo.Name);
+                        writer.Write(fieldMetadata.FieldInfo!.Name);
                         writer.Write(fieldMetadata.Size);
                     }
                     break;
                 case TypeCategory.Enum:
-                    writer.Write(EnumUnderlyingTypeMetadata.Id);
+                    writer.Write(EnumUnderlyingTypeMetadata!.Id);
                     break;
                 case TypeCategory.Type:
                     break;

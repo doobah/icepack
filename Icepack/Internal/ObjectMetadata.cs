@@ -20,7 +20,7 @@ namespace Icepack
         public int Length { get; }
 
         /// <summary> The value of the object. </summary>
-        public object Value { get; }
+        public object? Value { get; }
 
         /// <summary>
         /// The nesting depth of this object in the hierarchy. This is used to detect circular references when references are not preserved.
@@ -33,7 +33,7 @@ namespace Icepack
         /// <param name="length"> If the object is an array, list, hashset, or dictionary, this is the length of the object. </param>
         /// <param name="value"> The value of the object. </param>
         /// <param name="depth"> The nest depth of the object. </param>
-        public ObjectMetadata(uint id, TypeMetadata type, int length, object value, int depth)
+        public ObjectMetadata(uint id, TypeMetadata type, int length, object? value, int depth)
         {
             Id = id;
             TypeMetadata = type;
@@ -48,7 +48,7 @@ namespace Icepack
         public void SerializeValue(SerializationContext context, BinaryWriter writer)
         {
             context.CurrentDepth = Depth;
-            TypeMetadata.SerializeReferenceType(this, context, writer);
+            TypeMetadata.SerializeReferenceType!(this, context, writer);
         }
 
         /// <summary> Serialize the object metadata. </summary>
@@ -66,7 +66,7 @@ namespace Icepack
                     // "Boxed" immutable values are serialized entirely as metadata since they are unable to be
                     // pre-instantiated and updated later like mutable structs and classes, and the final value
                     // must be present when resolving references to these values.
-                    typeMetadata.SerializeImmutable(Value, context, writer, null);
+                    typeMetadata.SerializeImmutable!(Value, context, writer, null);
                     break;
                 case TypeCategory.Array:
                 case TypeCategory.List:
@@ -78,12 +78,12 @@ namespace Icepack
                 case TypeCategory.Class:
                     break;
                 case TypeCategory.Enum:
-                    typeMetadata.EnumUnderlyingTypeMetadata.SerializeImmutable(Value, context, writer, null);
+                    typeMetadata.EnumUnderlyingTypeMetadata!.SerializeImmutable!(Value, context, writer, null);
                     break;
                 case TypeCategory.Type:
                     // Type objects are serialized as an ID of a registered type, as metadata so that references
                     // to a type object can be immediately resolved to a type.
-                    TypeMetadata valueTypeMetadata = context.GetTypeMetadata((Type)Value);
+                    TypeMetadata valueTypeMetadata = context.GetTypeMetadata((Type)Value!);
                     writer.Write(valueTypeMetadata.Id);
                     break;
                 default:

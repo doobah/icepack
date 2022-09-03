@@ -10,77 +10,77 @@ namespace Icepack
     /// <summary> Returns delegates for serializing types and fields. </summary>
     internal static class SerializationDelegateFactory
     {
-        private static void SerializeString(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeString(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((string)obj);
+            writer.Write((string)obj!);
         }
 
-        private static void SerializeByte(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeByte(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((byte)obj);
+            writer.Write((byte)obj!);
         }
 
-        private static void SerializeSByte(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeSByte(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((sbyte)obj);
+            writer.Write((sbyte)obj!);
         }
 
-        private static void SerializeBool(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeBool(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((bool)obj);
+            writer.Write((bool)obj!);
         }
 
-        private static void SerializeChar(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeChar(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((char)obj);
+            writer.Write((char)obj!);
         }
 
-        private static void SerializeInt16(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeInt16(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((short)obj);
+            writer.Write((short)obj!);
         }
 
-        private static void SerializeUInt16(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeUInt16(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((ushort)obj);
+            writer.Write((ushort)obj!);
         }
 
-        private static void SerializeInt32(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeInt32(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((int)obj);
+            writer.Write((int)obj!);
         }
 
-        private static void SerializeUInt32(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeUInt32(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((uint)obj);
+            writer.Write((uint)obj!);
         }
 
-        private static void SerializeInt64(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeInt64(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((long)obj);
+            writer.Write((long)obj!);
         }
 
-        private static void SerializeUInt64(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeUInt64(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((ulong)obj);
+            writer.Write((ulong)obj!);
         }
 
-        private static void SerializeSingle(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeSingle(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((float)obj);
+            writer.Write((float)obj!);
         }
 
-        private static void SerializeDouble(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeDouble(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((double)obj);
+            writer.Write((double)obj!);
         }
 
-        private static void SerializeDecimal(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeDecimal(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
-            writer.Write((decimal)obj);
+            writer.Write((decimal)obj!);
         }
 
-        private static void SerializeObjectReference(object value, SerializationContext context, BinaryWriter writer, TypeMetadata _)
+        private static void SerializeObjectReference(object? value, SerializationContext context, BinaryWriter writer, TypeMetadata? _)
         {
             uint id = context.RegisterObject(value);
             writer.Write(id);
@@ -89,23 +89,23 @@ namespace Icepack
         private static void SerializeBoxedStruct(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
-            object obj = objectMetadata.Value;
+            object obj = objectMetadata.Value!;
 
             if (obj is ISerializerListener listener)
                 listener.OnBeforeSerialize();
 
             writer.Write(typeMetadata.Id);
 
-            for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
+            for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields!.Count; fieldIdx++)
             {
                 FieldMetadata field = typeMetadata.Fields[fieldIdx];
-                object value = field.Getter(obj);
-                field.Serialize(value, context, writer, field.Type);
+                object value = field.Getter!(obj);
+                field.Serialize!(value, context, writer, field.TypeMetadata);
             }
         }
 
         /// <summary> Serializes a struct field. </summary>
-        private static void SerializeStruct(object obj, SerializationContext context, BinaryWriter writer, TypeMetadata typeMetadata)
+        private static void SerializeStruct(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? typeMetadata)
         {
             if (obj is ISerializerListener listener)
                 listener.OnBeforeSerialize();
@@ -113,68 +113,68 @@ namespace Icepack
             // This will be set if the struct is a key or item type.
             if (typeMetadata == null)
             {
-                Type type = obj.GetType();
+                Type type = obj!.GetType();
                 typeMetadata = context.GetTypeMetadata(type);
             }
 
             writer.Write(typeMetadata.Id);
 
-            for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
+            for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields!.Count; fieldIdx++)
             {
                 FieldMetadata field = typeMetadata.Fields[fieldIdx];
-                object value = field.Getter(obj);
-                field.Serialize(value, context, writer, field.Type);
+                object value = field.Getter!(obj!);
+                field.Serialize!(value, context, writer, field.TypeMetadata);
             }
         }
 
         private static void SerializeArray(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
-            Array array = (Array)objectMetadata.Value;
+            Array array = (Array)objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             for (int arrayIdx = 0; arrayIdx < array.Length; arrayIdx++)
             {
-                object item = array.GetValue(arrayIdx);
-                typeMetadata.SerializeItem(item, context, writer, typeMetadata.ItemTypeMetadata);
+                object? item = array.GetValue(arrayIdx);
+                typeMetadata.SerializeItem!(item, context, writer, typeMetadata.ItemTypeMetadata);
             }
         }
 
         private static void SerializeList(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
-            IList list = (IList)objectMetadata.Value;
+            IList list = (IList)objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             for (int itemIdx = 0; itemIdx < list.Count; itemIdx++)
             {
-                object item = list[itemIdx];
-                typeMetadata.SerializeItem(item, context, writer, typeMetadata.ItemTypeMetadata);
+                object? item = list[itemIdx];
+                typeMetadata.SerializeItem!(item, context, writer, typeMetadata.ItemTypeMetadata);
             }
         }
 
         private static void SerializeHashSet(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
-            IEnumerable set = (IEnumerable)objectMetadata.Value;
+            IEnumerable set = (IEnumerable)objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             foreach (object item in set)
-                typeMetadata.SerializeItem(item, context, writer, typeMetadata.ItemTypeMetadata);
+                typeMetadata.SerializeItem!(item, context, writer, typeMetadata.ItemTypeMetadata);
         }
 
         private static void SerializeDictionary(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
-            IDictionary dict = (IDictionary)objectMetadata.Value;
+            IDictionary dict = (IDictionary)objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             foreach (DictionaryEntry entry in dict)
             {
-                typeMetadata.SerializeKey(entry.Key, context, writer, typeMetadata.KeyTypeMetadata);
-                typeMetadata.SerializeItem(entry.Value, context, writer, typeMetadata.ItemTypeMetadata);
+                typeMetadata.SerializeKey!(entry.Key, context, writer, typeMetadata.KeyTypeMetadata);
+                typeMetadata.SerializeItem!(entry.Value, context, writer, typeMetadata.ItemTypeMetadata);
             }
         }
 
         private static void SerializeNormalClass(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
-            object obj = objectMetadata.Value;
+            object obj = objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             if (obj is ISerializerListener listener)
@@ -182,14 +182,14 @@ namespace Icepack
 
             while (true)
             {
-                for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields.Count; fieldIdx++)
+                for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields!.Count; fieldIdx++)
                 {
                     FieldMetadata field = typeMetadata.Fields[fieldIdx];
-                    object value = field.Getter(obj);
-                    field.Serialize(value, context, writer, field.Type);
+                    object value = field.Getter!(obj);
+                    field.Serialize!(value, context, writer, field.TypeMetadata);
                 }
 
-                Type parentType = typeMetadata.Type.BaseType;
+                Type? parentType = typeMetadata.Type!.BaseType;
                 if (parentType == null)
                     break;
 
@@ -211,7 +211,7 @@ namespace Icepack
         private static void SerializeType(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
             // Value is serialized as metadata but we should make sure the type is added to the context first
-            context.GetTypeMetadata((Type)objectMetadata.Value);
+            context.GetTypeMetadata((Type)objectMetadata.Value!);
         }
 
         /// <summary> Returns a delegate which is used to serialize instances of the given type category. </summary>
@@ -244,7 +244,7 @@ namespace Icepack
             }
         }
 
-        private static Action<object, SerializationContext, BinaryWriter, TypeMetadata> GetEnumFieldOperation(Type type)
+        private static Action<object?, SerializationContext, BinaryWriter, TypeMetadata?> GetEnumFieldOperation(Type type)
         {
             Type underlyingType = Enum.GetUnderlyingType(type);
             if (underlyingType == typeof(byte))
@@ -270,7 +270,7 @@ namespace Icepack
         /// <summary> Returns the delegate used to serialize fields of the given type. </summary>
         /// <param name="type"> The field's declaring type. </param>
         /// <returns> The serialization delegate. </returns>
-        public static Action<object, SerializationContext, BinaryWriter, TypeMetadata> GetFieldOperation(Type type)
+        public static Action<object?, SerializationContext, BinaryWriter, TypeMetadata?> GetFieldOperation(Type type)
         {
             if (type == typeof(byte))
                 return SerializeByte;
@@ -311,7 +311,7 @@ namespace Icepack
         /// <summary> Returns the delegate used to serialize immutable types. </summary>
         /// <param name="type"> The type. </param>
         /// <returns> The serialization delegate. </returns>
-        public static Action<object, SerializationContext, BinaryWriter, TypeMetadata> GetImmutableOperation(Type type)
+        public static Action<object?, SerializationContext, BinaryWriter, TypeMetadata?> GetImmutableOperation(Type type)
         {
             if (type == typeof(string))
                 return SerializeString;

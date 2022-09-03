@@ -11,10 +11,10 @@ namespace Icepack
     internal sealed class DeserializationContext
     {
         /// <summary> Metadata for types declared in the serialized data, indexed by type ID. </summary>
-        public TypeMetadata[] Types { get; set; }
+        public TypeMetadata[]? Types { get; set; }
 
         /// <summary> Metadata for objects declared in the serialized data, indexed by object ID. </summary>
-        public ObjectMetadata[] Objects { get; set; }
+        public ObjectMetadata[]? Objects { get; set; }
 
         /// <summary> Creates a new deserialization context. </summary>
         public DeserializationContext()
