@@ -26,8 +26,11 @@ namespace Icepack
         /// <summary> The nesting depth of the object currently being serialized. </summary>
         public int CurrentDepth { get; set; }
 
-        /// <summary> The serializer. </summary>
-        public Serializer Serializer { get; }
+        /// <summary> The type registry. </summary>
+        private readonly TypeRegistry typeRegistry;
+
+        /// <summary> The serializer settings. </summary>
+        private readonly SerializerSettings settings;
 
         /// <summary> Keeps track of the largest assigned object ID. </summary>
         private uint largestObjectId;
@@ -37,7 +40,8 @@ namespace Icepack
 
         /// <summary> Creates a new serialization context. </summary>
         /// <param name="typeRegistry"> The serializer's type registry. </param>
-        public SerializationContext(Serializer serializer)
+        /// <param name="settings"> The serializer settings. </param>
+        public SerializationContext(TypeRegistry typeRegistry, SerializerSettings settings)
         {
             Objects = new Dictionary<object, ObjectMetadata>();
             ObjectsInOrder = new List<ObjectMetadata>();
@@ -46,7 +50,8 @@ namespace Icepack
             CurrentDepth = -1;
             largestObjectId = 0;
             largestTypeId = 0;
-            Serializer = serializer;
+            this.typeRegistry = typeRegistry;
+            this.settings = settings;
         }
 
         /// <summary> Registers an object for serialization. </summary>
@@ -57,7 +62,7 @@ namespace Icepack
             if (obj == null)
                 return 0;
 
-            if (Serializer.Settings.PreserveReferences && Objects.ContainsKey(obj))
+            if (settings.PreserveReferences && Objects.ContainsKey(obj))
                 return Objects[obj].Id;
 
             TypeMetadata typeMetadata = GetTypeMetadata(obj.GetType());
@@ -94,9 +99,9 @@ namespace Icepack
             uint newId = ++largestObjectId;
 
             var objMetadata = new ObjectMetadata(newId, typeMetadata, length, obj, CurrentDepth + 1);
-            if (Serializer.Settings.PreserveReferences)
+            if (settings.PreserveReferences)
                 Objects.Add(obj, objMetadata);
-            else if (CurrentDepth > Serializer.Settings.MaxDepth)
+            else if (CurrentDepth > settings.MaxDepth)
                 throw new IcepackException($"Exceeded maximum depth while serializing: ${obj}");
             ObjectsInOrder.Add(objMetadata);
             
@@ -123,7 +128,7 @@ namespace Icepack
             if (type.IsEnum)
                 enumUnderlyingTypeMetadata = GetTypeMetadata(type.GetEnumUnderlyingType());
 
-            TypeMetadata registeredTypeMetadata = Serializer.TypeRegistry.GetTypeMetadata(type);
+            TypeMetadata registeredTypeMetadata = typeRegistry.GetTypeMetadata(type);
             if (registeredTypeMetadata == null)
                 throw new IcepackException($"Type {type} is not registered for serialization!");
 
@@ -193,6 +198,7 @@ namespace Icepack
         {
             TypeMetadata? fieldTypeMetadata = null;
             Type fieldType = registeredFieldMetadata.FieldInfo!.FieldType;
+            // Optimize struct serialization
             if (fieldType.IsValueType)
                 fieldTypeMetadata = GetTypeMetadata(fieldType);
             return new FieldMetadata(registeredFieldMetadata, fieldTypeMetadata);

@@ -147,13 +147,14 @@ namespace Icepack
 
         private static void DeserializeArray(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)
         {
-            Array arrayObj = (Array)objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             if (typeMetadata.Type == null)
                 reader.BaseStream.Position += objectMetadata.Length * typeMetadata.ItemSize;
             else
             {
+                Array arrayObj = (Array)objectMetadata.Value!;
+
                 for (int i = 0; i < arrayObj.Length; i++)
                 {
                     object? value = typeMetadata.DeserializeItem!(context, reader);
@@ -164,13 +165,14 @@ namespace Icepack
 
         private static void DeserializeList(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)
         {
-            IList listObj = (IList)objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             if (typeMetadata.Type == null)
                 reader.BaseStream.Position += objectMetadata.Length * typeMetadata.ItemSize;
             else
             {
+                IList listObj = (IList)objectMetadata.Value!;
+
                 for (int i = 0; i < objectMetadata.Length; i++)
                 {
                     object? value = typeMetadata.DeserializeItem!(context, reader);
@@ -181,13 +183,14 @@ namespace Icepack
 
         private static void DeserializeHashSet(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)
         {
-            object hashSetObj = objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             if (typeMetadata.Type == null)
                 reader.BaseStream.Position += objectMetadata.Length * typeMetadata.ItemSize;
             else
             {
+                object hashSetObj = objectMetadata.Value!;
+
                 for (int i = 0; i < objectMetadata.Length; i++)
                 {
                     object value = typeMetadata.DeserializeItem!(context, reader)!;
@@ -198,13 +201,14 @@ namespace Icepack
 
         private static void DeserializeDictionary(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)
         {
-            IDictionary dictObj = (IDictionary)objectMetadata.Value!;
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
             if (typeMetadata.Type == null)
                 reader.BaseStream.Position += objectMetadata.Length * (typeMetadata.KeySize + typeMetadata.ItemSize);
             else
             {
+                IDictionary dictObj = (IDictionary)objectMetadata.Value!;
+
                 for (int i = 0; i < objectMetadata.Length; i++)
                 {
                     object key = typeMetadata.DeserializeKey!(context, reader)!;

@@ -10,16 +10,17 @@ namespace Icepack
     /// <summary> Maintains a collection of type metadata used for serialization/deserialization operations. </summary>
     internal sealed class TypeRegistry
     {
-        /// <summary> The serializer. </summary>
-        private readonly Serializer serializer;
+        /// <summary> The serializer settings. </summary>
+        private readonly SerializerSettings settings;
 
         /// <summary> Maps a type to metadata about the type. </summary>
         private readonly Dictionary<Type, TypeMetadata> types;
 
         /// <summary> Creates a new type registry. </summary>
-        public TypeRegistry(Serializer serializer)
+        /// <param name="settings"> The serializer settings. </param>
+        public TypeRegistry(SerializerSettings settings)
         {
-            this.serializer = serializer;
+            this.settings = settings;
             types = new Dictionary<Type, TypeMetadata>();
         }
 
@@ -75,7 +76,7 @@ namespace Icepack
                 }
             }
 
-            var newTypeMetadata = new TypeMetadata(type, serializer);
+            var newTypeMetadata = new TypeMetadata(type, this, settings);
             types.Add(type, newTypeMetadata);
             return newTypeMetadata;
         }

@@ -110,14 +110,8 @@ namespace Icepack
             if (obj is ISerializerListener listener)
                 listener.OnBeforeSerialize();
 
-            // This will be set if the struct is a key or item type.
-            if (typeMetadata == null)
-            {
-                Type type = obj!.GetType();
-                typeMetadata = context.GetTypeMetadata(type);
-            }
-
-            writer.Write(typeMetadata.Id);
+            // typeMetadata will not be null due to optimizations
+            writer.Write(typeMetadata!.Id);
 
             for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields!.Count; fieldIdx++)
             {
@@ -175,12 +169,12 @@ namespace Icepack
         private static void SerializeNormalClass(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
         {
             object obj = objectMetadata.Value!;
-            TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
+            TypeMetadata? typeMetadata = objectMetadata.TypeMetadata;
 
             if (obj is ISerializerListener listener)
                 listener.OnBeforeSerialize();
 
-            while (true)
+            while (typeMetadata != null)
             {
                 for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields!.Count; fieldIdx++)
                 {
@@ -189,12 +183,7 @@ namespace Icepack
                     field.Serialize!(value, context, writer, field.TypeMetadata);
                 }
 
-                Type? parentType = typeMetadata.Type!.BaseType;
-                if (parentType == null)
-                    break;
-
-                // This will throw an exception if the parent type does not exist
-                typeMetadata = context.GetTypeMetadata(parentType);
+                typeMetadata = typeMetadata.ParentTypeMetadata;
             }
         }
 

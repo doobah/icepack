@@ -56,17 +56,15 @@ namespace Icepack
         /// <param name="writer"> Writes the metadata to a stream. </param>
         public void SerializeMetadata(SerializationContext context, BinaryWriter writer)
         {
-            TypeMetadata typeMetadata = TypeMetadata;
+            writer.Write(TypeMetadata.Id);
 
-            writer.Write(typeMetadata.Id);
-
-            switch (typeMetadata.Category)
+            switch (TypeMetadata.Category)
             {
                 case TypeCategory.Immutable:
                     // "Boxed" immutable values are serialized entirely as metadata since they are unable to be
                     // pre-instantiated and updated later like mutable structs and classes, and the final value
                     // must be present when resolving references to these values.
-                    typeMetadata.SerializeImmutable!(Value, context, writer, null);
+                    TypeMetadata.SerializeImmutable!(Value, context, writer, null);
                     break;
                 case TypeCategory.Array:
                 case TypeCategory.List:
@@ -78,7 +76,7 @@ namespace Icepack
                 case TypeCategory.Class:
                     break;
                 case TypeCategory.Enum:
-                    typeMetadata.EnumUnderlyingTypeMetadata!.SerializeImmutable!(Value, context, writer, null);
+                    TypeMetadata.EnumUnderlyingTypeMetadata!.SerializeImmutable!(Value, context, writer, null);
                     break;
                 case TypeCategory.Type:
                     // Type objects are serialized as an ID of a registered type, as metadata so that references

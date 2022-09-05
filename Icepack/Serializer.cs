@@ -15,10 +15,10 @@ namespace Icepack
         public const ushort CompatibilityVersion = 5;
 
         /// <summary> Keeps track of type information. </summary>
-        internal TypeRegistry TypeRegistry { get; }
+        private readonly TypeRegistry typeRegistry;
 
         /// <summary> Settings for the serializer. </summary>
-        internal SerializerSettings Settings { get; }
+        private readonly SerializerSettings settings;
 
         /// <summary> Creates a new serializer with default settings. </summary>
         public Serializer() : this(new SerializerSettings()) { }
@@ -29,8 +29,8 @@ namespace Icepack
             if (settings == null)
                 settings = new SerializerSettings();
 
-            TypeRegistry = new TypeRegistry(this);
-            Settings = settings;
+            typeRegistry = new TypeRegistry(settings);
+            this.settings = settings;
 
             // Pre-register all immutable types, along with the Type type.
             RegisterType(typeof(string));
@@ -52,23 +52,22 @@ namespace Icepack
 
         /// <summary> Registers a type as serializable. </summary>
         /// <param name="type"> The type to register. </param>
-        /// <param name="settings"> Options that control how objects of the specified type are serialized. </param>
         public void RegisterType(Type type)
         {
             if (Utils.IsUnsupportedType(type))
                 throw new IcepackException($"Unsupported type: {type}");
 
-            TypeRegistry.GetTypeMetadata(type, true);
+            typeRegistry.GetTypeMetadata(type, true);
         }
 
         /// <summary> Serializes an object graph to a stream. </summary>
-        /// <param name="rootObj"> The root object to be serialized. </param>
+        /// <param name="rootObject"> The root object to be serialized. </param>
         /// <param name="outputStream"> The stream to output the serialized data to. </param>
-        public void Serialize(object? rootObj, Stream outputStream)
+        public void Serialize(object? rootObject, Stream outputStream)
         {
-            var context = new SerializationContext(this);
+            var context = new SerializationContext(typeRegistry, settings);
 
-            context.RegisterObject(rootObj);
+            context.RegisterObject(rootObject);
 
             using (var objectDataStream = new MemoryStream())
             {
@@ -226,7 +225,7 @@ namespace Icepack
             for (int t = 0; t < numberOfTypes; t++)
             {
                 string typeName = reader.ReadString();
-                TypeMetadata? registeredTypeMetadata = TypeRegistry.GetTypeMetadata(typeName);
+                TypeMetadata? registeredTypeMetadata = typeRegistry.GetTypeMetadata(typeName);
                 int itemSize = 0;
                 int keySize = 0;
                 int instanceSize = 0;
