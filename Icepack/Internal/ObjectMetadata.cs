@@ -8,7 +8,7 @@ using System.IO;
 namespace Icepack
 {
     /// <summary> Contains metadata for an object. </summary>
-    internal struct ObjectMetadata
+    internal class ObjectMetadata
     {
         /// <summary> A unique ID corresponding to an object. </summary>
         public uint Id { get; }
@@ -87,6 +87,91 @@ namespace Icepack
                 default:
                     throw new IcepackException($"Invalid type category: {TypeMetadata.Category}");
             }
+        }
+
+        /// <summary> Deserializes the referenced object. </summary>
+        /// <param name="context"> The current deserialization context. </param>
+        /// <param name="reader"> Reads the object data from a stream. </param>
+        public void DeserializeValue(DeserializationContext context, BinaryReader reader)
+        {
+            TypeMetadata.DeserializeReferenceType!(this, context, reader);
+        }
+
+        /// <summary> Deserializes the object metadata. </summary>
+        /// <param name="typeMetadatas"> An array of type metadata objects. </param>
+        /// <param name="reader"> Reads the metadata from the stream. </param>
+        public static ObjectMetadata[] DeserializeMetadatas(TypeMetadata[] typeMetadatas, BinaryReader reader)
+        {
+            int numberOfObjects = reader.ReadInt32();
+            ObjectMetadata[] objectMetadatas = new ObjectMetadata[numberOfObjects];
+            DeserializationContext context = new DeserializationContext(typeMetadatas, objectMetadatas);
+
+            for (int i = 0; i < numberOfObjects; i++)
+            {
+                uint typeId = reader.ReadUInt32();
+                TypeMetadata objectTypeMetadata = typeMetadatas![typeId - 1];
+                Type? objectType = objectTypeMetadata.Type;
+                int length = 0;
+
+                object? obj;
+                switch (objectTypeMetadata.Category)
+                {
+                    case TypeCategory.Immutable:
+                        obj = objectTypeMetadata.DeserializeImmutable!(context, reader);
+                        break;
+                    case TypeCategory.Array:
+                        {
+                            length = reader.ReadInt32();
+
+                            if (objectType == null)
+                                obj = null;
+                            else
+                            {
+                                Type elementType = objectType.GetElementType()!;
+                                obj = Array.CreateInstance(elementType, length);
+                            }
+                            break;
+                        }
+                    case TypeCategory.List:
+                    case TypeCategory.HashSet:
+                    case TypeCategory.Dictionary:
+                        {
+                            length = reader.ReadInt32();
+
+                            if (objectType == null)
+                                obj = null;
+                            else
+                                obj = objectTypeMetadata.CreateCollection!(length);
+                            break;
+                        }
+                    case TypeCategory.Struct:
+                    case TypeCategory.Class:
+                        if (objectType == null)
+                            obj = null;
+                        else
+                            obj = objectTypeMetadata.CreateClassOrStruct!();
+                        break;
+                    case TypeCategory.Enum:
+                        // Need to deserialize regardless of whether the type still exists, to advance the stream past the value serialized in metadata.
+                        object underlyingValue = objectTypeMetadata.EnumUnderlyingTypeMetadata!.DeserializeImmutable!(context, reader)!;
+
+                        if (objectType == null)
+                            obj = null;
+                        else
+                            obj = Enum.ToObject(objectType, underlyingValue);
+                        break;
+                    case TypeCategory.Type:
+                        uint value = reader.ReadUInt32();
+                        obj = typeMetadatas[value - 1].Type;
+                        break;
+                    default:
+                        throw new IcepackException($"Invalid category: {objectTypeMetadata.Category}");
+                }
+
+                objectMetadatas[i] = new ObjectMetadata((uint)i + 1, objectTypeMetadata, length, obj, 0);
+            }
+
+            return objectMetadatas;
         }
     }
 }

@@ -116,184 +116,26 @@ namespace Icepack
                 if (compatibilityVersion != CompatibilityVersion)
                     throw new IcepackException($"Expected compatibility version {CompatibilityVersion}, received {compatibilityVersion}");
 
-                var context = new DeserializationContext();
+                TypeMetadata[] typeMetadatas = TypeMetadata.DeserializeMetadatas(typeRegistry, reader);
+                ObjectMetadata[] objectMetadatas = ObjectMetadata.DeserializeMetadatas(typeMetadatas, reader);
+                DeserializationContext context = new DeserializationContext(typeMetadatas, objectMetadatas);
 
-                DeserializeTypeMetadata(context, reader);
-                DeserializeObjectMetadata(context, reader);
-
-                for (int i = 0; i < context.Objects!.Length; i++)
+                for (int i = 0; i < objectMetadatas.Length; i++)
                 {
-                    ObjectMetadata classObjMetadata = context.Objects[i];
-                    classObjMetadata.TypeMetadata.DeserializeReferenceType!(classObjMetadata, context, reader);
+                    ObjectMetadata classObjMetadata = objectMetadatas[i];
+                    classObjMetadata.DeserializeValue(context, reader);
                 }
 
-                if (context.Objects.Length == 0)
+                if (objectMetadatas.Length == 0)
                     return default(T);
                 else
                 {
-                    object? rootObj = context.Objects[0].Value;
+                    object? rootObj = objectMetadatas[0].Value;
                     if (rootObj == null)
                         return default(T);
                     else
                         return (T)rootObj;
                 }
-            }
-        }
-
-        /// <summary> Deserializes the object metadata. </summary>
-        /// <param name="context"> The current deserialization context. </param>
-        /// <param name="reader"> Reads the metadata from the stream. </param>
-        private static void DeserializeObjectMetadata(DeserializationContext context, BinaryReader reader)
-        {
-            int numberOfObjects = reader.ReadInt32();
-            context.Objects = new ObjectMetadata[numberOfObjects];
-
-            for (int i = 0; i < numberOfObjects; i++)
-            {
-                uint typeId = reader.ReadUInt32();
-                TypeMetadata objectTypeMetadata = context.Types![typeId - 1];
-                Type? objectType = objectTypeMetadata.Type;
-                int length = 0;
-
-                object? obj;
-                switch (objectTypeMetadata.Category)
-                {
-                    case TypeCategory.Immutable:
-                        obj = objectTypeMetadata.DeserializeImmutable!(context, reader);
-                        break;
-                    case TypeCategory.Array:
-                        {
-                            length = reader.ReadInt32();
-
-                            if (objectType == null)
-                                obj = null;
-                            else
-                            {
-                                Type elementType = objectType.GetElementType()!;
-                                obj = Array.CreateInstance(elementType, length);
-                            }
-                            break;
-                        }
-                    case TypeCategory.List:
-                    case TypeCategory.HashSet:
-                    case TypeCategory.Dictionary:
-                        {
-                            length = reader.ReadInt32();
-
-                            if (objectType == null)
-                                obj = null;
-                            else
-                                obj = objectTypeMetadata.CreateCollection!(length);
-                            break;
-                        }
-                    case TypeCategory.Struct:
-                    case TypeCategory.Class:
-                        if (objectType == null)
-                            obj = null;
-                        else
-                            obj = objectTypeMetadata.CreateClassOrStruct!();
-                        break;
-                    case TypeCategory.Enum:
-                        // Need to deserialize regardless of whether the type still exists, to advance the stream past the value serialized in metadata.
-                        object underlyingValue = objectTypeMetadata.EnumUnderlyingTypeMetadata!.DeserializeImmutable!(context, reader)!;
-
-                        if (objectType == null)
-                            obj = null;
-                        else
-                            obj = Enum.ToObject(objectType, underlyingValue);
-                        break;
-                    case TypeCategory.Type:
-                        uint value = reader.ReadUInt32();
-                        obj = context.Types[value - 1].Type;
-                        break;
-                    default:
-                        throw new IcepackException($"Invalid category: {objectTypeMetadata.Category}");
-                }
-
-                context.Objects[i] = new ObjectMetadata((uint)i + 1, objectTypeMetadata, length, obj, 0);
-            }
-        }
-
-        /// <summary> Deserializes the type metadata. </summary>
-        /// <param name="context"> The current deserialization context. </param>
-        /// <param name="reader"> Reads the metadata from the stream. </param>
-        private void DeserializeTypeMetadata(DeserializationContext context, BinaryReader reader)
-        {
-            int numberOfTypes = reader.ReadInt32();
-            context.Types = new TypeMetadata[numberOfTypes];
-
-            for (int t = 0; t < numberOfTypes; t++)
-            {
-                string typeName = reader.ReadString();
-                TypeMetadata? registeredTypeMetadata = typeRegistry.GetTypeMetadata(typeName);
-                int itemSize = 0;
-                int keySize = 0;
-                int instanceSize = 0;
-                TypeMetadata? parentTypeMetadata = null;
-                List<string>? fieldNames = null;
-                List<int>? fieldSizes = null;
-                TypeMetadata? enumUnderlyingTypeMetadata = null;
-
-                TypeCategory category = (TypeCategory)reader.ReadByte();
-                switch (category)
-                {
-                    case TypeCategory.Immutable:
-                        break;
-                    case TypeCategory.Array:
-                    case TypeCategory.List:
-                    case TypeCategory.HashSet:
-                        itemSize = reader.ReadInt32();
-                        break;
-                    case TypeCategory.Dictionary:
-                        keySize = reader.ReadInt32();
-                        itemSize = reader.ReadInt32();
-                        break;
-                    case TypeCategory.Struct:
-                        {
-                            instanceSize = reader.ReadInt32();
-
-                            int numberOfFields = reader.ReadInt32();
-                            fieldNames = new List<string>(numberOfFields);
-                            fieldSizes = new List<int>(numberOfFields);
-                            for (int f = 0; f < numberOfFields; f++)
-                            {
-                                fieldNames.Add(reader.ReadString());
-                                fieldSizes.Add(reader.ReadInt32());
-                            }
-                            break;
-                        }
-                    case TypeCategory.Class:
-                        {
-                            instanceSize = reader.ReadInt32();
-                            
-                            uint parentTypeId = reader.ReadUInt32();
-                            if (parentTypeId != 0)
-                                parentTypeMetadata = context.Types[parentTypeId - 1];
-
-                            int numberOfFields = reader.ReadInt32();
-
-                            fieldNames = new List<string>(numberOfFields);
-                            fieldSizes = new List<int>(numberOfFields);
-                            for (int f = 0; f < numberOfFields; f++)
-                            {
-                                fieldNames.Add(reader.ReadString());
-                                fieldSizes.Add(reader.ReadInt32());
-                            }
-                            break;
-                        }
-                    case TypeCategory.Enum:
-                        uint underlyingTypeId = reader.ReadUInt32();
-                        enumUnderlyingTypeMetadata = context.Types[underlyingTypeId - 1];
-                        break;
-                    case TypeCategory.Type:
-                        break;
-                    default:
-                        throw new IcepackException($"Invalid category: {category}");
-                }
-
-                var typeMetadata = new TypeMetadata(registeredTypeMetadata, fieldNames, fieldSizes, (uint)(t + 1),
-                    parentTypeMetadata, category, itemSize, keySize, instanceSize, enumUnderlyingTypeMetadata);
-                context.Types[t] = typeMetadata;
             }
         }
     }

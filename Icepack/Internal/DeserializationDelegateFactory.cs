@@ -85,7 +85,7 @@ namespace Icepack
         {
             uint typeId = reader.ReadUInt32();
             // Type IDs start from 1
-            TypeMetadata typeMetadata = context.Types![typeId - 1];
+            TypeMetadata typeMetadata = context.Types[typeId - 1];
 
             // Skip instance if type doesn't exist
             if (typeMetadata.Type == null)
@@ -118,7 +118,7 @@ namespace Icepack
         {
             uint typeId = reader.ReadUInt32();
             // Type IDs start from 1
-            TypeMetadata typeMetadata = context.Types![typeId - 1];
+            TypeMetadata typeMetadata = context.Types[typeId - 1];
 
             // Skip instance if type doesn't exist
             if (typeMetadata.Type == null)
@@ -299,7 +299,7 @@ namespace Icepack
         private static object? DeserializeObjectReference(DeserializationContext context, BinaryReader reader)
         {
             uint objId = reader.ReadUInt32();
-            return (objId == 0) ? null : context.Objects![objId - 1].Value;
+            return (objId == 0) ? null : context.Objects[objId - 1].Value;
         }
 
         private static Func<DeserializationContext, BinaryReader, object> GetEnumOperation(Type type)

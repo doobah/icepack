@@ -499,5 +499,89 @@ namespace Icepack
                     throw new IcepackException($"Invalid category ID: {Category}");
             }
         }
+
+        /// <summary> Deserializes the type metadata. </summary>
+        /// <param name="reader"> Reads the metadata from the stream. </param>
+        public static TypeMetadata[] DeserializeMetadatas(TypeRegistry typeRegistry, BinaryReader reader)
+        {
+            int numberOfTypes = reader.ReadInt32();
+            TypeMetadata[] typeMetadatas = new TypeMetadata[numberOfTypes];
+
+            for (int t = 0; t < numberOfTypes; t++)
+            {
+                string typeName = reader.ReadString();
+                TypeMetadata? registeredTypeMetadata = typeRegistry.GetTypeMetadata(typeName);
+                int itemSize = 0;
+                int keySize = 0;
+                int instanceSize = 0;
+                TypeMetadata? parentTypeMetadata = null;
+                List<string>? fieldNames = null;
+                List<int>? fieldSizes = null;
+                TypeMetadata? enumUnderlyingTypeMetadata = null;
+
+                TypeCategory category = (TypeCategory)reader.ReadByte();
+                switch (category)
+                {
+                    case TypeCategory.Immutable:
+                        break;
+                    case TypeCategory.Array:
+                    case TypeCategory.List:
+                    case TypeCategory.HashSet:
+                        itemSize = reader.ReadInt32();
+                        break;
+                    case TypeCategory.Dictionary:
+                        keySize = reader.ReadInt32();
+                        itemSize = reader.ReadInt32();
+                        break;
+                    case TypeCategory.Struct:
+                        {
+                            instanceSize = reader.ReadInt32();
+
+                            int numberOfFields = reader.ReadInt32();
+                            fieldNames = new List<string>(numberOfFields);
+                            fieldSizes = new List<int>(numberOfFields);
+                            for (int f = 0; f < numberOfFields; f++)
+                            {
+                                fieldNames.Add(reader.ReadString());
+                                fieldSizes.Add(reader.ReadInt32());
+                            }
+                            break;
+                        }
+                    case TypeCategory.Class:
+                        {
+                            instanceSize = reader.ReadInt32();
+
+                            uint parentTypeId = reader.ReadUInt32();
+                            if (parentTypeId != 0)
+                                parentTypeMetadata = typeMetadatas[parentTypeId - 1];
+
+                            int numberOfFields = reader.ReadInt32();
+
+                            fieldNames = new List<string>(numberOfFields);
+                            fieldSizes = new List<int>(numberOfFields);
+                            for (int f = 0; f < numberOfFields; f++)
+                            {
+                                fieldNames.Add(reader.ReadString());
+                                fieldSizes.Add(reader.ReadInt32());
+                            }
+                            break;
+                        }
+                    case TypeCategory.Enum:
+                        uint underlyingTypeId = reader.ReadUInt32();
+                        enumUnderlyingTypeMetadata = typeMetadatas[underlyingTypeId - 1];
+                        break;
+                    case TypeCategory.Type:
+                        break;
+                    default:
+                        throw new IcepackException($"Invalid category: {category}");
+                }
+
+                var typeMetadata = new TypeMetadata(registeredTypeMetadata, fieldNames, fieldSizes, (uint)(t + 1),
+                    parentTypeMetadata, category, itemSize, keySize, instanceSize, enumUnderlyingTypeMetadata);
+                typeMetadatas[t] = typeMetadata;
+            }
+
+            return typeMetadatas;
+        }
     }
 }
