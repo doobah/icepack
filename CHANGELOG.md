@@ -1,3 +1,16 @@
+# v1.0.8
+
+* Target .NET 6.0
+
+# v1.0.7
+
+* Optimize class/struct instantiation.
+* Use `is` instead of `IsSubclassOf()`
+
+# v1.0.6
+
+* Add a way to disable preserving references for efficiency.
+
 # v1.0.5
 
 * Change target framework to .NET Core 3.1.
