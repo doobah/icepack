@@ -12,7 +12,7 @@ namespace Icepack
     public sealed class Serializer
     {
         /// <summary> Serializers with the same compatibility version are guaranteed to be interoperable. </summary>
-        public const ushort CompatibilityVersion = 5;
+        public const ushort CompatibilityVersion = 6;
 
         /// <summary> Keeps track of type information. </summary>
         private readonly TypeRegistry typeRegistry;

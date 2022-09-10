@@ -1,21 +1,35 @@
-# Icepack
+<h1 align="center">
+  <img align="center" src="Resources/LogoText.svg" style="width:300px;height:64px;" alt="ICEPACK">
+</h1>
 
-[![NuGet version (Icepack)](https://img.shields.io/nuget/v/icepack.svg?style=flat-square)](https://www.nuget.org/packages/Icepack/)
+<p align="center">
+  <a href="https://www.nuget.org/packages/Icepack/">
+    <img src="https://img.shields.io/nuget/v/icepack.svg?style=flat-square">
+  </a>
+</p>
 
-Icepack is a lightweight serialization library for C#.
+<br>
 
-It was designed as part of a game development project, specifically to address limitations that other serialization libraries have when serializing inheritance hierarchies. Libraries such as MessagePack and Protobuf provide a way for the user to inform the serializer about class hierarchies by assigning IDs to child classes. A scenario where this does not work well is a game engine's entity/component system, where in order to build functionality on top of the engine, the user needs to extend some classes exposed by the engine. If the user then wishes to import third-party libraries that extend the same classes, it becomes impractical to find out which IDs have already been used, and to stay backwards compatible. Icepack solves this by including type information as part of the serialization format, while avoiding the verbosity of serializers like Json.NET by automatically assigning IDs to types and field names, and storing these in lookup tables. The additional size overhead of the type and field names is reasonable for game development projects, where the serialized object graphs are likely to be large and composed of many instances of the same types, for example, scenes or state machines. Icepack also avoids clashes between identically-named fields in different classes in the same inheritance hierarchy, by relating every field to the class that it is declared in.
+Icepack is a lightweight binary serialization library for C#.
+
+It was specifically developed to address limitations that other serialization libraries have when serializing inheritance-based hierarchies, and to make it easy for code frameworks to implement serializable base classes.
+
+<br>
 
 # Features
 
 * Object references are preserved by default, although this can be disabled globally.
-* The format favours deserialization performance over serialization performance. This is important for games since the end-user is usually more affected by load times than save times.
-* Types are included for serialization by calling the serializer's `RegisterType` method, or annotating the type with the `SerializableObject` attribute.
+* The serializer serializes all fields by default, but can be configured to only serialize fields annotated with the `SerializableField` attribute. Fields can be ignored by the serializer by annotating them with the `IgnoreField` attribute.
+* The format slightly favours deserialization performance over serialization performance. This is often important for games since the end-user is usually more affected by load times.
+* Types can be included for serialization by calling the serializer's `RegisterType` method, or annotating the type with the `SerializableType` attribute.
 * Fields can be ignored by annotating them with the `IgnoreField` attribute.
-* The `ISerializerListener` interface is provided to allow classes and structs to execute additional logic before serialization and after deserialization.
+* The `ISerializationListener` interface is provided to allow classes and structs to execute additional logic before serialization and after deserialization.
 * Readonly fields are supported.
+* Interfaces are supported.
+* Boxed value types are supported.
+* The serializer can handle derived and base classes that define fields with the same name.
 * The serializer can call private constructors.
-* Arrays, lists, hashsets, and dictionaries are registered automatically, but their generic parameter types must be registered separately.
+* Arrays, and `List<T>`, `HashSet<T>`, and `Dictionary<T>` are registered automatically, but their generic parameter types must be registered explicitly.
 * Deserialization is somewhat resilient to changes to the data types since serialization:
   * Fields that have been added/removed to/from a class since serialization will be ignored.
   * A field that was serialized as a reference to an instance of a missing class is ignored.
@@ -25,199 +39,62 @@ It was designed as part of a game development project, specifically to address l
 # Limitations
 
 * Only fields (both private and public) are serialized, not properties.
-* `nuint` and `nint` are not supported.
-* `span` is not supported.
+* `nuint`, `nint`, and delegates are not supported.
 * Deserializing after changing the type of a serialized field results in undefined behaviour.
 * Changing the name of a type will result in the serializer ignoring objects of that type.
 
-# Usage Example
+# Examples
 
-The following example demonstrates using Icepack to serialize a derived class that shares a field name with its base class:
+## Registering Types
+
+Types must be registered before they can be serialized. Types can be lazy-registered by annotating them with the `SerializableType` attribute.
 
 ```
-using System;
-using Icepack;
-using System.IO;
+[SerializableType]
+public class ExampleType { }
+```
 
-namespace Example
+Types can also be registered via the serializer's `RegisterType` method. This is necessary in order to serialize types defined in third-party libraries.
+
+```
+var serializer = new Serializer();
+serializer.RegisterType(typeof(ExampleType));
+```
+
+## Serialization and Deserialization
+
+The serializer serializes and deserializes an object graph to and from a stream.
+
+```
+var serializer = new Serializer();
+
+var obj = new ExampleType();
+
+var stream = new MemoryStream();
+serializer.Serialize(obj, stream);
+stream.Position = 0;
+ExampleType? deserializedObj = serializer.Deserialize<ExampleType>(stream);
+stream.Close();
+```
+
+## Serialization Callbacks
+
+The `ISerializationListener` is used to execute logic immediately before serialization and after deserialization.
+
+```
+[SerializableType]
+public class ExampleClass : ISerializationListener
 {
-    [SerializableObject]
-    abstract class BaseClass
-    {
-        private string field1;
+  public int Field;
 
-        public BaseClass(string field1)
-        {
-            this.field1 = field1;
-        }
+  public void OnBeforeSerialize()
+  {
+    Console.WriteLine("Before serializing.");
+  }
 
-        public override string ToString()
-        {
-            return $"BaseClass.field1={field1}";
-        }
-
-        public BaseClass() { }
-    }
-
-    [SerializableObject]
-    class DerivedClass : BaseClass
-    {
-        private int field1;
-        private DerivedClass field2;
-
-        public DerivedClass(int field1, DerivedClass field2, string baseField1) : base(baseField1)
-        {
-            this.field1 = field1;
-            this.field2 = field2;
-        }
-
-        public DerivedClass() : base() { }
-
-        public override string ToString()
-        {
-            return $"[DerivedClass.field1={field1}, DerivedClass.field2={field2}, {base.ToString()}]";
-        }
-    }
-
-    class Program
-    {
-        static void Main(string[] args)
-        {
-            Serializer serializer = new Serializer();
-
-            DerivedClass nestedObj = new DerivedClass(123, null, "asdf");
-            DerivedClass rootObj = new DerivedClass(456, nestedObj, "qwer");
-
-            MemoryStream stream = new MemoryStream();
-            serializer.Serialize(rootObj, stream);
-
-            Console.WriteLine("___Serialized Output___");
-            Console.WriteLine(Convert.ToHexString(stream.ToArray()));
-            Console.WriteLine("");
-
-            stream.Position = 0;
-            DerivedClass deserializedObj = serializer.Deserialize<DerivedClass>(stream);
-            Console.WriteLine("___Deserialized Object___");
-            Console.WriteLine(deserializedObj);
-        }
-    }
+  public void OnAfterDeserialize()
+  {
+    Console.WriteLine("After deserialized.");
+  }
 }
 ```
-
-which gives the output:
-
-```
-___Serialized Output___
-040003000000AA014500780061006D0070006C0065002E00420061007300650043006C006100730073002C0020005400650073007400500072006F006A006500630074002C002000560065007200730069006F006E003D0031002E0030002E0030002E0030002C002000430075006C0074007500720065003D006E00650075007400720061006C002C0020005000750062006C00690063004B006500790054006F006B0065006E003D006E0075006C006C00060400000000000000010000000C6600690065006C006400310004000000B0014500780061006D0070006C0065002E00440065007200690076006500640043006C006100730073002C0020005400650073007400500072006F006A006500630074002C002000560065007200730069006F006E003D0031002E0030002E0030002E0030002C002000430075006C0074007500720065003D006E00650075007400720061006C002C0020005000750062006C00690063004B006500790054006F006B0065006E003D006E0075006C006C00060800000001000000020000000C6600690065006C0064003100040000000C6600690065006C006400320004000000D001530079007300740065006D002E0053007400720069006E0067002C002000530079007300740065006D002E0050007200690076006100740065002E0043006F00720065004C00690062002C002000560065007200730069006F006E003D0035002E0030002E0030002E0030002C002000430075006C0074007500720065003D006E00650075007400720061006C002C0020005000750062006C00690063004B006500790054006F006B0065006E003D003700630065006300380035006400370062006500610037003700390038006500000400000002000000020000000300000008710077006500720003000000086100730064006600C801000002000000030000007B0000000000000004000000
-
-___Deserialized Object___
-[DerivedClass.field1=456, DerivedClass.field2=[DerivedClass.field1=123, DerivedClass.field2=, BaseClass.field1=asdf], BaseClass.field1=qwer]
-```
-
-# Serialization Format
-
-The Icepack serializer uses a `BinaryWriter` internally to generate its output, as a byte stream encoded in UTF-16, little endian:
-
-```
-- Compatibility version [ushort]
-- The number of types [int]
-- For each type:
-  - The type's assembly qualified name [string]
-  - If the type is an immutable type (primitive, string, decimal):
-    - Category ID = 0 [byte]
-  - If the type is an array:
-    - Category ID = 1 [byte]
-    - Size of an item [int]
-  - If the type is a list:
-    - Category ID = 2 [byte]
-    - Size of an item [int]
-  - If the type is a hashset:
-    - Category ID = 3 [byte]
-    - Size of an item [int]
-  - If the type is a dictionary:
-    - Category ID = 4 [byte]
-    - Size of a key [int]
-    - Size of an item [int]
-  - If the type is a regular struct:
-    - Category ID = 5 [byte]
-    - Size of an instance [int]
-    - The number of serializable fields in the type [int]
-    - For each field:
-      - The field name [string]
-      - The size of the field in bytes [int]
-  - If the type is a regular class:
-    - Category ID = 6 [byte]
-    - Size of an instance [int]
-    - The type ID of the parent type (or 0 if no parent) [uint]
-    - The number of serializable fields in the type [int]
-    - For each field:
-      - The field name [string]
-      - The size of the field in bytes [int]
-  - If the type is an enum:
-    - Category ID = 7 [byte]
-    - The type ID of the underlying type [uint]
-  - If the type is Type:
-    - Category ID = 8 [byte]
-- The number of objects [int]
-- For each object, include some metadata used to pre-instantiate the object:
-  - The object's type ID [uint]
-  - If the object is an immutable type:
-    - The value of the object [?]
-  - If the object is an array, list, hashset, or dictionary:
-    - Length [uint]
-  - If the object is an enum:
-    - The underlying value of the enum [?]
-  - If the object is a Type:
-    - The ID of the type [uint]
-- For each object:
-  - The serialized form of that object [?]
-```
-
-Structs have the format:
-
-```
-- Type ID [uint]
-- For each field:
-  - The serialized form of the field value [?]
-```
-
-Immutable types (primitive, string, decimal) as well as Type objects do not have any object data since they are serialized as metadata:
-
-```
-(Empty)
-```
-
-Arrays, Lists (based on `List<>`), and HashSets (based on `HashSet<>`) have the format:
-
-```
-- For each element:
-  - The serialized form of that element [?]
-```
-
-Dictionaries (based on `Dictionary<,>`) have the format:
-
-```
-- For each key/value pair:
-  - The serialized form of the key [?]
-  - The serialized form of the value [?]
-```
-
-Other classes have the format:
-
-```
-- Starting from the class type, and iterating up the inheritance chain until 'object':
-  - For each field:
-    - The serialized form of the field value [?]
-```
-
-Other rules:
-
-* Object references are serialized as their object ID (`uint`).
-* The first object in the object list is the root object.
-* Primitives are serialized as-is.
-* Built-in primitive types, along with `string`, `decimal`, and `Type` are automatically registered for serialization.
-* Enum literal fields are serialized as their underlying integral type.
-* Interfaces are serialized as object references.
-* The compatibility version indicates which other versions of the serializer are able to deserialize the output.
-* A type object is serialized as the ID of a type in the serialized type table. This means that the type value itself must be a registered type.
-* On serializing an enum, the serializer adds the underlying type to the type table before the enum type itself.

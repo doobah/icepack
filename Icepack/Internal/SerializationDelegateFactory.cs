@@ -91,7 +91,7 @@ namespace Icepack
             TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
             object obj = objectMetadata.Value!;
 
-            if (obj is ISerializerListener listener)
+            if (obj is ISerializationListener listener)
                 listener.OnBeforeSerialize();
 
             writer.Write(typeMetadata.Id);
@@ -107,7 +107,7 @@ namespace Icepack
         /// <summary> Serializes a struct field. </summary>
         private static void SerializeStruct(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? typeMetadata)
         {
-            if (obj is ISerializerListener listener)
+            if (obj is ISerializationListener listener)
                 listener.OnBeforeSerialize();
 
             // typeMetadata will not be null due to optimizations
@@ -171,7 +171,7 @@ namespace Icepack
             object obj = objectMetadata.Value!;
             TypeMetadata? typeMetadata = objectMetadata.TypeMetadata;
 
-            if (obj is ISerializerListener listener)
+            if (obj is ISerializationListener listener)
                 listener.OnBeforeSerialize();
 
             while (typeMetadata != null)

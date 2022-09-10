@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="210mm"
-   height="297mm"
-   viewBox="0 0 210 297"
+   width="63.5mm"
+   height="63.5mm"
+   viewBox="0 0 63.5 63.5"
    version="1.1"
    id="svg5"
    inkscape:version="1.1 (c68e22c387, 2021-05-23)"
@@ -28,17 +28,24 @@
      inkscape:document-units="mm"
      showgrid="true"
      inkscape:zoom="1.0482005"
-     inkscape:cx="31.959534"
-     inkscape:cy="72.028205"
+     inkscape:cx="-125.93011"
+     inkscape:cy="-17.649295"
      inkscape:window-width="1920"
      inkscape:window-height="1009"
      inkscape:window-x="-8"
      inkscape:window-y="-1"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1">
+     inkscape:current-layer="layer1"
+     width="128mm"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0">
     <inkscape:grid
        type="xygrid"
-       id="grid275" />
+       id="grid275"
+       originx="-18.520833"
+       originy="-23.8125" />
   </sodipodi:namedview>
   <defs
      id="defs2">
@@ -89,7 +96,8 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     style="display:inline">
+     style="display:inline"
+     transform="translate(-18.520833,-23.8125)">
     <path
        style="display:inline;fill:url(#linearGradient2537);fill-opacity:1;stroke:#000000;stroke-width:0.264583;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0, 2.91041;stroke-dashoffset:0;stroke-opacity:1"
        d="M 18.520833,87.312499 39.6875,66.145832 H 60.854166 V 44.979166 L 82.020832,23.8125 V 66.145832 L 60.854166,87.312499 Z"

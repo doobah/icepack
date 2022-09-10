@@ -108,7 +108,7 @@ namespace Icepack
                 }
             }
 
-            if (structObj is ISerializerListener listener)
+            if (structObj is ISerializationListener listener)
                 listener.OnAfterDeserialize();
 
             return structObj;
@@ -141,7 +141,7 @@ namespace Icepack
                 }
             }
 
-            if (structObj is ISerializerListener listener)
+            if (structObj is ISerializationListener listener)
                 listener.OnAfterDeserialize();
         }
 
@@ -247,7 +247,7 @@ namespace Icepack
                 currentTypeMetadata = currentTypeMetadata.ParentTypeMetadata;
             }
 
-            if (obj is ISerializerListener listener)
+            if (obj is ISerializationListener listener)
                 listener.OnAfterDeserialize();
         }
 

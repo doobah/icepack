@@ -11,7 +11,7 @@ namespace Icepack
     /// Typically this would be used to update a serializable field with a more efficient representation of the
     /// object's state.
     /// </summary>
-    public interface ISerializerListener
+    public interface ISerializationListener
     {
         /// <summary> Called before the object is serialized. </summary>
         void OnBeforeSerialize();

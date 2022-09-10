@@ -164,7 +164,7 @@ namespace IcepackTest
     }
 
     [SerializableType]
-    internal class ClassWithSerializationHooks : ISerializerListener
+    internal class ClassWithSerializationHooks : ISerializationListener
     {
         public int Field;
 
@@ -188,7 +188,7 @@ namespace IcepackTest
     }
 
     [SerializableType]
-    internal struct StructWithSerializationHooks : ISerializerListener
+    internal struct StructWithSerializationHooks : ISerializationListener
     {
         public int Field;
 
