@@ -1,4 +1,4 @@
-# ![ICEPACK](Resources/LogoText.png)
+# ![ICEPACK](https://github.com/okaniku/icepack/blob/master/Resources/LogoText.png?raw=true)
 
 Icepack is a lightweight binary serialization library for C#.
 
