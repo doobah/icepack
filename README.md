@@ -14,8 +14,6 @@ Icepack is a lightweight binary serialization library for C#.
 
 It was specifically developed to address limitations that other serialization libraries have when serializing inheritance-based hierarchies, and to make it easy for code frameworks to implement serializable base classes.
 
-<br>
-
 # Features
 
 * Object references are preserved by default, although this can be disabled globally.
