@@ -7,60 +7,59 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IcepackTest
+namespace IcepackTest;
+
+public class EnumTests
 {
-    public class EnumTests
+    [Test]
+    public void SerializeEnum()
     {
-        [Test]
-        public void SerializeEnum()
-        {
-            var serializer = new Serializer();
+        Serializer serializer = new();
 
-            var stream = new MemoryStream();
-            serializer.Serialize(SerializableEnum.Option2, stream);
-            stream.Position = 0;
-            SerializableEnum deserializedEnum = serializer.Deserialize<SerializableEnum>(stream);
-            stream.Close();
+        MemoryStream stream = new();
+        serializer.Serialize(SerializableEnum.Option2, stream);
+        stream.Position = 0;
+        SerializableEnum deserializedEnum = serializer.Deserialize<SerializableEnum>(stream);
+        stream.Close();
 
-            Assert.AreEqual(SerializableEnum.Option2, deserializedEnum);
-        }
+        Assert.That(deserializedEnum, Is.EqualTo(SerializableEnum.Option2));
+    }
 
-        [Test]
-        public void SerializeClassWithEnumField()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void SerializeClassWithEnumField()
+    {
+        Serializer serializer = new();
 
-            var obj = new ClassWithEnumField() { Field1 = 123, Field2 = SerializableEnum.Option2, Field3 = 789 };
+        ClassWithEnumField obj = new() { Field1 = 123, Field2 = SerializableEnum.Option2, Field3 = 789 };
 
-            var stream = new MemoryStream();
-            serializer.Serialize(obj, stream);
-            stream.Position = 0;
-            ClassWithEnumField deserializedObj = serializer.Deserialize<ClassWithEnumField>(stream);
-            stream.Close();
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        ClassWithEnumField? deserializedObj = serializer.Deserialize<ClassWithEnumField>(stream);
+        stream.Close();
 
-            Assert.NotNull(deserializedObj);
-            Assert.AreEqual(123, deserializedObj.Field1);
-            Assert.AreEqual(SerializableEnum.Option2, deserializedObj.Field2);
-            Assert.AreEqual(789, deserializedObj.Field3);
-        }
+        Assert.That(deserializedObj, Is.Not.Null);
+        Assert.That(deserializedObj!.Field1, Is.EqualTo(123));
+        Assert.That(deserializedObj.Field2, Is.EqualTo(SerializableEnum.Option2));
+        Assert.That(deserializedObj.Field3, Is.EqualTo(789));
+    }
 
-        [Test]
-        public void SerializeBoxedEnum()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void SerializeBoxedEnum()
+    {
+        Serializer serializer = new();
 
-            var obj = new ClassWithObjectField() { Field1 = 123, Field2 = SerializableEnum.Option2, Field3 = 789 };
+        ClassWithObjectField obj = new() { Field1 = 123, Field2 = SerializableEnum.Option2, Field3 = 789 };
 
-            var stream = new MemoryStream();
-            serializer.Serialize(obj, stream);
-            stream.Position = 0;
-            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
-            stream.Close();
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        ClassWithObjectField? deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
+        stream.Close();
 
-            Assert.NotNull(deserializedObj);
-            Assert.AreEqual(123, deserializedObj.Field1);
-            Assert.AreEqual(SerializableEnum.Option2, deserializedObj.Field2);
-            Assert.AreEqual(789, deserializedObj.Field3);
-        }
+        Assert.That(deserializedObj, Is.Not.Null);
+        Assert.That(deserializedObj!.Field1, Is.EqualTo(123));
+        Assert.That(deserializedObj.Field2, Is.EqualTo(SerializableEnum.Option2));
+        Assert.That(deserializedObj.Field3, Is.EqualTo(789));
     }
 }

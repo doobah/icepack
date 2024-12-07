@@ -7,67 +7,66 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IcepackTest
+namespace IcepackTest;
+
+public class UnregisteredTypeTests
 {
-    public class UnregisteredTypeTests
+    [Test]
+    public void SerializeUnregisteredType()
     {
-        [Test]
-        public void SerializeUnregisteredType()
-        {
-            var serializer = new Serializer();
+        Serializer serializer = new();
 
-            var stream = new MemoryStream();
+        MemoryStream stream = new();
 
-            Assert.Throws<IcepackException>(() => {
-                serializer.Serialize(typeof(UnregisteredClass), stream);
-            });
+        Assert.Throws<IcepackException>(() => {
+            serializer.Serialize(typeof(UnregisteredClass), stream);
+        });
 
-            stream.Close();
-        }
+        stream.Close();
+    }
 
-        [Test]
-        public void SerializeUnregisteredTypeInTypeField()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void SerializeUnregisteredTypeInTypeField()
+    {
+        Serializer serializer = new();
 
-            var obj = new ClassWithTypeField() { Field1 = 123, Field2 = typeof(UnregisteredClass), Field3 = 789 };
+        ClassWithTypeField obj = new() { Field1 = 123, Field2 = typeof(UnregisteredClass), Field3 = 789 };
 
-            var stream = new MemoryStream();
+        MemoryStream stream = new();
 
-            Assert.Throws<IcepackException>(() => {
-                serializer.Serialize(obj, stream);
-            });
+        Assert.Throws<IcepackException>(() => {
+            serializer.Serialize(obj, stream);
+        });
 
-            stream.Close();
-        }
+        stream.Close();
+    }
 
-        [Test]
-        public void SerializeUnregisteredTypeInObjectField()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void SerializeUnregisteredTypeInObjectField()
+    {
+        Serializer serializer = new();
 
-            var obj = new ClassWithObjectField() { Field1 = 123, Field2 = typeof(UnregisteredClass), Field3 = 789 };
+        ClassWithObjectField obj = new() { Field1 = 123, Field2 = typeof(UnregisteredClass), Field3 = 789 };
 
-            var stream = new MemoryStream();
+        MemoryStream stream = new();
 
-            Assert.Throws<IcepackException>(() => {
-                serializer.Serialize(obj, stream);
-            });
+        Assert.Throws<IcepackException>(() => {
+            serializer.Serialize(obj, stream);
+        });
 
-            stream.Close();
-        }
+        stream.Close();
+    }
 
-        [Test]
-        public void SerializeUnregisteredClass()
-        {
-            var serializer = new Serializer();
-            var obj = new UnregisteredClass();
+    [Test]
+    public void SerializeUnregisteredClass()
+    {
+        Serializer serializer = new();
+        UnregisteredClass obj = new();
 
-            var stream = new MemoryStream();
-            Assert.Throws<IcepackException>(() => {
-                serializer.Serialize(obj, stream);
-            });
-            stream.Close();
-        }
+        MemoryStream stream = new();
+        Assert.Throws<IcepackException>(() => {
+            serializer.Serialize(obj, stream);
+        });
+        stream.Close();
     }
 }

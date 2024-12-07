@@ -7,75 +7,76 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IcepackTest
+namespace IcepackTest;
+
+public class InterfaceTests
 {
-    public class InterfaceTests
+    [Test]
+    public void SerializeInterface()
     {
-        [Test]
-        public void SerializeInterface()
+        Serializer serializer = new();
+
+        IInterface obj = new ClassThatImplementsInterface() { Value = 123 };
+
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        IInterface? deserializedObj = serializer.Deserialize<IInterface>(stream);
+        stream.Close();
+
+        Assert.That(deserializedObj, Is.Not.Null);
+        Assert.That(deserializedObj!.Value, Is.EqualTo(123));
+    }
+
+    [Test]
+    public void SerializeInterfaceArray()
+    {
+        Serializer serializer = new();
+        serializer.RegisterType(typeof(IInterface));
+
+        IInterface obj1 = new ClassThatImplementsInterface() { Value = 123 };
+        IInterface obj2 = new ClassThatImplementsInterface() { Value = 456 };
+        IInterface obj3 = new ClassThatImplementsInterface() { Value = 789 };
+
+        IInterface[] obj = [ obj1, obj2, obj3 ];
+
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        IInterface[]? deserializedObj = serializer.Deserialize<IInterface[]>(stream);
+        stream.Close();
+
+        Assert.That(deserializedObj, Is.Not.Null);
+        Assert.That(deserializedObj!.Length, Is.EqualTo(3));
+        Assert.That(deserializedObj[0].Value, Is.EqualTo(123));
+        Assert.That(deserializedObj[1].Value, Is.EqualTo(456));
+        Assert.That(deserializedObj[2].Value, Is.EqualTo(789));
+    }
+
+    [Test]
+    public void SerializeClassWithInterfaceField()
+    {
+        Serializer serializer = new();
+        serializer.RegisterType(typeof(IInterface));
+
+        IInterface intf = new ClassThatImplementsInterface() { Value = 456 };
+        ClassWithInterfaceField obj = new()
         {
-            var serializer = new Serializer();
+            Field1 = 123,
+            Field2 = intf,
+            Field3 = 789
+        };
 
-            IInterface obj = new ClassThatImplementsInterface() { Value = 123 };
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        ClassWithInterfaceField? deserializedObj = serializer.Deserialize<ClassWithInterfaceField>(stream);
+        stream.Close();
 
-            var stream = new MemoryStream();
-            serializer.Serialize(obj, stream);
-            stream.Position = 0;
-            IInterface deserializedObj = serializer.Deserialize<IInterface>(stream);
-            stream.Close();
-
-            Assert.AreEqual(123, deserializedObj.Value);
-        }
-
-        [Test]
-        public void SerializeInterfaceArray()
-        {
-            var serializer = new Serializer();
-            serializer.RegisterType(typeof(IInterface));
-
-            IInterface obj1 = new ClassThatImplementsInterface() { Value = 123 };
-            IInterface obj2 = new ClassThatImplementsInterface() { Value = 456 };
-            IInterface obj3 = new ClassThatImplementsInterface() { Value = 789 };
-
-            IInterface[] obj = new IInterface[3] { obj1, obj2, obj3 };
-
-            var stream = new MemoryStream();
-            serializer.Serialize(obj, stream);
-            stream.Position = 0;
-            IInterface[] deserializedObj = serializer.Deserialize<IInterface[]>(stream);
-            stream.Close();
-
-            Assert.AreEqual(3, deserializedObj.Length);
-            Assert.AreEqual(123, deserializedObj[0].Value);
-            Assert.AreEqual(456, deserializedObj[1].Value);
-            Assert.AreEqual(789, deserializedObj[2].Value);
-        }
-
-        [Test]
-        public void SerializeClassWithInterfaceField()
-        {
-            var serializer = new Serializer();
-            serializer.RegisterType(typeof(IInterface));
-
-            IInterface intf = new ClassThatImplementsInterface() { Value = 456 };
-            var obj = new ClassWithInterfaceField()
-            {
-                Field1 = 123,
-                Field2 = intf,
-                Field3 = 789
-            };
-
-            var stream = new MemoryStream();
-            serializer.Serialize(obj, stream);
-            stream.Position = 0;
-            ClassWithInterfaceField deserializedObj = serializer.Deserialize<ClassWithInterfaceField>(stream);
-            stream.Close();
-
-            Assert.NotNull(deserializedObj);
-            Assert.AreEqual(123, deserializedObj.Field1);
-            Assert.NotNull(deserializedObj.Field2);
-            Assert.AreEqual(456, deserializedObj.Field2.Value);
-            Assert.AreEqual(789, deserializedObj.Field3);
-        }
+        Assert.That(deserializedObj, Is.Not.Null);
+        Assert.That(deserializedObj!.Field1, Is.EqualTo(123));
+        Assert.That(deserializedObj.Field2, Is.Not.Null);
+        Assert.That(deserializedObj.Field2!.Value, Is.EqualTo(456));
+        Assert.That(deserializedObj.Field3, Is.EqualTo(789));
     }
 }

@@ -5,91 +5,89 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace IcepackTest
+namespace IcepackTest;
+
+public class CollectionTests
 {
-    public class CollectionTests
+    [Test]
+    public void SerializeArray()
     {
-        [Test]
-        public void SerializeArray()
-        {
-            var serializer = new Serializer();
+        Serializer serializer = new();
 
-            int[] array = new int[] { 1, 2, 3 };
+        int[] array = [ 1, 2, 3 ];
 
-            var stream = new MemoryStream();
-            serializer.Serialize(array, stream);
-            stream.Position = 0;
-            int[] deserializedArray = serializer.Deserialize<int[]>(stream);
-            stream.Close();
+        MemoryStream stream = new();
+        serializer.Serialize(array, stream);
+        stream.Position = 0;
+        int[]? deserializedArray = serializer.Deserialize<int[]>(stream);
+        stream.Close();
 
-            Assert.NotNull(deserializedArray);
-            Assert.AreEqual(3, deserializedArray.Length);
-            Assert.AreEqual(1, deserializedArray[0]);
-            Assert.AreEqual(2, deserializedArray[1]);
-            Assert.AreEqual(3, deserializedArray[2]);
-        }
+        Assert.That(deserializedArray, Is.Not.Null);
+        Assert.That(deserializedArray!.Length, Is.EqualTo(3));
+        Assert.That(deserializedArray[0], Is.EqualTo(1));
+        Assert.That(deserializedArray[1], Is.EqualTo(2));
+        Assert.That(deserializedArray[2], Is.EqualTo(3));
+    }
 
-        [Test]
-        public void SerializeList()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void SerializeList()
+    {
+        Serializer serializer = new();
 
-            var list = new List<string>() { "qwer", "asdf", "zxcv" };
+        List<string> list = [ "qwer", "asdf", "zxcv" ];
 
-            var stream = new MemoryStream();
-            serializer.Serialize(list, stream);
-            stream.Position = 0;
-            List<string> deserializedList = serializer.Deserialize<List<string>>(stream);
-            stream.Close();
+        MemoryStream stream = new();
+        serializer.Serialize(list, stream);
+        stream.Position = 0;
+        List<string>? deserializedList = serializer.Deserialize<List<string>>(stream);
+        stream.Close();
 
-            Assert.NotNull(deserializedList);
-            Assert.AreEqual(3, deserializedList.Count);
-            Assert.AreEqual("qwer", deserializedList[0]);
-            Assert.AreEqual("asdf", deserializedList[1]);
-            Assert.AreEqual("zxcv", deserializedList[2]);
-        }
+        Assert.That(deserializedList, Is.Not.Null);
+        Assert.That(deserializedList!.Count, Is.EqualTo(3));
+        Assert.That(deserializedList[0], Is.EqualTo("qwer"));
+        Assert.That(deserializedList[1], Is.EqualTo("asdf"));
+        Assert.That(deserializedList[2], Is.EqualTo("zxcv"));
+    }
 
-        [Test]
-        public void SerializeHashSet()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void SerializeHashSet()
+    {
+        Serializer serializer = new();
 
-            var set = new HashSet<string>() { "qwer", "asdf", "zxcv" };
+        HashSet<string> set = [ "qwer", "asdf", "zxcv" ];
 
-            var stream = new MemoryStream();
-            serializer.Serialize(set, stream);
-            stream.Position = 0;
-            HashSet<string> deserializedSet = serializer.Deserialize<HashSet<string>>(stream);
-            stream.Close();
+        MemoryStream stream = new();
+        serializer.Serialize(set, stream);
+        stream.Position = 0;
+        HashSet<string>? deserializedSet = serializer.Deserialize<HashSet<string>>(stream);
+        stream.Close();
 
-            Assert.NotNull(deserializedSet);
-            Assert.AreEqual(3, deserializedSet.Count);
-            Assert.True(deserializedSet.Contains("qwer"));
-            Assert.True(deserializedSet.Contains("asdf"));
-            Assert.True(deserializedSet.Contains("zxcv"));
-        }
+        Assert.That(deserializedSet, Is.Not.Null);
+        Assert.That(deserializedSet!.Count, Is.EqualTo(3));
+        Assert.That(deserializedSet.Contains("qwer"));
+        Assert.That(deserializedSet.Contains("asdf"));
+        Assert.That(deserializedSet.Contains("zxcv"));
+    }
 
-        [Test]
-        public void SerializeDictionary()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void SerializeDictionary()
+    {
+        Serializer serializer = new();
 
-            var dictionary = new Dictionary<int, string>() { { 1, "asdf" }, { 2, "zxcv" } };
+        Dictionary<int, string> dictionary = new() { { 1, "asdf" }, { 2, "zxcv" } };
 
-            var stream = new MemoryStream();
-            serializer.Serialize(dictionary, stream);
-            stream.Position = 0;
-            Dictionary<int, string> deserializedDictionary = serializer.Deserialize<Dictionary<int, string>>(stream);
-            stream.Close();
+        MemoryStream stream = new();
+        serializer.Serialize(dictionary, stream);
+        stream.Position = 0;
+        Dictionary<int, string>? deserializedDictionary = serializer.Deserialize<Dictionary<int, string>>(stream);
+        stream.Close();
 
-            Assert.NotNull(deserializedDictionary);
-            Assert.AreEqual(2, deserializedDictionary.Count);
-            Assert.True(deserializedDictionary.ContainsKey(1));
-            Assert.True(deserializedDictionary.ContainsKey(2));
-            Assert.AreEqual("asdf", deserializedDictionary[1]);
-            Assert.AreEqual("zxcv", deserializedDictionary[2]);
-        }
+        Assert.That(deserializedDictionary, Is.Not.Null);
+        Assert.That(deserializedDictionary!.Count, Is.EqualTo(2));
+        Assert.That(deserializedDictionary.ContainsKey(1));
+        Assert.That(deserializedDictionary.ContainsKey(2));
+        Assert.That(deserializedDictionary[1], Is.EqualTo("asdf"));
+        Assert.That(deserializedDictionary[2], Is.EqualTo("zxcv"));
     }
 }

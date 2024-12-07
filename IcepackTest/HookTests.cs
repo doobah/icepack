@@ -7,62 +7,62 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IcepackTest
+namespace IcepackTest;
+
+public class HookTests
 {
-    public class HookTests
+    [Test]
+    public void SerializeClassWithSerializationHooks()
     {
-        [Test]
-        public void SerializeClassWithSerializationHooks()
-        {
-            var serializer = new Serializer();
+        Serializer serializer = new();
 
-            var obj = new ClassWithSerializationHooks() { Field = 123 };
+        ClassWithSerializationHooks obj = new() { Field = 123 };
 
-            var stream = new MemoryStream();
-            serializer.Serialize(obj, stream);
-            stream.Position = 0;
-            ClassWithSerializationHooks deserializedObj = serializer.Deserialize<ClassWithSerializationHooks>(stream);
-            stream.Close();
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        ClassWithSerializationHooks? deserializedObj = serializer.Deserialize<ClassWithSerializationHooks>(stream);
+        stream.Close();
 
-            Assert.AreEqual(247, deserializedObj.Field);
-        }
+        Assert.That(deserializedObj, Is.Not.Null);
+        Assert.That(deserializedObj!.Field, Is.EqualTo(247));
+    }
 
-        [Test]
-        public void SerializeStructWithSerializationHooks()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void SerializeStructWithSerializationHooks()
+    {
+        Serializer serializer = new();
 
-            var obj = new StructWithSerializationHooks() { Field = 123 };
+        StructWithSerializationHooks obj = new() { Field = 123 };
 
-            var stream = new MemoryStream();
-            serializer.Serialize(obj, stream);
-            stream.Position = 0;
-            StructWithSerializationHooks deserializedObj = serializer.Deserialize<StructWithSerializationHooks>(stream);
-            stream.Close();
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        StructWithSerializationHooks deserializedObj = serializer.Deserialize<StructWithSerializationHooks>(stream);
+        stream.Close();
 
-            Assert.AreEqual(247, deserializedObj.Field);
-        }
+        Assert.That(deserializedObj.Field, Is.EqualTo(247));
+    }
 
-        [Test]
-        public void SerializeFieldWithStructWithSerializationHooks()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void SerializeFieldWithStructWithSerializationHooks()
+    {
+        Serializer serializer = new();
 
-            var s = new StructWithSerializationHooks() { Field = 123 };
-            var obj = new ClassWithStructWithSerializationHooksField() { Field1 = 111, Field2 = s, Field3 = 333 };
+        StructWithSerializationHooks s = new() { Field = 123 };
+        ClassWithStructWithSerializationHooksField obj = new() { Field1 = 111, Field2 = s, Field3 = 333 };
 
-            var stream = new MemoryStream();
-            serializer.Serialize(obj, stream);
-            stream.Position = 0;
-            ClassWithStructWithSerializationHooksField deserializedObj = serializer.Deserialize<ClassWithStructWithSerializationHooksField>(stream);
-            stream.Close();
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        ClassWithStructWithSerializationHooksField? deserializedObj = serializer.Deserialize<ClassWithStructWithSerializationHooksField>(stream);
+        stream.Close();
 
-            var expectedStruct = new StructWithSerializationHooks() { Field = 247 };
+        StructWithSerializationHooks expectedStruct = new() { Field = 247 };
 
-            Assert.NotNull(deserializedObj);
-            Assert.AreEqual(111, deserializedObj.Field1);
-            Assert.AreEqual(expectedStruct, deserializedObj.Field2);
-            Assert.AreEqual(333, deserializedObj.Field3);
-        }
+        Assert.That(deserializedObj, Is.Not.Null);
+        Assert.That(deserializedObj!.Field1, Is.EqualTo(111));
+        Assert.That(deserializedObj.Field2, Is.EqualTo(expectedStruct));
+        Assert.That(deserializedObj.Field3, Is.EqualTo(333));
     }
 }

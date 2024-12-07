@@ -2,7 +2,7 @@
 
 Icepack is a lightweight binary serialization library for C#.
 
-It was specifically developed to address limitations that other serialization libraries have when serializing inheritance-based hierarchies, and to make it easy for code frameworks to implement serializable base classes.
+It was originally developed for a game development project to address limitations that other serialization libraries have when serializing inheritance-based hierarchies, and to make it easy for code frameworks to implement serializable base classes.
 
 # Features
 
@@ -21,15 +21,15 @@ It was specifically developed to address limitations that other serialization li
 * Deserialization is somewhat resilient to changes to the data types since serialization:
   * Fields that have been added/removed to/from a class since serialization will be ignored.
   * A field that was serialized as a reference to an instance of a missing class is ignored.
-  * If a class was derived from another class that is now missing or is no longer a base class, the missing or former base class is ignored, and the serializer resumes deserializing fields from further ancestors.
+  * If a class was derived from another class that is now missing or is no longer a base class, the missing or former base class is ignored, and the serializer resumes deserializing fields from other ancestors.
   * The `PreviousName` attribute can be assigned to a field to indicate that the name of the field has changed, so that the correct field will be matched with what is in the serialized data.
 
 # Limitations
 
 * Only fields (both private and public) are serialized, not properties.
-* `nuint`, `nint`, and delegates are not supported.
+* `nuint`, `nint`, delegates, pointers, Span, and generic type definitions are not supported.
 * Deserializing after changing the type of a serialized field results in undefined behaviour.
-* Changing the name of a type will result in the serializer ignoring objects of that type.
+* Changing the name or namespace of a type will result in the serializer ignoring objects of that type.
 
 # Examples
 
@@ -42,10 +42,10 @@ Types must be registered before they can be serialized. Types can be lazy-regist
 public class ExampleType { }
 ```
 
-Types can also be registered via the serializer's `RegisterType` method. This is necessary in order to serialize types defined in third-party libraries.
+Types can also be registered via the serializer's `RegisterType` method. This is needed to serialize types defined in third-party libraries.
 
 ```
-var serializer = new Serializer();
+Serializer serializer = new();
 serializer.RegisterType(typeof(ExampleType));
 ```
 
@@ -54,11 +54,11 @@ serializer.RegisterType(typeof(ExampleType));
 The serializer serializes and deserializes an object graph to and from a stream.
 
 ```
-var serializer = new Serializer();
+Serializer serializer = new();
 
-var obj = new ExampleType();
+ExampleType obj = new();
 
-var stream = new MemoryStream();
+MemoryStream stream = new();
 serializer.Serialize(obj, stream);
 stream.Position = 0;
 ExampleType? deserializedObj = serializer.Deserialize<ExampleType>(stream);

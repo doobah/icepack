@@ -7,44 +7,44 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IcepackTest
+namespace IcepackTest;
+
+public class ReferencePreservationSettingsTests
 {
-    public class ReferencePreservationSettingsTests
+    [Test]
+    public void SerializeWithoutPreservingReferences()
     {
-        [Test]
-        public void SerializeWithoutPreservingReferences()
-        {
-            var serializer = new Serializer(new SerializerSettings(preserveReferences: false));
+        Serializer serializer = new(new SerializerSettings(preserveReferences: false));
 
-            var nestedObj = new RegisteredClass();
-            var obj = new ObjectWithObjectReferences() { Field1 = nestedObj, Field2 = nestedObj };
+        RegisteredClass nestedObj = new();
+        ObjectWithObjectReferences obj = new() { Field1 = nestedObj, Field2 = nestedObj };
 
-            var stream = new MemoryStream();
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        ObjectWithObjectReferences? deserializedObj = serializer.Deserialize<ObjectWithObjectReferences>(stream);
+        stream.Close();
+
+        Assert.That(deserializedObj, Is.Not.Null);
+        Assert.That(deserializedObj!.Field1, Is.Not.Null);
+        Assert.That(deserializedObj.Field2, Is.Not.Null);
+        Assert.That(deserializedObj.Field1, Is.Not.EqualTo(deserializedObj.Field2));
+    }
+
+    [Test]
+    public void SerializeCircularReferenceWithoutPreservingReferences()
+    {
+        Serializer serializer = new(new SerializerSettings(preserveReferences: false));
+
+        HierarchicalObject obj = new();
+        obj.Field1 = 123;
+        obj.Nested = obj;
+
+        MemoryStream stream = new();
+        IcepackException? exception = Assert.Throws<IcepackException>(() => {
             serializer.Serialize(obj, stream);
-            stream.Position = 0;
-            var deserializedObj = serializer.Deserialize<ObjectWithObjectReferences>(stream);
-            stream.Close();
-
-            Assert.NotNull(deserializedObj.Field1);
-            Assert.NotNull(deserializedObj.Field2);
-            Assert.AreNotEqual(deserializedObj.Field1, deserializedObj.Field2);
-        }
-
-        [Test]
-        public void SerializeCircularReferenceWithoutPreservingReferences()
-        {
-            var serializer = new Serializer(new SerializerSettings(preserveReferences: false));
-
-            var obj = new HierarchicalObject();
-            obj.Field1 = 123;
-            obj.Nested = obj;
-
-            var stream = new MemoryStream();
-            IcepackException exception = Assert.Throws<IcepackException>(() => {
-                serializer.Serialize(obj, stream);
-            });
-            Assert.True(exception.Message.Contains("Exceeded maximum depth"));
-            stream.Close();
-        }
+        });
+        Assert.That(exception!.Message.Contains("Exceeded maximum depth"));
+        stream.Close();
     }
 }

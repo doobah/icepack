@@ -4,19 +4,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Icepack
-{
-    /// <summary>
-    /// Defines an interface for an object that performs logic before serialization, and after deserialization.
-    /// Typically this would be used to update a serializable field with a more efficient representation of the
-    /// object's state.
-    /// </summary>
-    public interface ISerializationListener
-    {
-        /// <summary> Called before the object is serialized. </summary>
-        void OnBeforeSerialize();
+namespace Icepack;
 
-        /// <summary> Called after the object is deserialized. </summary>
-        void OnAfterDeserialize();
-    }
+/// <summary>
+/// Defines an interface for an object that performs logic before serialization, and after deserialization.
+/// Typically this would be used to update a serializable field with a more efficient representation of the
+/// object's state.
+/// </summary>
+public interface ISerializationListener
+{
+    /// <summary> Called before the object is serialized. </summary>
+    void OnBeforeSerialize();
+
+    /// <summary> Called after the object is deserialized. </summary>
+    void OnAfterDeserialize();
 }

@@ -7,74 +7,73 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IcepackTest
+namespace IcepackTest;
+
+public class TypeTests
 {
-    public class TypeTests
+    [Test]
+    public void SerializeTypeInObjectField()
     {
-        [Test]
-        public void SerializeTypeInObjectField()
-        {
-            var serializer = new Serializer();
+        Serializer serializer = new();
 
-            var obj = new ClassWithObjectField() { Field1 = 123, Field2 = typeof(int), Field3 = 789 };
+        ClassWithObjectField obj = new() { Field1 = 123, Field2 = typeof(int), Field3 = 789 };
 
-            var stream = new MemoryStream();
-            serializer.Serialize(obj, stream);
-            stream.Position = 0;
-            ClassWithObjectField deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
-            stream.Close();
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        ClassWithObjectField? deserializedObj = serializer.Deserialize<ClassWithObjectField>(stream);
+        stream.Close();
 
-            Assert.NotNull(deserializedObj);
-            Assert.AreEqual(123, deserializedObj.Field1);
-            Assert.AreEqual(typeof(int), deserializedObj.Field2);
-            Assert.AreEqual(789, deserializedObj.Field3);
-        }
+        Assert.That(deserializedObj, Is.Not.Null);
+        Assert.That(deserializedObj!.Field1, Is.EqualTo(123));
+        Assert.That(deserializedObj.Field2, Is.EqualTo(typeof(int)));
+        Assert.That(deserializedObj.Field3, Is.EqualTo(789));
+    }
 
-        [Test]
-        public void SerializeTypeInTypeField()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void SerializeTypeInTypeField()
+    {
+        Serializer serializer = new();
 
-            var obj = new ClassWithTypeField() { Field1 = 123, Field2 = typeof(int), Field3 = 789 };
+        ClassWithTypeField obj = new() { Field1 = 123, Field2 = typeof(int), Field3 = 789 };
 
-            var stream = new MemoryStream();
+        MemoryStream stream = new();
 
-            serializer.Serialize(obj, stream);
-            stream.Position = 0;
-            ClassWithTypeField deserializedObj = serializer.Deserialize<ClassWithTypeField>(stream);
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        ClassWithTypeField? deserializedObj = serializer.Deserialize<ClassWithTypeField>(stream);
 
-            stream.Close();
+        stream.Close();
 
-            Assert.NotNull(deserializedObj);
-            Assert.AreEqual(123, deserializedObj.Field1);
-            Assert.AreEqual(typeof(int), deserializedObj.Field2);
-            Assert.AreEqual(789, deserializedObj.Field3);
-        }
+        Assert.That(deserializedObj, Is.Not.Null);
+        Assert.That(deserializedObj!.Field1, Is.EqualTo(123));
+        Assert.That(deserializedObj.Field2, Is.EqualTo(typeof(int)));
+        Assert.That(deserializedObj.Field3, Is.EqualTo(789));
+    }
 
-        [Test]
-        public void SerializeType()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void SerializeType()
+    {
+        Serializer serializer = new();
 
-            var stream = new MemoryStream();
-            serializer.Serialize(typeof(int), stream);
-            stream.Position = 0;
-            Type deserializedObj = serializer.Deserialize<Type>(stream);
-            stream.Close();
+        MemoryStream stream = new();
+        serializer.Serialize(typeof(int), stream);
+        stream.Position = 0;
+        Type? deserializedObj = serializer.Deserialize<Type>(stream);
+        stream.Close();
 
-            Assert.NotNull(deserializedObj);
-            Assert.AreEqual(typeof(int), deserializedObj);
-        }
+        Assert.That(deserializedObj, Is.Not.Null);
+        Assert.That(deserializedObj, Is.EqualTo(typeof(int)));
+    }
 
-        [Test]
-        public void SerializeNonRegisteredType()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void SerializeNonRegisteredType()
+    {
+        Serializer serializer = new();
 
-            var stream = new MemoryStream();
-            Assert.Throws<IcepackException>(() => {
-                serializer.Serialize(typeof(UnregisteredClass), stream);
-            });
-        }
+        MemoryStream stream = new();
+        Assert.Throws<IcepackException>(() => {
+            serializer.Serialize(typeof(UnregisteredClass), stream);
+        });
     }
 }

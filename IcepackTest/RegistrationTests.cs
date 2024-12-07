@@ -7,169 +7,168 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IcepackTest
+namespace IcepackTest;
+
+public class RegistrationTests
 {
-    public class RegistrationTests
+    [Test]
+    public void RegisterGenericClassWithUnregisteredParameterType()
     {
-        [Test]
-        public void RegisterGenericClassWithUnregisteredParameterType()
-        {
-            var serializer = new Serializer();
-            Assert.DoesNotThrow(() => {
-                serializer.RegisterType(typeof(GenericClass<UnregisteredClass>));
-            });
-        }
+        Serializer serializer = new();
+        Assert.DoesNotThrow(() => {
+            serializer.RegisterType(typeof(GenericClass<UnregisteredClass>));
+        });
+    }
 
-        [Test]
-        public void PreRegisterListWithUnregisteredParameterType()
-        {
-            var serializer = new Serializer();
-            Assert.DoesNotThrow(() => {
-                serializer.RegisterType(typeof(List<UnregisteredClass>));
-            });
-        }
+    [Test]
+    public void PreRegisterListWithUnregisteredParameterType()
+    {
+        Serializer serializer = new();
+        Assert.DoesNotThrow(() => {
+            serializer.RegisterType(typeof(List<UnregisteredClass>));
+        });
+    }
 
-        [Test]
-        public void RegisterClassWithUnregisteredStructFieldType()
-        {
-            var serializer = new Serializer();
-            Assert.Throws<IcepackException>(() => {
-                serializer.RegisterType(typeof(ClassWithUnregisteredStructFieldType));
-            });
-        }
+    [Test]
+    public void RegisterClassWithUnregisteredStructFieldType()
+    {
+        Serializer serializer = new();
+        Assert.Throws<IcepackException>(() => {
+            serializer.RegisterType(typeof(ClassWithUnregisteredStructFieldType));
+        });
+    }
 
-        [Test]
-        public void LazyRegisterAnnotatedListParameterType()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void LazyRegisterAnnotatedListParameterType()
+    {
+        Serializer serializer = new();
 
-            List<RegisteredClass> obj = new List<RegisteredClass>();
+        List<RegisteredClass> obj = [];
 
-            var stream = new MemoryStream();
-            Assert.DoesNotThrow(() => {
-                serializer.Serialize(obj, stream);
-            });
-            stream.Close();
-        }
+        MemoryStream stream = new();
+        Assert.DoesNotThrow(() => {
+            serializer.Serialize(obj, stream);
+        });
+        stream.Close();
+    }
 
-        [Test]
-        public void LazyRegisterAnnotatedStructFieldType()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void LazyRegisterAnnotatedStructFieldType()
+    {
+        Serializer serializer = new();
 
-            ClassWithRegisteredStructFieldType obj = new ClassWithRegisteredStructFieldType();
+        ClassWithRegisteredStructFieldType obj = new();
 
-            var stream = new MemoryStream();
-            Assert.DoesNotThrow(() => {
-                serializer.Serialize(obj, stream);
-            });
-            stream.Close();
-        }
+        MemoryStream stream = new();
+        Assert.DoesNotThrow(() => {
+            serializer.Serialize(obj, stream);
+        });
+        stream.Close();
+    }
 
-        /// <remarks>
-        /// Serializing a List type with a non-annotated parameter type should pass as long as it has no elements of that type.
-        /// Note that it may never have elements of that type if the type is an abstract base class.
-        /// </remarks>
-        [Test]
-        public void LazyRegisterNonAnnotatedListParameterType()
-        {
-            var serializer = new Serializer();
+    /// <remarks>
+    /// Serializing a List type with a non-annotated parameter type should pass as long as it has no elements of that type.
+    /// Note that it may never have elements of that type if the type is an abstract base class.
+    /// </remarks>
+    [Test]
+    public void LazyRegisterNonAnnotatedListParameterType()
+    {
+        Serializer serializer = new();
 
-            List<UnregisteredClass> obj = new List<UnregisteredClass>();
+        List<UnregisteredClass> obj = [];
 
-            var stream = new MemoryStream();
-            Assert.DoesNotThrow(() => {
-                serializer.Serialize(obj, stream);
-            });
-            stream.Close();
-        }
+        MemoryStream stream = new();
+        Assert.DoesNotThrow(() => {
+            serializer.Serialize(obj, stream);
+        });
+        stream.Close();
+    }
 
-        [Test]
-        public void LazyRegisterNonAnnotatedStructFieldType()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void LazyRegisterNonAnnotatedStructFieldType()
+    {
+        Serializer serializer = new();
 
-            ClassWithUnregisteredStructFieldType obj = new ClassWithUnregisteredStructFieldType();
+        ClassWithUnregisteredStructFieldType obj = new();
 
-            var stream = new MemoryStream();
-            Assert.Throws<IcepackException>(() => {
-                serializer.Serialize(obj, stream);
-            });
-            stream.Close();
-        }
+        MemoryStream stream = new();
+        Assert.Throws<IcepackException>(() => {
+            serializer.Serialize(obj, stream);
+        });
+        stream.Close();
+    }
 
-        [Test]
-        public void RegisterDependantStructBeforeDependency()
-        {
-            var serializer = new Serializer();
+    [Test]
+    public void RegisterDependantStructBeforeDependency()
+    {
+        Serializer serializer = new();
 
-            Assert.Throws<IcepackException>(() => {
-                serializer.RegisterType(typeof(StructWithNestedStruct));
-            });
-        }
-
-        [Test]
-        public void RegisterDependencyStructBeforeDependant()
-        {
-            var serializer = new Serializer();
-
-            serializer.RegisterType(typeof(NestedStruct));
+        Assert.Throws<IcepackException>(() => {
             serializer.RegisterType(typeof(StructWithNestedStruct));
+        });
+    }
+
+    [Test]
+    public void RegisterDependencyStructBeforeDependant()
+    {
+        Serializer serializer = new();
+
+        serializer.RegisterType(typeof(NestedStruct));
+        serializer.RegisterType(typeof(StructWithNestedStruct));
+    }
+
+    [Test]
+    public void RegisterUnsupportedTypes()
+    {
+        Serializer serializer = new();
+
+        {
+            IcepackException? exception = Assert.Throws<IcepackException>(() => {
+                serializer.RegisterType(typeof(IntPtr));
+            });
+            Assert.That(exception!.Message.StartsWith("Unsupported type"));
         }
 
-        [Test]
-        public void RegisterUnsupportedTypes()
         {
-            var serializer = new Serializer();
+            IcepackException? exception = Assert.Throws<IcepackException>(() => {
+                serializer.RegisterType(typeof(UIntPtr));
+            });
+            Assert.That(exception!.Message.StartsWith("Unsupported type"));
+        }
 
-            {
-                IcepackException exception = Assert.Throws<IcepackException>(() => {
-                    serializer.RegisterType(typeof(IntPtr));
-                });
-                Assert.True(exception.Message.StartsWith("Unsupported type"));
-            }
+        {
+            IcepackException? exception = Assert.Throws<IcepackException>(() => {
+                serializer.RegisterType(typeof(Delegate));
+            });
+            Assert.That(exception!.Message.StartsWith("Unsupported type"));
+        }
 
-            {
-                IcepackException exception = Assert.Throws<IcepackException>(() => {
-                    serializer.RegisterType(typeof(UIntPtr));
-                });
-                Assert.True(exception.Message.StartsWith("Unsupported type"));
-            }
+        {
+            IcepackException? exception = Assert.Throws<IcepackException>(() => {
+                serializer.RegisterType(typeof(Del));
+            });
+            Assert.That(exception!.Message.StartsWith("Unsupported type"));
+        }
 
-            {
-                IcepackException exception = Assert.Throws<IcepackException>(() => {
-                    serializer.RegisterType(typeof(Delegate));
-                });
-                Assert.True(exception.Message.StartsWith("Unsupported type"));
-            }
+        {
+            IcepackException? exception = Assert.Throws<IcepackException>(() => {
+                serializer.RegisterType(typeof(int*));
+            });
+            Assert.That(exception!.Message.StartsWith("Unsupported type"));
+        }
 
-            {
-                IcepackException exception = Assert.Throws<IcepackException>(() => {
-                    serializer.RegisterType(typeof(Del));
-                });
-                Assert.True(exception.Message.StartsWith("Unsupported type"));
-            }
+        {
+            IcepackException? exception = Assert.Throws<IcepackException>(() => {
+                serializer.RegisterType(typeof(Span<float>));
+            });
+            Assert.That(exception!.Message.StartsWith("Unsupported type"));
+        }
 
-            {
-                IcepackException exception = Assert.Throws<IcepackException>(() => {
-                    serializer.RegisterType(typeof(int*));
-                });
-                Assert.True(exception.Message.StartsWith("Unsupported type"));
-            }
-
-            {
-                IcepackException exception = Assert.Throws<IcepackException>(() => {
-                    serializer.RegisterType(typeof(Span<float>));
-                });
-                Assert.True(exception.Message.StartsWith("Unsupported type"));
-            }
-
-            {
-                IcepackException exception = Assert.Throws<IcepackException>(() => {
-                    serializer.RegisterType(typeof(List<>));
-                });
-                Assert.True(exception.Message.StartsWith("Unsupported type"));
-            }
+        {
+            IcepackException? exception = Assert.Throws<IcepackException>(() => {
+                serializer.RegisterType(typeof(List<>));
+            });
+            Assert.That(exception!.Message.StartsWith("Unsupported type"));
         }
     }
 }
