@@ -111,6 +111,12 @@ internal static class DeserializationDelegateFactory
         if (structObj is ISerializationListener listener)
             listener.OnAfterDeserialize();
 
+        if (typeMetadata.HasSurrogate)
+        {
+            object actualStructObj = typeMetadata.CreateActualClassOrStruct!();
+            structObj = ((ISerializationSurrogate)structObj).Restore(actualStructObj);
+        }
+
         return structObj;
     }
 
@@ -127,7 +133,7 @@ internal static class DeserializationDelegateFactory
             return;
         }
 
-        object structObj = objectMetadata.Value!;
+        object structObj = objectMetadata.SerializedValue!;
 
         for (int i = 0; i < typeMetadata.Fields!.Count; i++)
         {
@@ -143,6 +149,8 @@ internal static class DeserializationDelegateFactory
 
         if (structObj is ISerializationListener listener)
             listener.OnAfterDeserialize();
+
+        objectMetadata.RestoreFromSurrogate();
     }
 
     private static void DeserializeArray(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)
@@ -153,7 +161,7 @@ internal static class DeserializationDelegateFactory
             reader.BaseStream.Position += objectMetadata.Length * typeMetadata.ItemSize;
         else
         {
-            Array arrayObj = (Array)objectMetadata.Value!;
+            Array arrayObj = (Array)objectMetadata.SerializedValue!;
 
             for (int i = 0; i < arrayObj.Length; i++)
             {
@@ -171,7 +179,7 @@ internal static class DeserializationDelegateFactory
             reader.BaseStream.Position += objectMetadata.Length * typeMetadata.ItemSize;
         else
         {
-            IList listObj = (IList)objectMetadata.Value!;
+            IList listObj = (IList)objectMetadata.SerializedValue!;
 
             for (int i = 0; i < objectMetadata.Length; i++)
             {
@@ -189,7 +197,7 @@ internal static class DeserializationDelegateFactory
             reader.BaseStream.Position += objectMetadata.Length * typeMetadata.ItemSize;
         else
         {
-            object hashSetObj = objectMetadata.Value!;
+            object hashSetObj = objectMetadata.SerializedValue!;
 
             for (int i = 0; i < objectMetadata.Length; i++)
             {
@@ -207,7 +215,7 @@ internal static class DeserializationDelegateFactory
             reader.BaseStream.Position += objectMetadata.Length * (typeMetadata.KeySize + typeMetadata.ItemSize);
         else
         {
-            IDictionary dictObj = (IDictionary)objectMetadata.Value!;
+            IDictionary dictObj = (IDictionary)objectMetadata.SerializedValue!;
 
             for (int i = 0; i < objectMetadata.Length; i++)
             {
@@ -220,7 +228,7 @@ internal static class DeserializationDelegateFactory
 
     private static void DeserializeNormalClass(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)
     {
-        object obj = objectMetadata.Value!;
+        object obj = objectMetadata.SerializedValue!;
         TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
         TypeMetadata? currentTypeMetadata = typeMetadata;
 
@@ -249,6 +257,8 @@ internal static class DeserializationDelegateFactory
 
         if (obj is ISerializationListener listener)
             listener.OnAfterDeserialize();
+
+        objectMetadata.RestoreFromSurrogate();
     }
 
     private static void DeserializeImmutableReferenceType(ObjectMetadata objectMetadata, DeserializationContext context, BinaryReader reader)

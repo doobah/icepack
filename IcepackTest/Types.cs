@@ -25,6 +25,13 @@ internal struct SerializableStruct
 }
 
 [SerializableType]
+internal class SerializableClass
+{
+    public int Field1;
+    public int Field2;
+}
+
+[SerializableType]
 internal class HierarchicalObject
 {
     public int Field1;
@@ -354,6 +361,48 @@ internal class ClassWithRegisteredStructFieldType
     public int Field1;
     public RegisteredStruct Field2;
     public int Field3;
+}
+
+internal struct SurrogateStruct : ISerializationSurrogate
+{
+    public string? Field1;
+    public string? Field2;
+
+    public void Record(object obj)
+    {
+        SerializableStruct objToSave = (SerializableStruct)obj;
+        Field1 = (objToSave.Field1 + 1).ToString();
+        Field2 = (objToSave.Field2 + 1).ToString();
+    }
+
+    public object Restore(object obj)
+    {
+        SerializableStruct objToRestore = (SerializableStruct)obj;
+        objToRestore.Field1 = int.Parse(Field1!);
+        objToRestore.Field2 = int.Parse(Field2!);
+        return objToRestore;
+    }
+}
+
+internal class SurrogateClass : ISerializationSurrogate
+{
+    public string? Field1;
+    public string? Field2;
+
+    public void Record(object obj)
+    {
+        SerializableClass objToSave = (SerializableClass)obj;
+        Field1 = (objToSave.Field1 + 1).ToString();
+        Field2 = (objToSave.Field2 + 1).ToString();
+    }
+
+    public object Restore(object obj)
+    {
+        SerializableClass objToRestore = (SerializableClass)obj;
+        objToRestore.Field1 = int.Parse(Field1!);
+        objToRestore.Field2 = int.Parse(Field2!);
+        return objToRestore;
+    }
 }
 
 #pragma warning restore 0649 // "never assigned to"

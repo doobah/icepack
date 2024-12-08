@@ -10,35 +10,124 @@ namespace Icepack.Internal;
 /// <summary> Contains metadata for an object. </summary>
 internal class ObjectMetadata
 {
+    /// <summary> Deserializes the object metadata. </summary>
+    /// <param name="typeMetadatas"> An array of type metadata objects. </param>
+    /// <param name="reader"> Reads the metadata from the stream. </param>
+    public static ObjectMetadata[] DeserializeMetadatas(TypeMetadata[] typeMetadatas, BinaryReader reader)
+    {
+        int numberOfObjects = reader.ReadInt32();
+        ObjectMetadata[] objectMetadatas = new ObjectMetadata[numberOfObjects];
+        DeserializationContext context = new(typeMetadatas, objectMetadatas);
+
+        for (int i = 0; i < numberOfObjects; i++)
+        {
+            uint typeId = reader.ReadUInt32();
+            TypeMetadata objectTypeMetadata = typeMetadatas![typeId - 1];
+            Type? objectType = objectTypeMetadata.Type;
+            int length = 0;
+            object? serializedObj = null;
+            object? obj = null;
+            switch (objectTypeMetadata.Category)
+            {
+                case TypeCategory.Immutable:
+                    serializedObj = objectTypeMetadata.DeserializeImmutable!(context, reader);
+                    obj = serializedObj;
+                    break;
+                case TypeCategory.Array:
+                    {
+                        length = reader.ReadInt32();
+
+                        if (objectType != null)
+                        {
+                            Type elementType = objectType.GetElementType()!;
+                            serializedObj = Array.CreateInstance(elementType, length);
+                            obj = serializedObj;
+                        }
+                        break;
+                    }
+                case TypeCategory.List:
+                case TypeCategory.HashSet:
+                case TypeCategory.Dictionary:
+                    {
+                        length = reader.ReadInt32();
+
+                        if (objectType != null)
+                        {
+                            serializedObj = objectTypeMetadata.CreateCollection!(length);
+                            obj = serializedObj;
+                        }
+                        break;
+                    }
+                case TypeCategory.Struct:
+                case TypeCategory.Class:
+                    if (objectType != null)
+                    {
+                        serializedObj = objectTypeMetadata.CreateClassOrStruct!();
+                        if (objectTypeMetadata.HasSurrogate)
+                            obj = objectTypeMetadata.CreateActualClassOrStruct!();
+                        else
+                            obj = serializedObj;
+                    }
+                    break;
+                case TypeCategory.Enum:
+                    // Need to deserialize regardless of whether the type still exists, to advance the stream past the value serialized in metadata.
+                    object underlyingValue = objectTypeMetadata.EnumUnderlyingTypeMetadata!.DeserializeImmutable!(context, reader)!;
+
+                    if (objectType != null)
+                    {
+                        serializedObj = Enum.ToObject(objectType, underlyingValue);
+                        obj = serializedObj;
+                    }
+                    break;
+                case TypeCategory.Type:
+                    uint value = reader.ReadUInt32();
+                    serializedObj = typeMetadatas[value - 1].Type;
+                    obj = serializedObj;
+                    break;
+                default:
+                    throw new IcepackException($"Invalid category: {objectTypeMetadata.Category}");
+            }
+
+            objectMetadatas[i] = new ObjectMetadata((uint)i + 1, objectTypeMetadata, length, obj, serializedObj, 0);
+        }
+
+        return objectMetadatas;
+    }
+
     /// <summary> A unique ID corresponding to an object. </summary>
-    public uint Id { get; }
+    public uint Id { get; init; }
 
     /// <summary> Metadata about the type of the object. </summary>
-    public TypeMetadata TypeMetadata { get; }
+    public TypeMetadata TypeMetadata { get; init; }
 
     /// <summary> If the object is an array, list, hashset, or dictionary, this is the number of items. </summary>
-    public int Length { get; }
+    public int Length { get; init; }
 
-    /// <summary> The value of the object. </summary>
-    public object? Value { get; }
+    /// <summary> The actual value of the object. </summary>
+    public object? Value { get; private set; }
+
+    /// <summary> The value that was serialized. If the type has a surrogate, this is the surrogate object, otherwise it is the actual value. </summary>
+    public object? SerializedValue { get; init; }
 
     /// <summary>
     /// The nesting depth of this object in the hierarchy. This is used to detect circular references when references are not preserved.
     /// </summary>
-    public int Depth { get; }
+    public int Depth { get; init; }
 
     /// <summary> Creates new object metadata. </summary>
     /// <param name="id"> A unique ID corresponding to an object. </param>
     /// <param name="type"> Metadata about the type of the object. </param>
     /// <param name="length"> If the object is an array, list, hashset, or dictionary, this is the length of the object. </param>
     /// <param name="value"> The value of the object. </param>
+    /// <param name="serializedValue"> The serialized value of the object. </param>
     /// <param name="depth"> The nest depth of the object. </param>
-    public ObjectMetadata(uint id, TypeMetadata type, int length, object? value, int depth)
+    public ObjectMetadata(uint id, TypeMetadata type, int length, object? value, object? serializedValue, int depth)
     {
         Id = id;
         TypeMetadata = type;
         Length = length;
         Value = value;
+        SerializedValue = serializedValue;
         Depth = depth;
     }
 
@@ -97,80 +186,11 @@ internal class ObjectMetadata
         TypeMetadata.DeserializeReferenceType!(this, context, reader);
     }
 
-    /// <summary> Deserializes the object metadata. </summary>
-    /// <param name="typeMetadatas"> An array of type metadata objects. </param>
-    /// <param name="reader"> Reads the metadata from the stream. </param>
-    public static ObjectMetadata[] DeserializeMetadatas(TypeMetadata[] typeMetadatas, BinaryReader reader)
+    public void RestoreFromSurrogate()
     {
-        int numberOfObjects = reader.ReadInt32();
-        ObjectMetadata[] objectMetadatas = new ObjectMetadata[numberOfObjects];
-        DeserializationContext context = new(typeMetadatas, objectMetadatas);
-
-        for (int i = 0; i < numberOfObjects; i++)
+        if (Value != SerializedValue)
         {
-            uint typeId = reader.ReadUInt32();
-            TypeMetadata objectTypeMetadata = typeMetadatas![typeId - 1];
-            Type? objectType = objectTypeMetadata.Type;
-            int length = 0;
-
-            object? obj;
-            switch (objectTypeMetadata.Category)
-            {
-                case TypeCategory.Immutable:
-                    obj = objectTypeMetadata.DeserializeImmutable!(context, reader);
-                    break;
-                case TypeCategory.Array:
-                    {
-                        length = reader.ReadInt32();
-
-                        if (objectType == null)
-                            obj = null;
-                        else
-                        {
-                            Type elementType = objectType.GetElementType()!;
-                            obj = Array.CreateInstance(elementType, length);
-                        }
-                        break;
-                    }
-                case TypeCategory.List:
-                case TypeCategory.HashSet:
-                case TypeCategory.Dictionary:
-                    {
-                        length = reader.ReadInt32();
-
-                        if (objectType == null)
-                            obj = null;
-                        else
-                            obj = objectTypeMetadata.CreateCollection!(length);
-                        break;
-                    }
-                case TypeCategory.Struct:
-                case TypeCategory.Class:
-                    if (objectType == null)
-                        obj = null;
-                    else
-                        obj = objectTypeMetadata.CreateClassOrStruct!();
-                    break;
-                case TypeCategory.Enum:
-                    // Need to deserialize regardless of whether the type still exists, to advance the stream past the value serialized in metadata.
-                    object underlyingValue = objectTypeMetadata.EnumUnderlyingTypeMetadata!.DeserializeImmutable!(context, reader)!;
-
-                    if (objectType == null)
-                        obj = null;
-                    else
-                        obj = Enum.ToObject(objectType, underlyingValue);
-                    break;
-                case TypeCategory.Type:
-                    uint value = reader.ReadUInt32();
-                    obj = typeMetadatas[value - 1].Type;
-                    break;
-                default:
-                    throw new IcepackException($"Invalid category: {objectTypeMetadata.Category}");
-            }
-
-            objectMetadatas[i] = new ObjectMetadata((uint)i + 1, objectTypeMetadata, length, obj, 0);
+            Value = ((ISerializationSurrogate)SerializedValue!).Restore(Value!);
         }
-
-        return objectMetadatas;
     }
 }

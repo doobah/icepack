@@ -13,19 +13,19 @@ public sealed class SerializerSettings
     /// Whether references will be preserved. True by default. If false, references to the same object
     /// will be serialized as separate objects.
     /// </summary>
-    public bool PreserveReferences { get; }
+    public bool PreserveReferences { get; init; }
 
     /// <summary>
     /// The maximum depth allowed when references are not preserved. If the depth exceeds this value, it is assumed that there is a
     /// circular reference, and an exception will be thrown. Default is 1000.
     /// </summary>
-    public int MaxDepth { get; }
+    public int MaxDepth { get; init; }
 
     /// <summary>
     /// Whether fields are serialized by default. If true, a field is always serialized unless annotated with <see cref="IgnoreFieldAttribute"/>.
     /// If false, a field is only serialized if annotated with <see cref="SerializableFieldAttribute"/>. Default is true.
     /// </summary>
-    public bool SerializeByDefault { get; }
+    public bool SerializeByDefault { get; init; }
 
     /// <summary> Creates a new <see cref="SerializerSettings"/>. </summary>
     /// <param name="preserveReferences">

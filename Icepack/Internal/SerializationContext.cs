@@ -98,7 +98,14 @@ internal sealed class SerializationContext
 
         uint newId = ++largestObjectId;
 
-        ObjectMetadata newObjMetadata = new(newId, typeMetadata, length, obj, CurrentDepth + 1);
+        object serializedObj = obj;
+        if (typeMetadata.HasSurrogate)
+        {
+            serializedObj = typeMetadata.CreateClassOrStruct!();
+            ((ISerializationSurrogate)serializedObj).Record(obj);
+        }
+
+        ObjectMetadata newObjMetadata = new(newId, typeMetadata, length, obj, serializedObj, CurrentDepth + 1);
         if (settings.PreserveReferences)
             Objects.Add(obj, newObjMetadata);
         else if (CurrentDepth > settings.MaxDepth)

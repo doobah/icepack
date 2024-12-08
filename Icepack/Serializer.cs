@@ -21,17 +21,17 @@ public sealed class Serializer
     /// <summary> Settings for the serializer. </summary>
     private readonly SerializerSettings settings;
 
+    public SerializerSettings Settings { get { return settings; } }
+
     /// <summary> Creates a new serializer with default settings. </summary>
     public Serializer() : this(new SerializerSettings()) { }
 
     /// <summary> Creates a new serializer. </summary>
     public Serializer(SerializerSettings settings)
     {
-        if (settings == null)
-            settings = new SerializerSettings();
+        this.settings = settings ?? new SerializerSettings();
 
-        typeRegistry = new TypeRegistry(settings);
-        this.settings = settings;
+        typeRegistry = new TypeRegistry(this);
 
         // Pre-register all immutable types, along with the Type type.
         RegisterType(typeof(string));
@@ -53,12 +53,10 @@ public sealed class Serializer
 
     /// <summary> Registers a type as serializable. </summary>
     /// <param name="type"> The type to register. </param>
-    public void RegisterType(Type type)
+    /// <param name="surrogateType"> The type that is the substitute for the original type. </param>
+    public void RegisterType(Type type, Type? surrogateType = null)
     {
-        if (Utils.IsUnsupportedType(type))
-            throw new IcepackException($"Unsupported type: {type}");
-
-        typeRegistry.GetTypeMetadata(type, true);
+        typeRegistry.RegisterType(type, surrogateType);
     }
 
     /// <summary> Serializes an object graph to a stream. </summary>

@@ -89,7 +89,7 @@ internal static class SerializationDelegateFactory
     private static void SerializeBoxedStruct(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
     {
         TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
-        object obj = objectMetadata.Value!;
+        object obj = objectMetadata.SerializedValue!;
 
         if (obj is ISerializationListener listener)
             listener.OnBeforeSerialize();
@@ -123,7 +123,7 @@ internal static class SerializationDelegateFactory
 
     private static void SerializeArray(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
     {
-        Array array = (Array)objectMetadata.Value!;
+        Array array = (Array)objectMetadata.SerializedValue!;
         TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
         for (int arrayIdx = 0; arrayIdx < array.Length; arrayIdx++)
@@ -135,7 +135,7 @@ internal static class SerializationDelegateFactory
 
     private static void SerializeList(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
     {
-        IList list = (IList)objectMetadata.Value!;
+        IList list = (IList)objectMetadata.SerializedValue!;
         TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
         for (int itemIdx = 0; itemIdx < list.Count; itemIdx++)
@@ -147,7 +147,7 @@ internal static class SerializationDelegateFactory
 
     private static void SerializeHashSet(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
     {
-        IEnumerable set = (IEnumerable)objectMetadata.Value!;
+        IEnumerable set = (IEnumerable)objectMetadata.SerializedValue!;
         TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
         foreach (object item in set)
@@ -156,7 +156,7 @@ internal static class SerializationDelegateFactory
 
     private static void SerializeDictionary(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
     {
-        IDictionary dict = (IDictionary)objectMetadata.Value!;
+        IDictionary dict = (IDictionary)objectMetadata.SerializedValue!;
         TypeMetadata typeMetadata = objectMetadata.TypeMetadata;
 
         foreach (DictionaryEntry entry in dict)
@@ -168,7 +168,7 @@ internal static class SerializationDelegateFactory
 
     private static void SerializeNormalClass(ObjectMetadata objectMetadata, SerializationContext context, BinaryWriter writer)
     {
-        object obj = objectMetadata.Value!;
+        object obj = objectMetadata.SerializedValue!;
         TypeMetadata? typeMetadata = objectMetadata.TypeMetadata;
 
         if (obj is ISerializationListener listener)
