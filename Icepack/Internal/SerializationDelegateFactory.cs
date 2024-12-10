@@ -107,7 +107,14 @@ internal static class SerializationDelegateFactory
     /// <summary> Serializes a struct field. </summary>
     private static void SerializeStruct(object? obj, SerializationContext context, BinaryWriter writer, TypeMetadata? typeMetadata)
     {
-        if (obj is ISerializationListener listener)
+        object serializedObj = obj!;
+        if (typeMetadata!.HasSurrogate)
+        {
+            serializedObj = typeMetadata.CreateClassOrStruct!();
+            ((ISerializationSurrogate)serializedObj).Record(obj!);
+        }
+
+        if (serializedObj is ISerializationListener listener)
             listener.OnBeforeSerialize();
 
         // typeMetadata will not be null due to optimizations
@@ -116,7 +123,7 @@ internal static class SerializationDelegateFactory
         for (int fieldIdx = 0; fieldIdx < typeMetadata.Fields!.Count; fieldIdx++)
         {
             FieldMetadata field = typeMetadata.Fields[fieldIdx];
-            object value = field.Getter!(obj!);
+            object value = field.Getter!(serializedObj);
             field.Serialize!(value, context, writer, field.TypeMetadata);
         }
     }

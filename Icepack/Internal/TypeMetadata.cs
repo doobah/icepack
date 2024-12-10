@@ -305,7 +305,7 @@ internal sealed class TypeMetadata
     /// <param name="type"> The type. </param>
     /// <param name="typeRegistry"> The type registry. </param>
     /// <param name="settings"> Options that control how objects of this type are serialized. </param>
-    public TypeMetadata(Type type, Type? surrogateType, TypeRegistry typeRegistry)
+    public TypeMetadata(Type type, TypeMetadata? surrogateTypeMetadata, TypeRegistry typeRegistry)
     {
         ParentTypeMetadata = null;
         Fields = [];
@@ -330,7 +330,7 @@ internal sealed class TypeMetadata
         EnumUnderlyingTypeMetadata = null;
 
         Type = type;
-        SerializedType = surrogateType ?? type;
+        SerializedType = surrogateTypeMetadata?.Type ?? type;
         Category = Utils.GetTypeCategory(SerializedType);
         SerializeReferenceType = SerializationDelegateFactory.GetReferenceTypeOperation(Category);
         DeserializeReferenceType = DeserializationDelegateFactory.GetReferenceTypeOperation(Category);

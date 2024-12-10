@@ -33,6 +33,7 @@ internal sealed class TypeRegistry
         if (Utils.IsUnsupportedType(type))
             throw new IcepackException($"Unsupported type: {type}");
 
+        TypeMetadata? surrogateTypeMetadata = null;
         if (surrogateType != null)
         {
             if (Utils.IsUnsupportedType(surrogateType))
@@ -51,6 +52,10 @@ internal sealed class TypeRegistry
 
             if (surrogateType == type)
                 throw new IcepackException($"Surrogate type and original type: {surrogateType} cannot be the same");
+
+            surrogateTypeMetadata = GetTypeMetadata(surrogateType);
+            if (surrogateTypeMetadata.HasSurrogate)
+                throw new IcepackException($"Invalid surrogate type: {surrogateType}. Surrogate type must not have a surrogate.");
         }
 
         // Treat all type values as instances of Type, for simplicity.
@@ -60,7 +65,7 @@ internal sealed class TypeRegistry
         if (types.ContainsKey(type))
             return;
 
-        TypeMetadata newTypeMetadata = new(type, surrogateType, this);
+        TypeMetadata newTypeMetadata = new(type, surrogateTypeMetadata, this);
         types.Add(type, newTypeMetadata);
     }
 
