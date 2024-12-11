@@ -104,6 +104,9 @@ internal sealed class TypeMetadata
     /// <summary> The actual type that is serialized. This is the surrogate type if one is set, otherwise it is the original type. </summary>
     public Type? SerializedType { get; init; }
 
+    /// <summary> The metadata for the surrogate type. </summary>
+    public TypeMetadata? SurrogateTypeMetadata { get; init; }
+
     /// <summary> Only used for enum types. This is metadata for the underlying type. </summary>
     public TypeMetadata? EnumUnderlyingTypeMetadata { get; init; }
 
@@ -183,7 +186,7 @@ internal sealed class TypeMetadata
     public int InstanceSize { get; private set; }
 
     /// <summary> Whether this type has a surrogate type. </summary>
-    public bool HasSurrogate { get { return Type != SerializedType; } }
+    public bool HasSurrogate { get { return SurrogateTypeMetadata != null; } }
 
     /// <summary> Called during serialization. Creates new type metadata for the serialization context. </summary>
     /// <param name="registeredTypeMetadata"> The metadata for the type retrieved from the type registry. </param>
@@ -210,6 +213,7 @@ internal sealed class TypeMetadata
 
         Type = registeredTypeMetadata.Type;
         SerializedType = registeredTypeMetadata.SerializedType;
+        SurrogateTypeMetadata = registeredTypeMetadata.SurrogateTypeMetadata;
         Category = registeredTypeMetadata.Category;
         ItemSize = registeredTypeMetadata.ItemSize;
         KeySize = registeredTypeMetadata.KeySize;
@@ -260,6 +264,7 @@ internal sealed class TypeMetadata
         {
             Type = null;
             SerializedType = null;
+            SurrogateTypeMetadata = null;
             Fields = null;
             HashSetAdder = null;
             DeserializeKey = null;
@@ -273,6 +278,7 @@ internal sealed class TypeMetadata
         {
             Type = registeredTypeMetadata.Type;
             SerializedType = registeredTypeMetadata.SerializedType;
+            SurrogateTypeMetadata = registeredTypeMetadata.SurrogateTypeMetadata;
 
             if (fieldNames == null)
                 Fields = null;
@@ -330,6 +336,7 @@ internal sealed class TypeMetadata
         EnumUnderlyingTypeMetadata = null;
 
         Type = type;
+        SurrogateTypeMetadata = surrogateTypeMetadata;
         SerializedType = surrogateTypeMetadata?.Type ?? type;
         Category = Utils.GetTypeCategory(SerializedType);
         SerializeReferenceType = SerializationDelegateFactory.GetReferenceTypeOperation(Category);
@@ -388,7 +395,7 @@ internal sealed class TypeMetadata
                     PopulateFields(typeRegistry);
                     PopulateSize();
                     CreateClassOrStruct = BuildClassOrStructCreator();
-                    if (Type != SerializedType)
+                    if (HasSurrogate)
                         CreateActualClassOrStruct = BuildActualClassOrStructCreator();
                     break;
                 }
@@ -399,7 +406,7 @@ internal sealed class TypeMetadata
                     if (!SerializedType.IsAbstract)
                     {
                         CreateClassOrStruct = BuildClassOrStructCreator();
-                        if (Type != SerializedType)
+                        if (HasSurrogate)
                             CreateActualClassOrStruct = BuildActualClassOrStructCreator();
                     }
                     break;

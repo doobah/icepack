@@ -32,6 +32,30 @@ internal class SerializableClass
 }
 
 [SerializableType]
+internal struct StructWithStruct
+{
+    public SerializableStruct Field;
+}
+
+[SerializableType]
+internal struct StructWithClass
+{
+    public SerializableClass Field;
+}
+
+[SerializableType]
+internal struct ClassWithStruct
+{
+    public SerializableStruct Field;
+}
+
+[SerializableType]
+internal struct ClassWithClass
+{
+    public SerializableClass Field;
+}
+
+[SerializableType]
 internal class HierarchicalObject
 {
     public int Field1;
@@ -391,9 +415,9 @@ internal class SurrogateClass : ISerializationSurrogate
 
     public void Record(object obj)
     {
-        SerializableClass objToSave = (SerializableClass)obj;
-        Field1 = (objToSave.Field1 + 1).ToString();
-        Field2 = (objToSave.Field2 + 1).ToString();
+        SerializableClass objToRecord = (SerializableClass)obj;
+        Field1 = (objToRecord.Field1 + 1).ToString();
+        Field2 = (objToRecord.Field2 + 1).ToString();
     }
 
     public object Restore(object obj)
@@ -402,6 +426,67 @@ internal class SurrogateClass : ISerializationSurrogate
         objToRestore.Field1 = int.Parse(Field1!);
         objToRestore.Field2 = int.Parse(Field2!);
         return objToRestore;
+    }
+}
+
+internal class ClassWithOriginalAndSurrogateFields
+{
+    public SerializableClass? Original;
+    public SurrogateClass? Surrogate;
+}
+
+[SerializableType]
+internal class SerializableSurrogateClass : ISerializationSurrogate
+{
+    public string? Field1;
+    public string? Field2;
+
+    public void Record(object obj)
+    {
+        SerializableClass objToRecord = (SerializableClass)obj;
+        Field1 = (objToRecord.Field1 + 1).ToString();
+        Field2 = (objToRecord.Field2 + 1).ToString();
+    }
+
+    public object Restore(object obj)
+    {
+        SerializableClass objToRestore = (SerializableClass)obj;
+        objToRestore.Field1 = int.Parse(Field1!);
+        objToRestore.Field2 = int.Parse(Field2!);
+        return objToRestore;
+    }
+}
+
+[SerializableType]
+internal class SurrogateClassContainingOriginalClass : ISerializationSurrogate
+{
+    public SerializableClass? Field;
+
+    public void Record(object obj)
+    {
+        SerializableClass objToRecord = (SerializableClass)obj;
+        Field = new SerializableClass();
+        Field.Field1 = objToRecord.Field1 + 1;
+        Field.Field2 = objToRecord.Field2 + 1;
+    }
+
+    public object Restore(object obj)
+    {
+        SerializableClass objToRestore = (SerializableClass)obj;
+        objToRestore.Field1 = Field!.Field1;
+        objToRestore.Field2 = Field!.Field2;
+        return objToRestore;
+    }
+}
+
+[SerializableType]
+internal class RegisteredSurrogateClass : ISerializationSurrogate
+{
+    public void Record(object obj) { }
+    
+    public object Restore(object obj)
+    {
+        return obj;
     }
 }
 
