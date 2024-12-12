@@ -62,8 +62,15 @@ internal sealed class TypeRegistry
         if (type.IsSubclassOf(typeof(Type)))
             return;
 
-        if (types.ContainsKey(type))
+        if (types.TryGetValue(type, out TypeMetadata? existingTypeMetadata))
+        {
+            if (existingTypeMetadata.HasSurrogate && surrogateType == null)
+                throw new IcepackException($"Attempted to register type: {type} without surrogate while type is already registered with surrogate.");
+            else if (!existingTypeMetadata.HasSurrogate && surrogateType != null)
+                throw new IcepackException($"Attempted to register type: {type} with surrogate while type is already registered without surrogate.");
+
             return;
+        }
 
         TypeMetadata newTypeMetadata = new(type, surrogateTypeMetadata, this);
         types.Add(type, newTypeMetadata);

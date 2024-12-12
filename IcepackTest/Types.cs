@@ -458,6 +458,28 @@ internal class SerializableSurrogateClass : ISerializationSurrogate
 }
 
 [SerializableType]
+internal struct SurrogateStructContainingOriginalStruct: ISerializationSurrogate
+{
+    public SerializableStruct Field;
+
+    public void Record(object obj)
+    {
+        SerializableStruct objToRecord = (SerializableStruct)obj;
+        Field = new SerializableStruct();
+        Field.Field1 = objToRecord.Field1 + 1;
+        Field.Field2 = objToRecord.Field2 + 1;
+    }
+
+    public object Restore(object obj)
+    {
+        SerializableStruct objToRestore = (SerializableStruct)obj;
+        objToRestore.Field1 = Field!.Field1;
+        objToRestore.Field2 = Field!.Field2;
+        return objToRestore;
+    }
+}
+
+[SerializableType]
 internal class SurrogateClassContainingOriginalClass : ISerializationSurrogate
 {
     public SerializableClass? Field;

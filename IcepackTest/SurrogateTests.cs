@@ -51,6 +51,12 @@ public class SurrogateTests
             serializer.RegisterType(typeof(SerializableClass), typeof(SurrogateClass));
         });
 
+        // Registering original struct with surrogate struct that contains original struct will throw an error
+        Assert.Throws<IcepackException>(() => {
+            Serializer serializer = new();
+            serializer.RegisterType(typeof(SerializableStruct), typeof(SurrogateStructContainingOriginalStruct));
+        });
+
         // Surrogate type will be lazy-registered if marked as serializable
         Assert.DoesNotThrow(() => {
             Serializer serializer = new();
@@ -436,24 +442,19 @@ public class SurrogateTests
     }
 
     [Test]
-    public void SurrogateContainsOriginalType()
+    public void SurrogateContainingOriginalTypeShouldExceedSerializationDepth()
     {
-        /*
         Serializer serializer = new();
         serializer.RegisterType(typeof(SerializableClass), typeof(SurrogateClassContainingOriginalClass));
 
         SerializableClass obj = new() { Field1 = 1, Field2 = 2 };
 
         MemoryStream stream = new();
-        serializer.Serialize(obj, stream);
-        stream.Position = 0;
-        SerializableClass? deserializedObj = serializer.Deserialize<SerializableClass>(stream);
+        // Original type gets swapped with surrogate which has nested original type that gets swapped, ad infinitum
+        Assert.Throws<IcepackException>(() => {
+            serializer.Serialize(obj, stream);
+        });
         stream.Close();
-
-        Assert.That(deserializedObj, Is.Not.Null);
-        Assert.That(deserializedObj!.Field1, Is.EqualTo(2));
-        Assert.That(deserializedObj.Field2, Is.EqualTo(3));
-        */
     }
 
     [Test]

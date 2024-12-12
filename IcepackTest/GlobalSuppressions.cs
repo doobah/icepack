@@ -6,3 +6,4 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Style", "IDE0017:Simplify object initialization", Justification = "<Pending>", Scope = "namespaceanddescendants", Target = "~N:IcepackTest")]
+[assembly: SuppressMessage("Style", "IDE0251:Make member 'readonly'", Justification = "<Pending>", Scope = "namespaceanddescendants", Target = "~N:IcepackTest")]

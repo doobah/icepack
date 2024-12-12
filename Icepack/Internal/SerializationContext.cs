@@ -11,6 +11,18 @@ namespace Icepack.Internal;
 /// <summary> Contains state information for the current serialization process. </summary>
 internal sealed class SerializationContext
 {
+    /// <summary> The type registry. </summary>
+    private readonly TypeRegistry typeRegistry;
+
+    /// <summary> The serializer settings. </summary>
+    private readonly SerializerSettings settings;
+
+    /// <summary> Keeps track of the largest assigned object ID. </summary>
+    private uint largestObjectId;
+
+    /// <summary> Keeps track of the largest assigned type ID. </summary>
+    private uint largestTypeId;
+
     /// <summary> Maps a type to metadata about the type. </summary>
     public Dictionary<Type, TypeMetadata> Types { get; }
 
@@ -25,18 +37,6 @@ internal sealed class SerializationContext
 
     /// <summary> The nesting depth of the object currently being serialized. </summary>
     public int CurrentDepth { get; set; }
-
-    /// <summary> The type registry. </summary>
-    private readonly TypeRegistry typeRegistry;
-
-    /// <summary> The serializer settings. </summary>
-    private readonly SerializerSettings settings;
-
-    /// <summary> Keeps track of the largest assigned object ID. </summary>
-    private uint largestObjectId;
-
-    /// <summary> Keeps track of the largest assigned type ID. </summary>
-    private uint largestTypeId;
 
     /// <summary> Creates a new serialization context. </summary>
     /// <param name="typeRegistry"> The serializer's type registry. </param>
@@ -108,7 +108,7 @@ internal sealed class SerializationContext
         ObjectMetadata newObjMetadata = new(newId, typeMetadata, length, obj, serializedObj, CurrentDepth + 1);
         if (settings.PreserveReferences)
             Objects.Add(obj, newObjMetadata);
-        else if (CurrentDepth > settings.MaxDepth)
+        if (CurrentDepth > settings.MaxDepth)
             throw new IcepackException($"Exceeded maximum depth while serializing: ${obj}");
         ObjectsInOrder.Add(newObjMetadata);
 

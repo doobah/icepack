@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Reflection;
 using System.IO;
+using System.Runtime.Serialization.Formatters;
 
 namespace Icepack.Internal;
 
@@ -100,9 +101,6 @@ internal sealed class TypeMetadata
 
     /// <summary> The type. </summary>
     public Type? Type { get; init; }
-
-    /// <summary> The actual type that is serialized. This is the surrogate type if one is set, otherwise it is the original type. </summary>
-    public Type? SerializedType { get; init; }
 
     /// <summary> The metadata for the surrogate type. </summary>
     public TypeMetadata? SurrogateTypeMetadata { get; init; }
@@ -212,7 +210,6 @@ internal sealed class TypeMetadata
         FieldsByPreviousName = fieldsByPreviousName;
 
         Type = registeredTypeMetadata.Type;
-        SerializedType = registeredTypeMetadata.SerializedType;
         SurrogateTypeMetadata = registeredTypeMetadata.SurrogateTypeMetadata;
         Category = registeredTypeMetadata.Category;
         ItemSize = registeredTypeMetadata.ItemSize;
@@ -263,7 +260,6 @@ internal sealed class TypeMetadata
         if (registeredTypeMetadata == null)
         {
             Type = null;
-            SerializedType = null;
             SurrogateTypeMetadata = null;
             Fields = null;
             HashSetAdder = null;
@@ -277,7 +273,6 @@ internal sealed class TypeMetadata
         else
         {
             Type = registeredTypeMetadata.Type;
-            SerializedType = registeredTypeMetadata.SerializedType;
             SurrogateTypeMetadata = registeredTypeMetadata.SurrogateTypeMetadata;
 
             if (fieldNames == null)
@@ -337,87 +332,115 @@ internal sealed class TypeMetadata
 
         Type = type;
         SurrogateTypeMetadata = surrogateTypeMetadata;
-        SerializedType = surrogateTypeMetadata?.Type ?? type;
-        Category = Utils.GetTypeCategory(SerializedType);
-        SerializeReferenceType = SerializationDelegateFactory.GetReferenceTypeOperation(Category);
-        DeserializeReferenceType = DeserializationDelegateFactory.GetReferenceTypeOperation(Category);
 
-        switch (Category)
+        if (HasSurrogate)
         {
-            case TypeCategory.Immutable:
-                {
-                    SerializeImmutable = SerializationDelegateFactory.GetImmutableOperation(SerializedType);
-                    DeserializeImmutable = DeserializationDelegateFactory.GetImmutableOperation(SerializedType);
-                    break;
-                }
-            case TypeCategory.Array:
-                {
-                    Type elementType = SerializedType.GetElementType()!;
-                    SerializeItem = SerializationDelegateFactory.GetFieldOperation(elementType);
-                    DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(elementType);
-                    ItemSize = FieldSizeFactory.GetFieldSize(elementType, typeRegistry);
-                    break;
-                }
-            case TypeCategory.List:
-                {
-                    Type itemType = SerializedType.GenericTypeArguments[0];
-                    SerializeItem = SerializationDelegateFactory.GetFieldOperation(itemType);
-                    DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(itemType);
-                    ItemSize = FieldSizeFactory.GetFieldSize(itemType, typeRegistry);
-                    CreateCollection = BuildCollectionCreator();
-                    break;
-                }
-            case TypeCategory.HashSet:
-                {
-                    Type itemType = SerializedType.GenericTypeArguments[0];
-                    SerializeItem = SerializationDelegateFactory.GetFieldOperation(itemType);
-                    DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(itemType);
-                    ItemSize = FieldSizeFactory.GetFieldSize(itemType, typeRegistry);
-                    HashSetAdder = BuildHashSetAdder();
-                    CreateCollection = BuildCollectionCreator();
-                    break;
-                }
-            case TypeCategory.Dictionary:
-                {
-                    Type keyType = SerializedType.GenericTypeArguments[0];
-                    SerializeKey = SerializationDelegateFactory.GetFieldOperation(keyType);
-                    DeserializeKey = DeserializationDelegateFactory.GetFieldOperation(keyType);
-                    KeySize = FieldSizeFactory.GetFieldSize(keyType, typeRegistry);
-                    Type valueType = SerializedType.GenericTypeArguments[1];
-                    SerializeItem = SerializationDelegateFactory.GetFieldOperation(valueType);
-                    DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(valueType);
-                    ItemSize = FieldSizeFactory.GetFieldSize(valueType, typeRegistry);
-                    CreateCollection = BuildCollectionCreator();
-                    break;
-                }
-            case TypeCategory.Struct:
-                {
-                    PopulateFields(typeRegistry);
-                    PopulateSize();
-                    CreateClassOrStruct = BuildClassOrStructCreator();
-                    if (HasSurrogate)
-                        CreateActualClassOrStruct = BuildActualClassOrStructCreator();
-                    break;
-                }
-            case TypeCategory.Class:
-                {
-                    PopulateFields(typeRegistry);
-                    PopulateSize();
-                    if (!SerializedType.IsAbstract)
+            Category = SurrogateTypeMetadata!.Category;
+            SerializeReferenceType = SurrogateTypeMetadata.SerializeReferenceType;
+            DeserializeReferenceType = SurrogateTypeMetadata.DeserializeReferenceType;
+            SerializeImmutable = SurrogateTypeMetadata.SerializeImmutable;
+            DeserializeImmutable = SurrogateTypeMetadata.DeserializeImmutable;
+            SerializeItem = SurrogateTypeMetadata.SerializeItem;
+            DeserializeItem = SurrogateTypeMetadata.DeserializeItem;
+            ItemSize = SurrogateTypeMetadata.ItemSize;
+            CreateCollection = SurrogateTypeMetadata.CreateCollection;
+            HashSetAdder = SurrogateTypeMetadata.HashSetAdder;
+            SerializeKey = SurrogateTypeMetadata.SerializeKey;
+            DeserializeKey = SurrogateTypeMetadata.DeserializeKey;
+            KeySize = SurrogateTypeMetadata.KeySize;
+            SerializeItem = SurrogateTypeMetadata.SerializeItem;
+            DeserializeItem = SurrogateTypeMetadata.DeserializeItem;
+            FieldsByName = SurrogateTypeMetadata.FieldsByName;
+            FieldsByPreviousName = SurrogateTypeMetadata.FieldsByPreviousName;
+            Fields = SurrogateTypeMetadata.Fields;
+            InstanceSize = SurrogateTypeMetadata.InstanceSize;
+            CreateClassOrStruct = SurrogateTypeMetadata.CreateClassOrStruct;
+
+            CreateActualClassOrStruct = BuildActualClassOrStructCreator();
+        }
+        else
+        {
+            Category = Utils.GetTypeCategory(Type);
+            SerializeReferenceType = SerializationDelegateFactory.GetReferenceTypeOperation(Category);
+            DeserializeReferenceType = DeserializationDelegateFactory.GetReferenceTypeOperation(Category);
+
+            switch (Category)
+            {
+                case TypeCategory.Immutable:
                     {
+                        SerializeImmutable = SerializationDelegateFactory.GetImmutableOperation(Type);
+                        DeserializeImmutable = DeserializationDelegateFactory.GetImmutableOperation(Type);
+                        break;
+                    }
+                case TypeCategory.Array:
+                    {
+                        Type elementType = Type.GetElementType()!;
+                        SerializeItem = SerializationDelegateFactory.GetFieldOperation(elementType);
+                        DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(elementType);
+                        ItemSize = FieldSizeFactory.GetFieldSize(elementType, typeRegistry);
+                        break;
+                    }
+                case TypeCategory.List:
+                    {
+                        Type itemType = Type.GenericTypeArguments[0];
+                        SerializeItem = SerializationDelegateFactory.GetFieldOperation(itemType);
+                        DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(itemType);
+                        ItemSize = FieldSizeFactory.GetFieldSize(itemType, typeRegistry);
+                        CreateCollection = BuildCollectionCreator();
+                        break;
+                    }
+                case TypeCategory.HashSet:
+                    {
+                        Type itemType = Type.GenericTypeArguments[0];
+                        SerializeItem = SerializationDelegateFactory.GetFieldOperation(itemType);
+                        DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(itemType);
+                        ItemSize = FieldSizeFactory.GetFieldSize(itemType, typeRegistry);
+                        HashSetAdder = BuildHashSetAdder();
+                        CreateCollection = BuildCollectionCreator();
+                        break;
+                    }
+                case TypeCategory.Dictionary:
+                    {
+                        Type keyType = Type.GenericTypeArguments[0];
+                        SerializeKey = SerializationDelegateFactory.GetFieldOperation(keyType);
+                        DeserializeKey = DeserializationDelegateFactory.GetFieldOperation(keyType);
+                        KeySize = FieldSizeFactory.GetFieldSize(keyType, typeRegistry);
+                        Type valueType = Type.GenericTypeArguments[1];
+                        SerializeItem = SerializationDelegateFactory.GetFieldOperation(valueType);
+                        DeserializeItem = DeserializationDelegateFactory.GetFieldOperation(valueType);
+                        ItemSize = FieldSizeFactory.GetFieldSize(valueType, typeRegistry);
+                        CreateCollection = BuildCollectionCreator();
+                        break;
+                    }
+                case TypeCategory.Struct:
+                    {
+                        PopulateFields(typeRegistry);
+                        PopulateSize();
                         CreateClassOrStruct = BuildClassOrStructCreator();
                         if (HasSurrogate)
                             CreateActualClassOrStruct = BuildActualClassOrStructCreator();
+                        break;
                     }
-                    break;
-                }
-            case TypeCategory.Enum:
-            case TypeCategory.Type:
-                {
-                    break;
-                }
-            default:
-                throw new IcepackException($"Invalid type category: {Category}");
+                case TypeCategory.Class:
+                    {
+                        PopulateFields(typeRegistry);
+                        PopulateSize();
+                        if (!Type.IsAbstract)
+                        {
+                            CreateClassOrStruct = BuildClassOrStructCreator();
+                            if (HasSurrogate)
+                                CreateActualClassOrStruct = BuildActualClassOrStructCreator();
+                        }
+                        break;
+                    }
+                case TypeCategory.Enum:
+                case TypeCategory.Type:
+                    {
+                        break;
+                    }
+                default:
+                    throw new IcepackException($"Invalid type category: {Category}");
+            }
         }
     }
 
@@ -426,7 +449,7 @@ internal sealed class TypeMetadata
     /// <param name="settings">  </param>
     private void PopulateFields(TypeRegistry typeRegistry)
     {
-        foreach (FieldInfo fieldInfo in SerializedType!.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+        foreach (FieldInfo fieldInfo in Type!.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
         {
             if (Utils.IsUnsupportedType(fieldInfo.FieldType))
                 continue;
@@ -472,11 +495,11 @@ internal sealed class TypeMetadata
     /// <returns> The delegate. </returns>
     private Action<object, object> BuildHashSetAdder()
     {
-        MethodInfo methodInfo = SerializedType!.GetMethod("Add")!;
-        Type itemType = SerializedType.GetGenericArguments()[0];
+        MethodInfo methodInfo = Type!.GetMethod("Add")!;
+        Type itemType = Type.GetGenericArguments()[0];
 
         ParameterExpression exInstance = Expression.Parameter(typeof(object));
-        UnaryExpression exConvertInstanceToDeclaringType = Expression.Convert(exInstance, SerializedType);
+        UnaryExpression exConvertInstanceToDeclaringType = Expression.Convert(exInstance, Type);
         ParameterExpression exValue = Expression.Parameter(typeof(object));
         UnaryExpression exConvertValueToItemType = Expression.Convert(exValue, itemType);
         MethodCallExpression exAdd = Expression.Call(exConvertInstanceToDeclaringType, methodInfo, exConvertValueToItemType);
@@ -493,11 +516,11 @@ internal sealed class TypeMetadata
         NewExpression exNew;
         try
         {
-            exNew = Expression.New(SerializedType!);
+            exNew = Expression.New(Type!);
         }
         catch (ArgumentException)
         {
-            throw new IcepackException($"Type '{SerializedType}' does not have a default constructor!");
+            throw new IcepackException($"Type '{Type}' does not have a default constructor!");
         }
 
         UnaryExpression exConvert = Expression.Convert(exNew, typeof(object));
@@ -533,7 +556,7 @@ internal sealed class TypeMetadata
     private Func<int, object> BuildCollectionCreator()
     {
         ConstructorInfo constructor =
-            SerializedType!.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(int) ], null)!;
+            Type!.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(int) ], null)!;
         ParameterExpression exParam = Expression.Parameter(typeof(int));
         NewExpression exNew = Expression.New(constructor, exParam);
         UnaryExpression exConvert = Expression.Convert(exNew, typeof(object));
