@@ -460,7 +460,23 @@ public class SurrogateTests
     [Test]
     public void SurrogateOfAGenericTypeParameterType()
     {
-        // TODO: Implement
+        Serializer serializer = new();
+        serializer.RegisterType(typeof(SurrogateClass));
+        serializer.RegisterType(typeof(SerializableClass), typeof(SurrogateClass));
+        serializer.RegisterType(typeof(GenericClass<SerializableClass>));
+
+        GenericClass<SerializableClass> obj = new() { Field = new() { Field1 = 1, Field2 = 2 } };
+
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        GenericClass<SerializableClass>? deserializedObj = serializer.Deserialize<GenericClass<SerializableClass>>(stream);
+        stream.Close();
+
+        Assert.That(deserializedObj, Is.Not.Null);
+        Assert.That(deserializedObj!.Field, Is.Not.Null);
+        Assert.That(deserializedObj.Field!.Field1, Is.EqualTo(2));
+        Assert.That(deserializedObj.Field.Field2, Is.EqualTo(3));
     }
 
     [Test]
