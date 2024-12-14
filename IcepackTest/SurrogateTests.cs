@@ -482,12 +482,63 @@ public class SurrogateTests
     [Test]
     public void SurrogateOfAChildClass()
     {
-        // TODO: Implement
+        Serializer serializer = new();
+        serializer.RegisterType(typeof(BaseClass));
+        serializer.RegisterType(typeof(SurrogateDerivedClass));
+        serializer.RegisterType(typeof(DerivedClass), typeof(SurrogateDerivedClass));
+
+        DerivedClass obj = new() { FieldBase = 1, FieldDerived = 1 };
+
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        DerivedClass? deserializedObj = serializer.Deserialize<DerivedClass>(stream);
+        stream.Close();
+
+        Assert.That(deserializedObj, Is.Not.Null);
+        // Surrogate is applied when serializing derived class, so base class fields are never serialized
+        Assert.That(deserializedObj!.FieldBase, Is.EqualTo(0));
+        Assert.That(deserializedObj.FieldDerived, Is.EqualTo(2));
     }
 
     [Test]
     public void SurrogateOfAParentClass()
     {
-        // TODO: Implement
+        Serializer serializer = new();
+        serializer.RegisterType(typeof(SurrogateBaseClass));
+        serializer.RegisterType(typeof(BaseClass), typeof(SurrogateBaseClass));
+        serializer.RegisterType(typeof(DerivedClass));
+
+        DerivedClass obj = new() { FieldBase = 1, FieldDerived = 1 };
+
+        MemoryStream stream = new();
+        // Non-surrogated object cannot have a surrogate base class
+        Assert.Throws<IcepackException>(() => {
+            serializer.Serialize(obj, stream);
+        });
+        stream.Close();
+    }
+
+    [Test]
+    public void SurrogatedParentAndChildClasses()
+    {
+        Serializer serializer = new();
+        serializer.RegisterType(typeof(SurrogateBaseClass));
+        serializer.RegisterType(typeof(BaseClass), typeof(SurrogateBaseClass));
+        serializer.RegisterType(typeof(SurrogateDerivedClass));
+        serializer.RegisterType(typeof(DerivedClass), typeof(SurrogateDerivedClass));
+
+        DerivedClass obj = new() { FieldBase = 1, FieldDerived = 1 };
+
+        MemoryStream stream = new();
+        serializer.Serialize(obj, stream);
+        stream.Position = 0;
+        DerivedClass? deserializedObj = serializer.Deserialize<DerivedClass>(stream);
+        stream.Close();
+
+        Assert.That(deserializedObj, Is.Not.Null);
+        // Surrogate of base class is not applied
+        Assert.That(deserializedObj!.FieldBase, Is.EqualTo(0));
+        Assert.That(deserializedObj.FieldDerived, Is.EqualTo(2));
     }
 }

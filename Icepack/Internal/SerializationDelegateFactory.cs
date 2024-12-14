@@ -191,6 +191,8 @@ internal static class SerializationDelegateFactory
             }
 
             typeMetadata = typeMetadata.ParentTypeMetadata;
+            if (typeMetadata != null && typeMetadata.HasSurrogate)
+                throw new IcepackException($"Object of non-surrogate type {objectMetadata.TypeMetadata} has surrogate base class {typeMetadata}");
         }
     }
 

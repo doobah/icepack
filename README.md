@@ -33,6 +33,7 @@ It was specifically developed to address limitations that other serialization li
   * A field that was serialized as a reference to an instance of a missing class is ignored.
   * If a class was derived from another class that is now missing or is no longer a base class, the missing or former base class is ignored, and the serializer resumes deserializing fields from further ancestors.
   * The `PreviousName` attribute can be assigned to a field to indicate that the name of the field has changed, so that the correct field will be matched with what is in the serialized data.
+* Surrogate types.
 
 # Limitations
 
@@ -95,4 +96,47 @@ public class ExampleClass : ISerializationListener
     Console.WriteLine("After deserialized.");
   }
 }
+```
+
+## Surrogate Types
+
+A type can be registered with a surrogate type which replaces the original type during serialization/deserialization.
+This is useful when you need to serialize types that you cannot modify.
+
+```
+[SerializableType]
+internal struct SerializableStruct
+{
+  public int Field;
+}
+
+[SerializableType]
+public struct SurrogateStruct : ISerializationSurrogate
+{
+  public int Field;
+
+  public void Record(object obj)
+  {
+    SerializableStruct objToRecord = (SerializableStruct)obj;
+    Field = objToRecord.Field;
+  }
+
+  public object Restore(object obj)
+  {
+    SerializableStruct objToRestore = (SerializableStruct)obj;
+    objToRestore.Field = int.Parse(Field);
+    return objToRestore;
+  }
+}
+
+Serializer serializer = new();
+serializer.RegisterType(typeof(SerializableStruct), typeof(SurrogateStruct));
+
+SerializableStruct obj = new() { Field = 123 };
+
+MemoryStream stream = new();
+serializer.Serialize(obj, stream);
+stream.Position = 0;
+SerializableStruct? deserializedObj = serializer.Deserialize<SerializableStruct>(stream);
+stream.Close();
 ```

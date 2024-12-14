@@ -139,14 +139,16 @@ internal sealed class SerializationContext
         if (registeredTypeMetadata == null)
             throw new IcepackException($"Type {type} is not registered for serialization!");
 
+        Type serializedType = registeredTypeMetadata.HasSurrogate ? registeredTypeMetadata.SurrogateTypeMetadata!.Type! : registeredTypeMetadata.Type!;
+
         TypeMetadata? parentTypeMetadata = null;
-        if (registeredTypeMetadata.Category == TypeCategory.Class && type.BaseType != typeof(object) && type.BaseType != null)
-            parentTypeMetadata = GetTypeMetadata(type.BaseType);
+        if (registeredTypeMetadata.Category == TypeCategory.Class && serializedType.BaseType != typeof(object) && serializedType.BaseType != null)
+            parentTypeMetadata = GetTypeMetadata(serializedType.BaseType);
 
         TypeMetadata? keyTypeMetadata = null;
         if (registeredTypeMetadata.Category == TypeCategory.Dictionary)
         {
-            Type keyType = type.GenericTypeArguments[0];
+            Type keyType = serializedType.GenericTypeArguments[0];
             if (keyType.IsValueType)
                 keyTypeMetadata = GetTypeMetadata(keyType);
         }
@@ -156,28 +158,28 @@ internal sealed class SerializationContext
         {
             case TypeCategory.Array:
                 {
-                    Type itemType = type.GetElementType()!;
+                    Type itemType = serializedType.GetElementType()!;
                     if (itemType.IsValueType)
                         itemTypeMetadata = GetTypeMetadata(itemType);
                     break;
                 }
             case TypeCategory.List:
                 {
-                    Type itemType = type.GenericTypeArguments[0];
+                    Type itemType = serializedType.GenericTypeArguments[0];
                     if (itemType.IsValueType)
                         itemTypeMetadata = GetTypeMetadata(itemType);
                     break;
                 }
             case TypeCategory.HashSet:
                 {
-                    Type itemType = type.GenericTypeArguments[0];
+                    Type itemType = serializedType.GenericTypeArguments[0];
                     if (itemType.IsValueType)
                         itemTypeMetadata = GetTypeMetadata(itemType);
                     break;
                 }
             case TypeCategory.Dictionary:
                 {
-                    Type itemType = type.GenericTypeArguments[1];
+                    Type itemType = serializedType.GenericTypeArguments[1];
                     if (itemType.IsValueType)
                         itemTypeMetadata = GetTypeMetadata(itemType);
                     break;

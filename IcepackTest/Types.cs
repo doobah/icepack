@@ -394,9 +394,9 @@ internal struct SurrogateStruct : ISerializationSurrogate
 
     public void Record(object obj)
     {
-        SerializableStruct objToSave = (SerializableStruct)obj;
-        Field1 = (objToSave.Field1 + 1).ToString();
-        Field2 = (objToSave.Field2 + 1).ToString();
+        SerializableStruct objToRecord = (SerializableStruct)obj;
+        Field1 = (objToRecord.Field1 + 1).ToString();
+        Field2 = (objToRecord.Field2 + 1).ToString();
     }
 
     public object Restore(object obj)
@@ -508,6 +508,44 @@ internal class RegisteredSurrogateClass : ISerializationSurrogate
     
     public object Restore(object obj)
     {
+        return obj;
+    }
+}
+
+[SerializableType]
+internal class SurrogateBaseClass : ISerializationSurrogate
+{
+    public int FieldBase;
+
+    public void Record(object obj)
+    {
+        BaseClass baseClass = (BaseClass)obj;
+        FieldBase = baseClass.FieldBase;
+    }
+
+    public object Restore(object obj)
+    {
+        BaseClass baseClass = (BaseClass)obj;
+        baseClass.FieldBase = FieldBase + 1;
+        return obj;
+    }
+}
+
+[SerializableType]
+internal class SurrogateDerivedClass : SurrogateBaseClass, ISerializationSurrogate
+{
+    public int FieldDerived;
+
+    public new void Record(object obj)
+    {
+        DerivedClass derivedClass = (DerivedClass)obj;
+        FieldDerived = derivedClass.FieldDerived;
+    }
+
+    public new object Restore(object obj)
+    {
+        DerivedClass derivedClass = (DerivedClass)obj;
+        derivedClass.FieldDerived = FieldDerived + 1;
         return obj;
     }
 }

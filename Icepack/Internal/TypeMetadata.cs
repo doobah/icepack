@@ -308,6 +308,9 @@ internal sealed class TypeMetadata
     /// <param name="settings"> Options that control how objects of this type are serialized. </param>
     public TypeMetadata(Type type, TypeMetadata? surrogateTypeMetadata, TypeRegistry typeRegistry)
     {
+        Type = type;
+        SurrogateTypeMetadata = surrogateTypeMetadata;
+
         ParentTypeMetadata = null;
         Fields = [];
         FieldsByName = [];
@@ -329,9 +332,6 @@ internal sealed class TypeMetadata
         InstanceSize = 0;
         Id = 0;
         EnumUnderlyingTypeMetadata = null;
-
-        Type = type;
-        SurrogateTypeMetadata = surrogateTypeMetadata;
 
         if (HasSurrogate)
         {
@@ -622,5 +622,13 @@ internal sealed class TypeMetadata
             default:
                 throw new IcepackException($"Invalid category ID: {Category}");
         }
+    }
+
+    public override string ToString()
+    {
+        if (HasSurrogate)
+            return $"{Type} ({SurrogateTypeMetadata!.Type})";
+        else
+            return $"{Type}";
     }
 }
