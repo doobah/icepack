@@ -91,7 +91,12 @@ public class ExampleClass : ISerializationListener
 ## Surrogate Types
 
 A type can be registered with a surrogate type which replaces the original type during serialization/deserialization.
-This is useful when you need to serialize types that you cannot modify.
+This is useful when you need to serialize types that you cannot modify. This feature has some limitations, including:
+
+* Only the surrogate of the object type is applied, surrogates of base types are not applied.
+* A surrogate of a reference type must be a reference type, while a surrogate of a value type must be a value type.
+* Surrogate types cannot have surrogate types.
+* A surrogate type cannot reference the original type.
 
 ```
 [SerializableType]
